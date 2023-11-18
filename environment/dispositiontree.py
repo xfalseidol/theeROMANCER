@@ -1,0 +1,95 @@
+class 1DimensionalDispositionTree():
+
+    '''The root node for a one-dimensional disposition tree. The purpose of disposition trees is to provide efficient clustering of items that may have interactions.'''
+
+    def __init__(self, bounds, granularity, gap_width, parent, granularity_reduction_factor = 10, gap_reduction_factor = 1):
+        self.bounds = bounds # tuple containing the left and right bounds of the one-dimensional space
+        self.parent = parent
+        self.children = list() # child nodes of root
+        self.contents = list() # objects currently stored in root
+        self.granularity = granularity
+        self.gap = ((bounds[1] - bounds[0]) / 2 - gap_width / 2, (bounds[1] - bounds[0]) / 2 + gap_width / 2) # gap in which objects that would otherwise be lower in the tree are contents of this node
+
+
+    def find_or_make_child(self, location):
+        '''Find the child into which a location falls, or if it does not exist, create it. Returns that child node.'''
+        if self.gap[0] < location < self.gap[1]:
+            return self
+        else:
+            for child in children:
+                if child.bounds[0] < location < child.bounds[1]:
+                    return child
+            if location <= self.gap[0]:
+                new_bounds = (self.bounds[0], self.gap[0]) # left
+            else:
+                new_bounds = (self.bounds[1], self.gap[1]) # right
+            # new_gap = ((new_bounds[1] - new_bounds[0]) / 2 - (gap_width / gap_reduction_factor) / 2, (new_bounds[1] - new_bounds[0]) / 2 + (gap_width / gap_reduction_factor) / 2)
+            new_child = 1DimensionalDispositionTree(new_bounds, granularity / granularity_reduction_factor, gap_width / gap_reduction_factor, self, granularity_reduction_factor, gap_reduction_factor)
+            self.children.append(new_child)
+            return new_child
+
+
+    def set_disposition(obj, location, granularity):
+        '''This method is intended to accomplish initial placement of an object in the disposition tree. Shifting an object that already exists in the disposition tree should be accomplished using adjust_disposition.'''
+        if self.parent:
+            raise Exception('Cannot set location starting at non-root node.') # TODO: define appropriate Exception class for this
+        else:
+            if self.gap[0] < location < self.gap[1]:
+                self.contents.append(obj)
+                return self
+            else:
+                while child.granularity > granularity:
+                    child = self.find_or_make_child(location, granularity) # returns current node 
+                    if granularity > child.granularity or child.gap[0] < location < child.gap[1]:
+                        child.contents.append(obj)
+                        return child
+                    else:
+                        child = child.find_or_make_child(location)
+
+                        
+    def descendent_nodes(self, nodes):
+        '''Collects all descendent nodes that currently exist of this node.'''
+        for c in self.children:
+            nodes.append(c)
+            c.dependent_nodes(nodes)
+        return nodes
+        
+        
+    def identify_peers(self, obj):
+        '''This method uses the disposition tree to identify all of an object's peers--those objects with which it might interact.'''
+        peers = list() # maybe this should be a set?
+        cur = self
+        while cur.parent: # capture all items in curent node and its ancestors
+            for o in cur.contents:
+                peers.append(o)
+                cur = cur.parent
+        desendents = list()
+        self.descendent_nodes(desendents)
+        for d in desendents:
+            for o in d.contents:
+                peers.append(o)
+        return peers
+        
+        
+    def adjust_disposition(self, obj, location, granularity):
+        '''This method can be called from the node in which an object is currently stored to change its disposition, returning a new_node, set tuple in which the set contains the unique integer ids of those objects with which the object could interact based on their former disposition with which the object no longer can in its new disposition.'''
+        if obj in self.contents:
+            if location in self.gap:
+                return self, set() # same node
+            else:
+                self.contents.remove(obj)
+                old_peers = {o.id for o in self.identify_peers(obj)}
+        else:
+            except Exception:
+                print('Cannot adjust disposition of object not in node.')
+        p = self.parent
+        while p.parent: # find root
+            p = p.parent
+        new_node = p.set_disposition(obj, location, granularity)
+        new_peers = {o.id for o in new_node.identify_peers(obj)}
+        return new_node, old_peers.difference(new_peers)
+        
+            
+        
+
+        
