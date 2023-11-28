@@ -24,8 +24,8 @@ class Supervisor():
         # STEP 1
         self.outbox.append('message deterministic event between self.time and next_time:') # send message to environment telling it to identify soonest deterministic event (if any) between self.time and next_time
         # deterministic events are, for example, disposition changes based on current trajectories
-        self.
-        self.environment.process_inbox() # envioronment generates events
+        self.send_messages()
+        self.environment.process_inbox() # environment generates events
         self.environment.send_messages() # environments sends resulting events back to supervisor
         # Check messages received from children of environment and set next_time to that of the next deterministic event, if it is eceived
         # STEP 2

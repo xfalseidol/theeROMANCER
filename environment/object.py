@@ -1,4 +1,5 @@
 from typing import NamedTuple
+from loglist import Loglist
 
 class RomancerObject():
 
@@ -9,13 +10,21 @@ class RomancerObject():
         self.outbox = list() # list of messages that have not yet been sent
         self.environment = enviornment # ROMANCEREnvironment instance containing object
         self.id = self.environment.register_object(self) # assign unique id to object
+        self.message_index = 1 # increments with each message to assign unique ids
         # objects with children also need to register those children
         self.time = time # current time of simulated object
-        self.history = list() # list of logpoints
+        self.loglist = Loglist() # list of logpoints
 
         # self.dispositions = [self.environment.disposition_tree.set_disposition(self), self.environment.perception_engine.emplace(self)... ]
 
+        
+    def new_message_index(self):
+        '''This method is used to obtain unique integer ids for messages.'''
+        cur = self.message_index
+        self.message_index += 1 # increase message index
+        return cur
 
+    
     def deliver_messages(self, messages):
         '''Place messages in object's inbox.'''
         for message in messages:
@@ -46,12 +55,12 @@ class RomancerObject():
         self.send_messages() # send outgoing messages if necessary
     
 
-    def rewind(time):
+    def rewind(self, time):
         '''This method should use the object's history to revert to its state at time. As this base object has no state to manipulate, all it does is reset the object's time.'''
         self.time = time
 
 
-    def forward_simulation(time):
+    def forward_simulation(self, time):
         '''This method should evolve the object's state forward in time, logging changes as logpoints if necessary. Forward simulation can also generate messages.''' 
         if self.time > time:
             self.rewind(time)
