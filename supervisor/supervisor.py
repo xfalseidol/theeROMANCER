@@ -9,7 +9,7 @@ class Supervisor():
         self.environment = environment
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
-        self.id = 1 # supervisor always has id of 1
+        self.uid = 1 # supervisor always has id of 1
         self.time = 0 # supervisor initializes to simulation time of 0
         self.watchlist = Watchlist()
         self.message_index = 1 # increments with each message to assign unique ids
@@ -40,7 +40,7 @@ class Supervisor():
 
 
     def process_next_watchlist_item(self):
-        '''This method processes the next item on the watchlist. It assumes that the watchlist is up to date and that time enviornment state is synchronized to the same time as that event.'''
+        '''This method processes the next item on the watchlist. It assumes that the watchlist is up to date and that enviornment state is synchronized to the same time as that event.'''
         item = self.watchlist.peek()
         item.process(self) # run code associated with WatchlistItem; this can cause arbitrary changes to environment and supervisor state
         self.logger(self.watchlist.pop()) # pop the just-processed item off of the watchlist and log it if desired
@@ -48,7 +48,7 @@ class Supervisor():
         self.process_inbox() # calls methods that clean up watchlist to remove items depending on dispositions that no longer exist, and possibly to add some that are now possible
         # check for contradictions in environment, if necessary, and fix them if possible--hopefully not necessary when using single thread?
         # PERHAPS BREAK THIS INTO DISTINCT METHOD?
-        new_percepts = self.environment.perception_engine() # check to see if processing the event resulted in percept generation
+        new_percepts = self.environment.perception_engine.run() # check to see if processing the event resulted in percept generation
         # Percepts can be arbitarily complex objects that stay in the environment--not immuntable or hashable
         if new_percepts: # if there are new percepts, these  may result in cogitation leading to future actions
             for percept in new_percepts:

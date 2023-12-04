@@ -19,7 +19,7 @@ class BZeroLogpoint(Logpoint):
 
 
 class TemporalROMANCERMessage(NamedTuple):
-    id: int # unique identifier used for routing message and confirming receipt
+    uid: int # unique identifier used for routing message and confirming receipt
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
@@ -28,7 +28,7 @@ class TemporalROMANCERMessage(NamedTuple):
 
 
 class SpeedROMANCERMessage(NamedTuple):
-    id: int # unique identifier used for routing message and confirming receipt
+    uid: int # unique identifier used for routing message and confirming receipt
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
@@ -39,7 +39,7 @@ class SpeedROMANCERMessage(NamedTuple):
 def next_deterministic_action(o, m):
     '''This method sends a message to the supervisor indicating the time of the next deterministic action that the plane will take. As the only such action the plane can take on its own is traversing into a different disposition node, it simply sends a message indicating when this is predicated to take place.'''
     t = o.next_anticipated_disposition_change()
-    message = TemporalROMANCERMessage(id=o.new_message_index, sender=(o.environment.id, o.id), recipient=(m.sender[0], m.sender[1]), messagetype='AnticipatedDispositionChange', time=t)
+    message = TemporalROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AnticipatedDispositionChange', time=t)
     self.outbox.append(message)
 
 
@@ -63,7 +63,7 @@ class BZero(RomancerObject):
                                'DeactivateECM': lambda o, m: o.deactivate_ecm(),
                                'SetAircraftSpeed': lambda o, m: set_aircraft_speed(o, m.speed)
                                } # dict of functions for processing messages
-        
+        self.repr_list = super().repr_list + ['location', 'speed', 'ecm', 'granularity']
 
 
     def dispatcher(self, message):

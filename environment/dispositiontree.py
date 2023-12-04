@@ -1,3 +1,37 @@
+class DispositionStump():
+
+    '''A disposition tree consisting solely of one (root) node, but adhering to the intended API. A placeholder during development but also potentially useful for scenarios that either largely discount physical space or are so simple as to not require full functionality.'''
+
+    def __init__(self, bounds):
+        self.bounds = bounds # tuple containing the left and right bounds of the one-dimensional space
+        self.parent = None
+        self.contents = list() # objects currently stored in root
+
+
+    def set_disposition(obj, location, granularity):
+        if self.bounds[0] <= location <= self.bounds[1]:
+            self.contents.append(obj)
+        else:
+            raise ValueError('Location outside bounds.')
+
+
+    def adjust_disposition(self, obj, location, granularity):
+        if not self.bounds[0] <= location <= self.bounds[1]:
+            raise ValueError('Location outside bounds.')
+        else:
+            pass # no adjustment needed
+
+        
+    def identify_peers(self, obj):
+        peers = self.contents.remove(obj)
+        return peers
+        
+
+    def remove(self, obj):
+        self.contents.remove(obj)
+
+        
+        
 class 1DimensionalDispositionTree():
 
     '''The root node for a one-dimensional disposition tree. The purpose of disposition trees is to provide efficient clustering of items that may have interactions.'''
@@ -29,7 +63,7 @@ class 1DimensionalDispositionTree():
             return new_child
 
 
-    def set_disposition(obj, location, granularity):
+    def set_disposition(self, obj, location, granularity):
         '''This method is intended to accomplish initial placement of an object in the disposition tree. Shifting an object that already exists in the disposition tree should be accomplished using adjust_disposition.'''
         if self.parent:
             raise Exception('Cannot set location starting at non-root node.') # TODO: define appropriate Exception class for this
@@ -49,6 +83,7 @@ class 1DimensionalDispositionTree():
                         
     def descendent_nodes(self, nodes):
         '''Collects all descendent nodes that currently exist of this node.'''
+        nodes = list()
         for c in self.children:
             nodes.append(c)
             c.dependent_nodes(nodes)
@@ -80,8 +115,7 @@ class 1DimensionalDispositionTree():
                 self.contents.remove(obj)
                 old_peers = {o.id for o in self.identify_peers(obj)}
         else:
-            except Exception:
-                print('Cannot adjust disposition of object not in node.')
+            raise Exception('Cannot adjust disposition of object not in node.')
         p = self.parent
         while p.parent: # find root
             p = p.parent
@@ -90,6 +124,17 @@ class 1DimensionalDispositionTree():
         return new_node, old_peers.difference(new_peers)
         
             
-        
-
+    def remove(self, obj):
+        '''Remove obj from disposition tree. This method should only be called on the root node.'''
+        def remove_inner(node):
+            if obj in node.contents:
+                node.contents.remove(obj)
+            else:
+                for child in node.children:
+                    remove_inner(child)
+                    
+        if self.parent:
+            raise Exception('Cannot set location starting at non-root node.') # TODO: define appropriate Exception class for this
+        else:
+            remove_inner(self)
         

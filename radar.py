@@ -29,12 +29,13 @@ class RedRadar(RomancerObject):
         self.location = location
         self.on = on # is radar on?
         self.granularity = granularity # used for disposition tree
-        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.granularity)]
+        # self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.granularity)] # perhaps this should be part of Environment.register_object(RedRadar)?
         self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: None, # radar generates no autonomous deterministic actions
                                'StochasticActionsBeforeTime': stochastic_actions_before_time,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'ActivateRadar': lambda o, m: o.activate_radar(),
                                'DeactivateRadar': lambda o, m: o.deactivate_radar()} # dict of functions for processing messages
+        self.repr_list = super().repr_list + ['location', 'on', 'granularity']
 
 
     def dispatcher(self, message):

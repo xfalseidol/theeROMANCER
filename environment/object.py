@@ -8,12 +8,13 @@ class RomancerObject():
     def __init__(self, environment, time):
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
-        self.environment = enviornment # ROMANCEREnvironment instance containing object
-        self.id = self.environment.register_object(self) # assign unique id to object
+        self.environment = environment # ROMANCEREnvironment instance containing object
+        self.uid = self.environment.register_object(self) # assign unique id to object
         self.message_index = 1 # increments with each message to assign unique ids
         # objects with children also need to register those children
         self.time = time # current time of simulated object
         self.loglist = Loglist() # list of logpoints
+        self.repr_list = ['inbox', 'outbox', 'uid', 'message_index', 'time', 'loglist'] # used for __repr__ with keywords
 
         # self.dispositions = [self.environment.disposition_tree.set_disposition(self), self.environment.perception_engine.emplace(self)... ]
 
@@ -73,3 +74,12 @@ class RomancerObject():
 
         As this base class cannot change state, it returns None.'''
         return None
+
+
+    def __repr__(self):
+        '''This method is designed to print representations useful in experimental programming on the repl.
+
+        Printing the Environment is a problem as it contains recursive references. Maybe it should be defined to some convenient global name by default to make printing convenient?'''
+        class_name = self.__class__.__name__
+        results = {key: self.__getattribute__(key) for key in self.repr_list}
+        return f"{class_name}({', '.join([f'{k}={v.__repr__()}' for k,v in results.items()])})"
