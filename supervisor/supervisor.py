@@ -4,7 +4,7 @@ import numpy as np
 class Supervisor():
     '''This base class defines the interface that implementations of the supervisor should follow.'''
 
-    def __init__(self, environment, random_seed=12345):
+    def __init__(self, environment=None, random_seed=12345):
         self.rng = np.random.default_rng(random_seed) # random number generator permits reproducible model runs
         self.environment = environment
         self.inbox = list() # list of messages awaiting processing

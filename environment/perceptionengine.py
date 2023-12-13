@@ -19,7 +19,7 @@ def make_change_observer(obj, attr):
     def change_observer():
         cur_val = get(obj, attr)
         if val != cur_val:
-            percept = Percept(uid=obj.uid, attr=attr, val=val, new_val=new_val)
+            percept = Percept(uid=obj.uid, attr=attr, val=val, new_val=cur_val)
         else:
             return None
         val = cur_val
@@ -65,7 +65,7 @@ class PerceptionEngine():
 
     Future iterations of the perception engine may add features such as mechanisms to calculate which subset of the observers is potentially relevant and run only that subset, rather than simply running all of them as this initial version does.'''
     
-    def __init__(self, environment):
+    def __init__(self, environment=None):
         self.environment = environment # used to access environmental state if necessary
         self.observers = dict() # a dictionary in which the keys are the uids of agents and the vaules are lists of observers (callables)
 

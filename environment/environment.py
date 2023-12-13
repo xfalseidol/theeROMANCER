@@ -17,6 +17,7 @@ class Environment():
         self.object_count = 2 # used to assign ids to new objects
         self.message_dispatch_table = dict() # dict used to map object ids to references--used for delivering messages
         self.dispatch_table = {} # dict of functions for processing messages
+        self.graveyard = list() # respository for items that have been removed from environment; used for reconstructing simulation history
         
 
     def new_message_index(self):
@@ -82,19 +83,20 @@ class Environment():
         '''The purpose of this method is to place the object in its correct place in the heirarchical representation in Environment.contents as well as in the relevant disposition tree(s).'''
         if parent_object:
             parent_object.children.append(obj)
+            obj.parent = parent_object
         else:
             self.contents.append(obj)
         self.disposition_tree.set_disposition(obj, obj.granularity) 
 
 
-    def add_agent(self, agent):
+    def add_agent(self, agent, parent_object=None):
         '''This agent places the agent object in the Environment's list of agents as well as registers it as an object.'''
         self.agents.append(agent) # add agent to agents list
-        self.add_object(agent) # agents are also objects
+        self.add_object(agent, parent_object) # agents are also objects
 
 
     def remove_object(self, obj):
-        '''Remove an object from the Environment and delete its uid from the message dispatch table.'''
+        '''Remove an object from the Environment and delete its uid from the message dispatch table. Send object to environment graveyard.'''
         parent = getattr(obj, 'parent', None)
         if parent:
             parent.contents.remove(obj)
@@ -102,6 +104,7 @@ class Environment():
             self.contents.remove(obj)
         # self.disposition_tree.remove(obj) # need to implement remove method for disposition tree--define API for thisx
         self.message_dispatch_table[obj.uid] = None
+        self.graveyard.append(obj)
 
 
     def remove_agent(self, agent):
