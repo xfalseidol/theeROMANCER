@@ -64,6 +64,7 @@ class BZero(RomancerObject):
                                'SetAircraftSpeed': lambda o, m: set_aircraft_speed(o, m.speed)
                                } # dict of functions for processing messages
         self.repr_list = super().repr_list + ['location', 'speed', 'ecm', 'granularity']
+        # initial logpoint
 
 
     def dispatcher(self, message):
@@ -111,7 +112,7 @@ class BZero(RomancerObject):
             pass
         low, high = self.loglist.temporal_bounds()
         elif low <= time:
-            self.loglist.truncate_to_time(time)
+            self.loglist.truncate_to_time(time) # maybe this shouldn't truncate
             latest = self.loglist[-1] # most recent logpoint < time
             self.time = latest.time # set plane time to logpoint time
             self.location = latest.location # set plane location to logpoint location
@@ -147,3 +148,57 @@ class BZero(RomancerObject):
             new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed , ecm = self.ecm)
             self.loglist.append(new_logpoint)
         
+
+class RedLightLogpoint(Logpoint):
+    def __init__(self, time, blip_to_display):
+        self.time = time
+        self.on = on # bool
+
+    
+    def __repr__(self):
+        return 'RedLightLogpoint(time={}, on={})'.format(self.time, self.on)
+
+    
+def red_light_stochastic_actions_before_time(o, m):
+    if self.on:
+        # possibly turn off at random
+        # check to see if adversary radar is now off or out of range and turn off light
+        pass
+    else:
+        # possibly turn on at random
+        # check to see if adversary radar is now on or in range and turn on light
+        pass
+
+    
+class RedLight(RomancerObject):
+    '''This red light can turn on to indicate possible detection by adversary radar. It can also turn on by random chance due to stochastic malfunctions.'''
+     def __init__(self, environment, time, location):
+        super().__init__(environment, time) # set up standard object slots
+        self.parent = None
+        self.on = False # used to generate percept
+        self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: None, # light generates no autonomous deterministic actions
+                               'StochasticActionsBeforeTime': red_light_stochastic_actions_before_time,
+                               'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
+                               'RedLightOn': lambda o, m: o.red_light_on(),
+                               'RedLightOff': lambda o, m: o.red_light_off()}
+        self.repr_list = super().repr_list + ['parent', 'on']
+
+
+    @property
+    def location(self):
+        '''The light is part of the plane, so its location is the same as that of the plane.'''
+        return self.parent.location
+
+
+    def red_light_on(self):
+        if not self.on:
+            self.on = True
+            new_logpoint = RedLightLogpoint(time = self.time, on = self.on)
+            self.loglist.append(new_logpoint)
+
+
+    def red_light_off(self):
+        if self.on:
+            self.on = False
+            new_logpoint = RedLightLogpoint(time = self.time, on = self.on)
+            self.loglist.append(new_logpoint)

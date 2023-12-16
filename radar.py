@@ -3,11 +3,12 @@ from environment.object import RomancerObject
 from loglist import Logpoint
 
 class RedRadarLogpoint(Logpoint):
+    
     def __init__(self, time, on):
         self.time = time
         self.on = on # bool
 
-    
+        
     def __repr__(self):
         return 'RedRadarLogpoint(time={}, on={})'.format(self.time, self.on)
 
@@ -37,15 +38,16 @@ class RedRadar(RomancerObject):
                                'ActivateRadar': lambda o, m: o.activate_radar(),
                                'DeactivateRadar': lambda o, m: o.deactivate_radar()} # dict of functions for processing messages
         self.repr_list = super().repr_list + ['location', 'on', 'granularity']
+        initial_logpoint = RedRadarLogpoint(time=self.time, on=self.on)
+        self.loglist.append(initial_logpoint)
 
 
     def dispatcher(self, message):
         '''This is the function that decides how to process messages in the radar's inbox. Each subclass will need a unique implementation of it. It should return functions with an (obj, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
-        f = self.dispatch_table.get(message.messagetype)
-        if f:
-            return f
-        else:
-            raise Exception('No dispatch set for ', message)
+        try:
+            f = self.dispatch_table.getattr(message.messagetype)
+        except AttributeError:
+            print('No dispatch set for ', message)
 
 
     def update_disposition(self):
@@ -65,6 +67,8 @@ class RedRadar(RomancerObject):
             latest = self.loglist[-1]
             self.on = latest.on
             self.forward_simulation(time)
+            for child in self.children:
+                child.rewind(time)
             
 
     def activate_radar(self):
@@ -103,7 +107,7 @@ def screen_stochastic_actions_before_time(o, m):
         pass # nothing happens if the radar is turned off
     
 
-def RadarScreen(RomancerObject):
+class RadarScreen(RomancerObject):
     '''The radar screen can display blips that can turn into percepts for the red agent.'''
     def __init__(self, environment, time, location):
         super().__init__(environment, time) # set up standard object slots
@@ -111,11 +115,16 @@ def RadarScreen(RomancerObject):
         self.blip_to_display = None # used to generate percept
         self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: None, # screen generates no autonomous deterministic actions
                                'StochasticActionsBeforeTime': screen_stochastic_actions_before_time,
-                               'AdvanceToTime': lambda o, m: o.forward_simulation(m.time)
+                               'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'DisplayBlip': lambda o,m: o.display_blip()}
-        self.repr_list = super().repr_list + ['parent']
+        self.repr_list = super().repr_list + ['parent'] # should this include blip_to_display?
 
 
+    @property
+    def location(self):
+        '''The radar screen is part of the radar, so its location is the same as that of the radar.'''
+        return self.parent.location
+    
         
     def display_blip(self):
         self.blip_to_display = True # need to reset this after generating possible percept event

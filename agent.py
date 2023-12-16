@@ -1,4 +1,5 @@
 from environment.object import RomancerObject
+from loglist import Logpoint
 
 class PerceptionFilter():
     '''Each agent should have a perception filter, which translates percepts received from the environment into the agent's internal ontology. Note that the perception filter can be dynamic and can translate percepts differently based upon the agent's current internal state. The perception filter itself can serve as a container for arbitrary state used for this translation process.'''
@@ -9,14 +10,15 @@ class PerceptionFilter():
         
     def digest_percept(self, percept):
         '''This method alters the agent's state based on the percept.'''
-        pass
+        self.agent.most_recent_percept_time = percept.time
     
 
-class AgentLogpoint(logpoint):
+class AgentLogpoint(Logpoint):
     '''Like regular environmental objects, agents need to have a class of logpoint to document their evolution through time. But in addition to documenting changes in physical state, agents' loglists can document the evolution of their _mental_ states.'''
 
     def __init__(self, time):
         self.time = time
+        self.most_recent_percept_time = None
 
 
 def next_deterministic_action(o, m):
@@ -41,3 +43,24 @@ class Agent(RomancerObject):
     def perceive(self, percept):
         '''This method updates the agent's internal state based on percept.'''
         self.perception_filter.digest_percept(percept)
+
+
+    def deliberate(self, max_time):
+        '''This method causes the agent to cogitate and predict how its mental state and intentions will evolve up until max_time in the future, presuming that it receives no additional percepts after the current time. One of the purposes of this method is to establish the evolution of the internal mental state of the agent. These changes can be stored on the loglist and then used to account for how a new percept can interrupt the agent's 'chain of thought.'
+
+        As this base Agent class has no intentions and mental state to update, this method does nothing.'''
+        pass
+
+    # add rewind method that doesn't truncate loglist
+    # add fastforward or lookahead method?
+
+
+class ActionROMANCERMessage(NamedTuple):
+    uid: int # unique identifier used for routing message and confirming receipt
+    recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
+    sender: tuple[int, int] # specific object sending message
+    messagetype: str # this string can be employed to dispatch messages
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
+    time: float # simulation time
+    action: str
+    most_recent_percept_time: float = -1.0 # negative value means 'None'

@@ -6,7 +6,7 @@ from enviironment.percept import Percept
 from plane import BZero, RedLight
 from radar import RedRadar, RadarScreen
 # from blueagent import BlueAgent
-# from redagent import RedAgent
+from redagent import RedAgent, RedAgentPerceptionFilter
 from dill import dump, load
 
 # STEP 1: Make supervisor
@@ -62,7 +62,7 @@ env.add_agent(pilot, parent_object=bomber) # place blue agent in bomber
 
 # Step 4.2: Create red agent
 
-operator = RedAgent()
+operator = RedAgent(environment=env, time=0.0, perception_filter=RedAgentPerceptionFilter(), intended_radar_activation_time=400.0, blip_count=0, believed_radar_state=False)
 env.register_object(operator)
 env.add_agent(operator, parent_object=radar) # associate red agent with radar
 
