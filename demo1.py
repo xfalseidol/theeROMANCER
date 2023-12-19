@@ -15,7 +15,7 @@ sup = SingleThreadSupervisor()
 
 # Step 1.1: Set simulation stop time
 stop = Stop(time=600.0) # simulation duration 10 minutes
-sup.watchlist.push(stop)
+sup.watchlist.push(stop) # push stop time onto watchlist
 
 # Step 1.2: Configure logger
 
