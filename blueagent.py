@@ -43,7 +43,17 @@ class BlueAgentLogpoint(Logpoint):
 
 
 def blue_agent_deterministic_actions_before_time(o, m):
-    '''If the blue agent believes that their plane has been detected by adversary radar, they may plan to activate the ECMs at some definite point in the future (possibly immediately).'''
+    '''As this agent's only possible deterministic actions are deliberate, this function simply calls blue_agent_next_deliberate_action.'''
+    blue_agent_next_deliberate_action(o, m)
+
+
+def blue_agent_stochastic_actions_before_time(o, m):
+    '''This function could account for erratic behavior by the blue agent, such as activating the ecms on a whim. In this initial version, however, the blue agent only makes deliberate, planned actions.'''
+    pass
+
+
+def blue_agent_next_deliberate_action(o, m):
+        '''If the blue agent believes that their plane has been detected by adversary radar, they may plan to activate the ECMs at some definite point in the future (possibly immediately).'''
     if not o.ecm and o.intended_ecm_activation_time:
         if o.most_recent_percept_time:
             last_percept_time = o.most_recent_percept_time
@@ -51,11 +61,6 @@ def blue_agent_deterministic_actions_before_time(o, m):
             last_percept_time = -1.0
         new_message = ActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='PlannedAction', action='activate ecm', time=self.intended_ecm_activation_time, most_recent_percept_time=last_percept_time)
         self.outbox.append(new_message)
-
-
-def blue_agent_stochastic_actions_before_time(o, m):
-    '''This function could account for erratic behavior by the blue agent, such as activating the ecms on a whim. In this initial version, however, the blue agent only makes deliberate, planned actions.'''
-    pass
 
 
 class BlueAgent(Agent):
@@ -70,8 +75,8 @@ class BlueAgent(Agent):
         self.loglist.append(initial_logpoint)
         self.dispatch_table = {'DeterministicActionsBeforeTime': blue_agent_deterministic_actions_before_time,
                                'StochasticActionsBeforeTime': blue_agent_stochastic_actions_before_time,
-                               'AdvanceToTime': lambda o, m: o.forward_simulation(m.time)
-                               # deliberation message
+                               'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
+                               'NextDeliberateAction': blue_agent_next_deliberate_action
                                }
 
 

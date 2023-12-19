@@ -77,7 +77,8 @@ class Supervisor():
             if recipient[0] == 1: # self-addressed
                 self.inbox.append(message)
             else:
-                self.environment.append(message) # send message to environment for forwarding
+                self.environment.inbox.append(message) # send message to environment for forwarding
+                # Tell environment to send messages?
 
 
     def new_message_index(self):
