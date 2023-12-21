@@ -58,6 +58,12 @@ class RedRadar(RomancerObject):
             new_logpoint = RedRadarLogpoint(time = self.time, on = self.on)
             self.loglist.append(new_logpoint)
 
+
+    def forward_simulation(self, time):
+        super().forward_simulation(time)
+        for child in self.children:
+            child.forward_simulation(time)
+            
             
     def rewind(self, time):
         if self.time == time:

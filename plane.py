@@ -39,7 +39,7 @@ class SpeedROMANCERMessage(NamedTuple):
 def next_deterministic_action(o, m):
     '''This method sends a message to the supervisor indicating the time of the next deterministic action that the plane will take. As the only such action the plane can take on its own is traversing into a different disposition node, it simply sends a message indicating when this is predicated to take place.'''
     t = o.next_anticipated_disposition_change()
-    message = TemporalROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AnticipatedDispositionChange', time=t)
+    message = TemporalROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AnticipatedDispositionChange', time=t)
     self.outbox.append(message)
 
 
@@ -51,6 +51,7 @@ class BZero(RomancerObject):
 
     def __init__(self, environment, time, location, speed, ecm=False, granularity=100):
         super().__init__(environment, time) # set up standard object slots
+        self.children = list() # pilot and red light go here
         self.location = location # one-dimensional, this plane can't steer!
         self.speed = speed # speed along trajectory in km/hr
         self.ecm = ecm # electronic countermeasures that can confound adversary radar; boolean
@@ -104,6 +105,8 @@ class BZero(RomancerObject):
         new_location = self.location + self. speed * delta_t
         self.location = new_location
         self.time = time
+        for child in self.children:
+            child.forward_simulation(time)
 
         
     def rewind(self, time):
