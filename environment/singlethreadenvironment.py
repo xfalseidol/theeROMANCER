@@ -14,8 +14,8 @@ class SingleThreadEnvironment(Environment):
 
     def __init__(self, supervisor, disposition_tree, perception_engine):
         self.super().__init__(supervisor, disposition_tree, perception_engine)
-        self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: o.deterministic_events_before_time(m.time)
-                               'StochasticActionsBeforeTime': lambda o, m: 0.stochastic_events_before_time(m.time),
+        self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: o.deterministic_events_before_time(m.time),
+                               'StochasticActionsBeforeTime': lambda o, m: o.stochastic_events_before_time(m.time),
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                } # dict of functions for processing messages
 
@@ -74,16 +74,29 @@ class SingleThreadEnvironment(Environment):
             
         
     def deterministic_events_before_time(self, next_time):
+        # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
         message = TemporalROMANCERMessage(uid=self.new_message_index(), sender=(self.uid, self.uid), recipient=(self.uid, 0), messagetype='DeterministicActionsBeforeTime', time=next_time)
         self.forward_to_all([message])
         self.process_all_inboxes()
 
 
     def stochastic_events_before_time(self, next_time):
+        # In principle, the environment *itself* may be a source of stochastic events, but in this implementation we assume that those events only emerge from objects within the environment
+        # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
         message = TemporalROMANCERMessage(uid=self.new_message_index(), sender=(self.uid, self.uid), recipient=(self.uid, 0), messagetype='StochasticActionsBeforeTime', time=next_time)
         self.forward_to_all([message])
         self.process_all_inboxes()
 
+
+    def perceive_and_deliberate(self, max_time):
+        '''This method runs the perception engine and tells those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time.'''
+        percepts = self.perception_engine.run()
+        for uid, agent_percepts in percepts.items:
+            agent = self.message_dispatch_table[uid]
+            for p in agent_percepts:
+                agent.digest_percept(p)
+            agent.deliberate(max_time)
+             
 
     
 

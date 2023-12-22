@@ -2,7 +2,7 @@ from singlethreadsupervisor import SingleThreadSupervisor, Stop
 from environment import SingleThreadEnvironment
 from environment.dispositiontree import DispositionStump
 from environment.perceptionengine import PerceptionEngine, make_change_observer
-from enviironment.percept import Percept
+from environment.percept import Percept
 from plane import BZero, RedLight
 from radar import RedRadar, RadarScreen
 # from blueagent import BlueAgent

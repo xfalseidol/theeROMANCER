@@ -3,6 +3,8 @@ from watchlist import WatchlistItem
 
 
 # define WatchlistItems
+# For this SingleThreadSupervisor, we can skip sending unnecessary methods and just call methods
+# on environmental objects directly
 
 # Stop
 
@@ -29,31 +31,300 @@ class Pause(WatchlistItem):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         return '{}(time={})'.format(self.__class__.__name__, self.time)
 
+# AnticipatedDispositionChange
+
+class AnticipatedDispositionChange(WatchlistItem):
+    '''This WatchlistItem flags that a specific object in the environment is anticipated to change dispositions at a particular time.'''
+
+    def __init__(self, time, object_uid, granularity=None):
+        super().init(time)
+        self.object_uid = object_uid
+        self.granularity = granularity
+
+
+    def process(self, supervisor):
+        obj = supervisor.environment.message_dispatch_table[object_uid]
+        if not self.granularity:
+            self.granularity = obj.granularity
+        for disposition in obj.dispositions:
+            disposition.adjust_disposition(obj, obj.location, self.granularity)
+        supervisor.check_for_percepts = True # disposition changes are assumed to possibly generate percepts
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, object_uid={}, granularity={})'.format(self.__class__.__name__, self.time, self.object_uid, self.granularity)
+
+
+class RedLightOn(WatchlistItem):
+
+    def __init__(self, time, red_light_uid):
+        super().init(time)
+        self.red_light_uid = red_light_uid
+        
+
+    def process(self, supervisor):
+        red_light = supervisor.environment.message_dispatch_table[red_light_uid]
+        red_light.red_light_on()
+        supervisor.check_for_percepts = True # red light likely to generate percepts
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, red_light_uid={})'.format(self.__class__.__name__, self.time, self.red_light_uid)
+
+
+class RedLightOff(WatchlistItem):
+
+    def __init__(self, time, red_light_uid):
+        super().init(time)
+        self.red_light_uid = red_light_uid
+
+        
+    def process(self, supervisor):
+        red_light = supervisor.environment.message_dispatch_table[red_light_uid]
+        red_light.red_light_off()
+        supervisor.check_for_percepts = True # red light likely to generate percepts
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, red_light_uid={})'.format(self.__class__.__name__, self.time, self.red_light_uid)
+
+
+class ActivateECM(WatchlistItem):
+
+    def __init__(self, time, bomber_uid):
+        super().init(time)
+        self.bomber_uid = bomber_uid
+
+
+    def process(self, supervisor):
+        bomber = supervisor.environment.message_dispatch_table[bomber_uid]
+        bomber.activate_ecm()
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, bomber_uid={})'.format(self.__class__.__name__, self.time, self.bomber_uid)
+
+
+class DeactivateECM(WatchlistItem):
+
+    def __init__(self, time, bomber_uid):
+        super().init(time)
+        self.bomber_uid = bomber_uid
+
+
+    def process(self, supervisor):
+        bomber = supervisor.environment.message_dispatch_table[bomber_uid]
+        bomber.deactivate_ecm()
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, bomber_uid={})'.format(self.__class__.__name__, self.time, self.bomber_uid)
+    
+
+class DisplayBlip(WatchlistItem):
+
+    def __init__(self, time, screen_uid):
+        super().init(time)
+        self.screen_uid = red_light_uid
+        
+
+    def process(self, supervisor):
+        screen = supervisor.environment.message_dispatch_table[screen_uid]
+        if screen.blip_to_display: # ensure there is still a blip on the screen
+            supervisor.check_for_percepts = True
+
+    
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, screen_uid={})'.format(self.__class__.__name__, self.time, self.screen_uid)
+
+
+class ActivateRadar(WatchlistItem):
+
+    def __init__(self, time, radar_uid):
+        super().init(time)
+        self.radar_uid = radar_uid
+
+
+    def process(self, supervisor):
+        radar = supervisor.environment.message_dispatch_table[radar_uid]
+        radar.activate_radar()
+        # the radar takes a nonzero amount of time to generate a percept, so supervisor.check_for_percepts need not be set here
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, radar_uid={})'.format(self.__class__.__name__, self.time, self.radar_uid)
+
+
+class DeactivateRadar(WatchlistItem):
+
+    def __init__(self, time, radar_uid):
+        super().init(time)
+        self.radar_uid = radar_uid
+
+
+    def process(self, supervisor):
+        radar = supervisor.environment.message_dispatch_table[radar_uid]
+        radar.deactivate_radar()
+        screen = [s for s in radar.children if s.__class__.__name__ = 'RadarScreen'][0]
+        # TODO: add method to radar screen to log this correctly
+        if screen.blip_to_display:
+            screen.blip_to_display = False # radar screen goes blank when radar is deactivated
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, radar_uid={})'.format(self.__class__.__name__, self.time, self.radar_uid)
+        
+
+class SetAircraftSpeed(WatchlistItem):
+
+    def __init__(self, time, plane_uid, speed):
+        super().init(time)
+        plane_uid = plane_uid
+        self.speed = speed
+
+
+    def process(self, supervisor):
+        plane = supervisor.environment.message_dispatch_table[plane_uid]
+        if plane.speed != self.speed:
+            plane.set_aircraft_speed(self.speed)
+
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={}, plane_uid={}, speed={})'.format(self.__class__.__name__, self.time, self.plane_uid, self.speed)
+
+
+class ContactSuperior(WatchlistItem):
+
+    def process(self, supervisor):
+        pass
+
+    def __repr__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        return '{}(time={})'.format(self.__class__.__name__, self.time)
+
+    
 # define functions used by SingleThreadSupervisor's dispatch table
+# note that these are allowed to make side effects on the supervisor, return an object, or both
+
+def attempt_activate_ecm(sup, message):
+    '''This function is used to act on messages sent by the blue agent that reflect attempts to activate the bomber's ECMs.'''
+    item = ActivateECM(time = message.time, bomber_uid = message.sender[0])
+    return item
+
+
+def attempt_deactivate_ecm(sup, message):
+    '''This function is used to act on messages sent by the blue agent that reflect attempts to deactivate the bomber's ECMs.'''
+    item = DeactivateECM(time = message.time, bomber_uid = message.sender[0])
+    return item
+
+
+def attempt_red_light_on(sup, message):
+    '''This function is used to act on messages sent by the bomber's red light reflecting attempts to turn the red warning light on.'''
+    item = RedLightOn(time = message.time, red_light_uid = message.sender[0])
+    return item
+
+
+def attempt_red_light_off(sup, message):
+    item = RedLightOff(time = message.time, red_light_uid = message.sender[0])
+    return item
+
+    
+def attempt_activate_radar(sup, message):
+    '''This function is used to act on messages sent by the red agent that reflect attempts to turn the radar on.'''
+    item = ActivateRadar(time = message.time, radar_uid = message.sender[0])
+    return item
+
+
+def attempt_deactivate_radar(sup, message):
+    '''This function is used to act on messages sent by the red agent that reflect attempts to turn the radar off.'''
+    item = DectivateRadar(time = message.time, radar_uid = message.sender[0])
+    return item
+
+
+def attempt_display_blip(sup, message):
+    '''This function is used to act on messages sent by the radar screen that reflect attempts to display a radar blip.'''
+    item = DisplayBlip(time = message.time, screen_uid = message.sender[0])
+    return item
+
+
+def attempt_set_speed(sup, message):
+    '''This function is used to act on messages sent by the blue agent that reflect attempts to adjust the bomber's speed.'''
+    item = SetAircraftSpeed(time = message.time, speed=message.speed, bomber_uid = message.sender[0])
+    return item
+
+
+def attempt_contact_superior(sup, message):
+    '''This function is used to act on messages sent by the red agent that reflect attempts to contact his superiors.'''
+    pass
 
 
 class SingleThreadSupervisor(Supervisor):
 
 
     def __init__(self, environment=None, random_seed=12345):
-        super().__init__(self, environment=None, random_seed=12345)
+        super().__init__(self, environment=None, random_seed=random_seed)
         self.paused = False # is supervisor currently paused?
         self.check_for_percepts = False # flag indicating whether percept-generating event may have occured
-        self.dispatch_table = {} # dict of functions for processing messages
+        self.dispatch_table = {'AttemptActivateECM': attempt_activate_ecm,
+                               'AttemptDectivateECM': attempt_deactivate_ecm,
+                               'AttemptRedLightOn': attempt_red_light_on,
+                               'AttemptRedLightOff': attempt_red_light_off,
+                               'AttemptActivateRadar': attempt_activate_radar,
+                               'AttemptDectivateRadar': attempt_deactivate_radar,
+                               'AttemptDisplayBlip': attempt_display_blip,
+                               'AttemptSetSpeed': attempt_set_speed,
+                               'AttemptContactSuperior': attempt_contact_superior,
+                               } # dict of functions for processing messages
 
 
     def dispatcher(self, message):
-        '''This is the function that decides how to process messages in the supervisor's inbox. It should return functions with an (obj, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
+        '''This is the function that decides how to process messages in the supervisor's inbox. It should return functions with an (supervisor, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
         try:
             f = self.dispatch_table.get(message.messagetype)
         except KeyError:
             print('No dispatch found for message type:', message.messagetype)
         finally:
             return f
+
+
+    def deterministic_events_process_inbox(self, max_time):
+        '''The purpose of this method is to process a set of messages sent by environmental objects in response to a query from the supervisor for the next deterministic event those objects envision making. It identifies which of those events is earliest and returns it as the candidate next event.'''
+        candidate_next_item, new_max_time = None, max_time
+        if len(self.inbox) > 0:
+            self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
+            f = self.dispatcher(self.inbox[0])
+            candidate_next_item = f(self.inbox[0])
+            new_max_time = candidate_next_item.time
+        self.inbox.clear()
+        return candidate_next_item, new_max_time
+    
+
+    def stochastic_events_process_inbox(self, candidate_next_item, max_time):
+        '''The purpose of this method is to process a set of messages sent by environmental objects in response to a query from the supervisor about possible stochastic events that those objects might make before max_time. Each of these messages is assumed to have a probability attribute that the supervisor uses to assess whether the event happens. This method goes through the messages in chronological order and assesses whether each possible event occurs. If one is assessed positively, then it becomes the candidate next item and its time become the new max time. Otherwise, the candidate_next_item and max_time passed into the method are returned unchanged.'''
+        candidate_next_item, new_max_time = candidate_next_item, max_time
+        if len(self.inbox) > 0:
+            self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
+            for message in inbox:
+                # assess whether possible event described by message occurs and if so when
+                if self.rng.random() <= message.probability:
+                    f = self.dispatcher(self.inbox[0])
+                    candidate_next_item = f(self.inbox[0])
+                    new_max_time = candidate_next_item.time
+                    break
+        self.inbox.clear()
+        return candidate_next_item, new_max_time
        
 
-
-    def bring_watchlist_up_to_date(self):
+    def bring_watchlist_up_to_date(self, verbose=False):
         '''This method ensures that the lead item on the watchlist is in fact the next one that should be executed. It should work by checking the simulated time of the lead item on the watchlist and then asking relevant objects in the environment (agents, etc.) whether they will or might cause an event of interest in that timeframe.'''
         # check if already at watchlist item time
         next_time = self.watchlist.peek.time
@@ -65,6 +336,7 @@ class SingleThreadSupervisor(Supervisor):
         # if multiple deterministic events are scheduled for the same time, send them all
         # examine inbox to see if new deterministic events have been identified prior to next_time
         # if so, store them as possible_next_events, next_time == new_next_time
+        candidate_next_item, next_time = self.deterministic_events_process_inbox(self, next_time)
         
         # stochastic events?
         self.environment.stochastic_events_before_time(next_time) # SingleThreadSupervisor can simply tell environment to do this rather than sending message
@@ -73,45 +345,40 @@ class SingleThreadSupervisor(Supervisor):
         # use rng to test whether each possible stochastic event turns into a watchlist item
         # if so, this event becomes next watchlist item, next_time=that item's time
         # if no stochastic event has occured, then push the deterministic events in possible_next_events onto watchlist
-
+        candidate_next_item, next_time = self.stochastic_events_process_inbox(self, candidate_next_item, next_time)
+        
+        if candidate_next_item:
+            self.watchlist.push(candidate_next_item)
         # advance simulation time to next_time
         self.environment.forward_simulation(next_time)
         
 
-    def process_next_watchlist_item(self):
+    def process_next_watchlist_item(self, verbose=False):
         '''This method processes the next item on the watchlist. It assumes that the watchlist is up to date and that enviornment state is synchronized to the same time as that event.'''
         item = self.watchlist.peek()
         item.process(self) # run code associated with WatchlistItem; this can cause arbitrary changes to environment and supervisor state
         self.logger(self.watchlist.pop()) # pop the just-processed item off of the watchlist and log it if desired
         if self.check_for_percepts:
-            self.perceive_and_deliberate()
+            next_time = self.watchlist.peek().time
+            self.perceive_and_deliberate(next_time)
             self.check_for_percepts = False
 
 
-    def perceive_and_deliberate(self):
-        '''This method is supposed to be called as part of process_next_watchlist_item(), in cases where new percepts have been generated and agents need to deliberate about those percepts.'''
-        pass
-
+    def perceive_and_deliberate(self, max_time, verbose=False):
+        '''This method is supposed to be called as part of process_next_watchlist_item(), in cases where new percepts have been generated and agents need to deliberate about those percepts. It tells the environment to run the perception engine and command those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time. If such actions are planned, they will be messaged to the supervisor when bring_watchlist_up_to_date is next called.'''
+        self.environment.perceive_and_deliberate(max_time)
+        
 
     def send_messages(self, messages):
-        '''Send the messages in the supervisor's inbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
+        '''Send the messages in the supervisor's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
             if recipient[0] == 1: # self-addressed
                 self.inbox.append(message)
-            # TODO: deliver messages with a unitary recipient directly to inboxes
             else:
-                self.environment.inbox.append(message) # send message to environment for forwarding
-                # Tell environment to send messages?
+                self.environment.deliver_messages([message]) # environment forwards messages directly to inboxes by default
 
 
-    def process_inbox(self):
-
-        # check for current status message(s) and call appropriate submethod
-        # but maybe bring_watchlist_up_to_date and process_next_watchlist_item should just
-        # call those methods directly
-
-
-    def run(self):
+    def run(self, verbose=False):
         while len(self.watchlist) > 0 and not self.paused: # loop as long as watchlist items remain and self.paused is False
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_next_watchlist_item() # process next watchlist event

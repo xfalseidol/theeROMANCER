@@ -41,10 +41,12 @@ class Environment():
     def deliver_messages(self, messages):
         '''Place messages in the inbox of the addressed recipient objects.'''
         for message in messages:
-            if message.recipient[0] == 2: # self-addressed
+            if message.recipient == (2, 2): # self-addressed
                 self.inbox.append(message)
-            elif message.recipient[0] = 1: # supervisor
+            elif message.recipient[0] == 1: # supervisor
                 self.supervisor.inbox.append(message)
+            elif message.recipient == (2, 0): # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
+                self.forward_to_all(messages)
             else: # all other messages
                 self.message_dispatch_table[message.recipient[0]).inbox.append(message)
 
@@ -52,7 +54,7 @@ class Environment():
     def send_messages(self, messages):
         '''Send the messages in the environment's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
-            if recipient[0] == 2: # self-addressed
+            if recipient == (2, 2): # self-addressed
                 self.inbox.append(message)
             else:
                 self.environment.append(message) # send message to environment for forwarding
@@ -72,7 +74,7 @@ class Environment():
         
 
     def register_object(self, obj):
-        '''Assign an object a unique uid and associate it with that uid in the message dispatch table. Not that this method does not set the siposition of the object--this is because some objects will lack dispositions.'''
+        '''Assign an object a unique uid and associate it with that uid in the message dispatch table. Not that this method does not set the disposition of the object--this is because some objects will lack dispositions.'''
         new_id = self.new_object_index()
         obj.uid = new_id
         self.message_dispatch_table[new_id] = obj
@@ -102,7 +104,7 @@ class Environment():
             parent.contents.remove(obj)
         else:
             self.contents.remove(obj)
-        # self.disposition_tree.remove(obj) # need to implement remove method for disposition tree--define API for thisx
+        # self.disposition_tree.remove(obj) # need to implement remove method for disposition tree--define API for this
         self.message_dispatch_table[obj.uid] = None
         self.graveyard.append(obj)
 
@@ -111,4 +113,5 @@ class Environment():
         '''Remove an agent from the Environment and delete its uid from the message dispatch table.'''
         self.agents.remove(agent)
         self.remove_object(agent)
+        self.graveyard.append(agent)
         

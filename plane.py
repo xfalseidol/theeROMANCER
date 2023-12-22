@@ -139,7 +139,7 @@ class BZero(RomancerObject):
             pass
         else:
             self.ecm = False
-            new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed , ecm = self.ecm)
+            new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed, ecm = self.ecm)
             self.loglist.append(new_logpoint)
         
 
@@ -148,7 +148,7 @@ class BZero(RomancerObject):
             pass
         else:
             self.speed = speed
-            new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed , ecm = self.ecm)
+            new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed, ecm = self.ecm)
             self.loglist.append(new_logpoint)
         
 
