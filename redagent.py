@@ -48,9 +48,13 @@ def red_agent_deterministic_actions_before_time(o, m):
 
 def red_agent_stochastic_actions_before_time(o, m):
     '''This function could account for random behavior by the red agent--for example, turning on the radar before the appointed time on a whim. For the initial demo, however, its sole purpose is to possibly attempt to report a possible attack from Blue based on the number of radar blips the Red Agent has perceived.'''
-    delta_t = m.time - self.time # amount of time for which stochastic actions are being evaluated
-    # divide delta_t into subsets for which cumulative probablity of reporting attack meets some threshold--e.g., 5%
-    # make separate messages to supervisor for each of those subsets
+    delta_t = 7.0 # 5 second detection interval
+    times = list(range(o.time, m.time, delta_t))
+    reporting_probability = max(o.blip_count / 50.0, 1.0)
+    for t in times:
+            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptContactSuperior', time=t, probability=reporting_probability)
+            messages.append(message)
+        self.send_messages(messages)
 
 
 def red_agent_next_deliberate_action(o, m):

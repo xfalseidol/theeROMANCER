@@ -12,13 +12,51 @@ class RedRadarLogpoint(Logpoint):
     def __repr__(self):
         return 'RedRadarLogpoint(time={}, on={})'.format(self.time, self.on)
 
+
+class ProbabilisticROMANCERMessage(NamedTuple):
+    uid: int # unique identifier used for routing message and confirming receipt
+    recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
+    sender: tuple[int, int] # specific object sending message
+    messagetype: str # this string can be employed to dispatch messages
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
+    time: float # simulation time
+    probability: float # probability of event in anticipated occurrences per second
     
+
 def stochastic_actions_before_time(o, m):
     if self.on:
-        # Use disposition tree to identify objects radar might detect (e.g., plane)
-        # and the probability that it will detect them during time interval
-        # Generate message(s) to send to supervisor about these possible events, their probabilities, and the times at which they would occur if they do
+        messages = list()
+        peers = {d.peers() for d in self.dispositions} # Use disposition tree to identify objects radar might detect (e.g., plane)
+        for peer in peers:
+            if peer.__class__.__name__ == 'BZero':
+                initial_time = peer.time
+                delta_t = 5.0 # 5 second detection interval
+                times = range(o.time, m.time, delta_t)
+                if not peer.ecm:
+                    for t in times:
+                        peer.forward_simulation(t)
+                        distance = abs(peer.location - o.location)
+                        detection_prob = max(0.5 - 0.002 * distance, 0.0)
+                        message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptDisplayBlip', time=t, probability=detection_prob)
+                        messages.append(message)
+                else:
+                    for t in times:
+                        peer.forward_simulation(t)
+                        distance = abs(peer.location - o.location)
+                        # and the probability that it will detect them during time interval
+                        detection_prob = max(0.75 - 0.015 * distance, 0.0)
+                        # Generate message(s) to send to supervisor about these possible events, their probabilities, and the times at which they would occur if they do
+                        message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptDisplayBlip', time=t, probability=detection_prob)
+                        messages.append(message)
+            peer.rewind(initial_time) # rewind bomber to previous state
+    
         # Also produce message(s) representing false positives
+        times = range(o.time, m.time, delta_t)
+        false_blip_rate = 0.01 # stochastic blips per second
+        for t in times:
+            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptDisplayBlip', time=t, probability=false_blip_rate * delta_t)
+            messages.append(message)
+        self.send_messages(messages)
     else:
         pass # nothing happens if the radar is turned off    
 
@@ -106,9 +144,15 @@ class RadarScreenLogpoint(Logpoint):
 
 
 def screen_stochastic_actions_before_time(o, m):
-    if self.parent.on and self.blip_to_display: # ensure radar is on before generating blips
-        # Generate message(s) to send to supervisor about possible percept-generating blip event
-        # Also produce message(s) representing false positives irrespective of whether blip_to_display is True
+    if self.parent.on: # ensure radar is on before generating blips
+        # Produce message(s) representing false positives irrespective of whether blip_to_display is True; these are false positives originating inside the screen as opposed to the radar
+        delta_t = 10.0 # 5 second detection interval
+        times = range(o.time, m.time, delta_t)
+        false_blip_rate = 0.005 # stochastic blips per second            
+        for t in times:
+            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptDisplayBlip', time=t, probability=false_blip_rate * delta_t)
+            messages.append(message)
+        self.send_messages(messages)
     else:
         pass # nothing happens if the radar is turned off
     

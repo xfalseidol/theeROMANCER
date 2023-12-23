@@ -99,7 +99,12 @@ class BlueAgent(Agent):
         if self.time >= max_time: # this shouldn't happen in regular use
             pass
         else:
-            self.forward_simulation(max_time)
+            cur_time = self.time
+            # self.forward_simulation(max_time)
             # if blue agent believes red light is on
+            if self.red_light_on and not self.ecm:
+                deliberation_time = 3.0 # 3 seconds to make up mind
+                self.ecm = cur_time + deliberation_time
             # possibly set/update self.intended_ecm_activation_time
             # if a new intended ecm activation time is generated, send message to supervisor reflecting it
+            # self.rewind(cur_time)

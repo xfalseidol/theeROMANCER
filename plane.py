@@ -163,14 +163,44 @@ class RedLightLogpoint(Logpoint):
 
     
 def red_light_stochastic_actions_before_time(o, m):
+    
+    messages = list()
+    initial_time = peer.time
+    peers = {d.peers() for d in self.dispositions} # Use disposition tree to identify objects radar might detect (e.g., plane)
+    delta_t = 5.0 # 5 second detection interval
+    times = list(range(o.time, m.time, delta_t))
     if self.on:
+        for peer in peers:
+            for t in times:
+                if peer.__class__.__name__ == 'RedRadar':
+                    peer.forward_simulation(t)
+                    distance = abs(peer.location - o.location)
+                    # check to see if adversary radar is now off or out of range and turn off light
+                    if peer.on = False or distance > 250.0:
+                        message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOff', time=t, probability=0.95)
+                        messages.append(message)
+            peer.rewind(initial_time)
         # possibly turn off at random
-        # check to see if adversary radar is now off or out of range and turn off light
-        pass
+        for t in times:
+            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOff', time=t, probability=0.001)
+            messages.append(message)
     else:
-        # possibly turn on at random
         # check to see if adversary radar is now on or in range and turn on light
-        pass
+        for peer in peers:
+            for t in times:
+                if peer.__class__.__name__ == 'RedRadar':
+                    peer.forward_simulation(t)
+                    distance = abs(peer.location - o.location)
+                    # check to see if adversary radar is now on and in range and turn off light if so
+                    if peer.on = True and distance < 250.0:
+                        message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOn', time=t, probability=0.95)
+                        messages.append(message)
+            peer.rewind(initial_time)
+            # possibly turn on at random
+        for t in times:
+            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOn', time=t, probability=0.001)
+            messages.append(message)
+    self.send_messages(messages)
 
     
 class RedLight(RomancerObject):
