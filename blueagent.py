@@ -31,15 +31,15 @@ class BlueAgentPerceptionFilter(PerceptionFilter):
 class BlueAgentLogpoint(Logpoint):
     '''Since this agent implementation is quite simple internally, it can use logpoints that document all of the egent's internal state with the exception of the loglist itself.'''
 
-        def __init__(self, time, red_light_on, ecm, intended_ecm_activation_time):
-            self.super.__init__(time=time)
-            self.red_light_on = red_light_on
-            self.ecm = ecm
-            self.intended_ecm_activation_time = intended_ecm_activation_time
+    def __init__(self, time, red_light_on, ecm, intended_ecm_activation_time):
+        self.super.__init__(time=time)
+        self.red_light_on = red_light_on
+        self.ecm = ecm
+        self.intended_ecm_activation_time = intended_ecm_activation_time
 
 
-        def __repr__(self):
-            return 'BlueAgentLogpoint(time={}, red_light_on={}, intended_ecm_activation_time={})'.format(self.time, self.red_light_on, intended_ecm_activation_time)
+    def __repr__(self):
+        return 'BlueAgentLogpoint(time={}, red_light_on={}, intended_ecm_activation_time={})'.format(self.time, self.red_light_on, intended_ecm_activation_time)
 
 
 def blue_agent_deterministic_actions_before_time(o, m):
@@ -53,7 +53,7 @@ def blue_agent_stochastic_actions_before_time(o, m):
 
 
 def blue_agent_next_deliberate_action(o, m):
-        '''If the blue agent believes that their plane has been detected by adversary radar, they may plan to activate the ECMs at some definite point in the future (possibly immediately).'''
+    '''If the blue agent believes that their plane has been detected by adversary radar, they may plan to activate the ECMs at some definite point in the future (possibly immediately).'''
     if not o.ecm and o.intended_ecm_activation_time:
         if o.most_recent_percept_time:
             last_percept_time = o.most_recent_percept_time
@@ -85,7 +85,7 @@ class BlueAgent(Agent):
         if self.time == time:
             pass
         low, high = self.loglist.temporal_bounds()
-        elif low <= time:
+        if low <= time:
             self.loglist.truncate_to_time(time)
             latest = self.loglist[-1]
             self.time = latest.time

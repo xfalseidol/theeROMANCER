@@ -1,5 +1,6 @@
 from environment.object import RomancerObject
 from loglist import Logpoint
+from typing import NamedTuple
 
 class PerceptionFilter():
     '''Each agent should have a perception filter, which translates percepts received from the environment into the agent's internal ontology. Note that the perception filter can be dynamic and can translate percepts differently based upon the agent's current internal state. The perception filter itself can serve as a container for arbitrary state used for this translation process.'''
@@ -66,7 +67,7 @@ class ActionROMANCERMessage(NamedTuple):
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
-    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     time: float # simulation time
     action: str
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     most_recent_percept_time: float = -1.0 # negative value means 'None'

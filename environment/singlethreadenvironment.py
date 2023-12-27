@@ -1,4 +1,5 @@
-from environment import Environment
+from environment.environment import Environment
+from typing import NamedTuple
 
 
 class TemporalROMANCERMessage(NamedTuple):
@@ -6,14 +7,15 @@ class TemporalROMANCERMessage(NamedTuple):
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
-    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     time: float # simulation time
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
+
 
     
 class SingleThreadEnvironment(Environment):
 
     def __init__(self, supervisor, disposition_tree, perception_engine):
-        self.super().__init__(supervisor, disposition_tree, perception_engine)
+        super().__init__(supervisor, disposition_tree, perception_engine)
         self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: o.deterministic_events_before_time(m.time),
                                'StochasticActionsBeforeTime': lambda o, m: o.stochastic_events_before_time(m.time),
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),

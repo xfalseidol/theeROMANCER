@@ -18,9 +18,9 @@ class ProbabilisticROMANCERMessage(NamedTuple):
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
-    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     time: float # simulation time
     probability: float # probability of event in anticipated occurrences per second
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     
 
 def stochastic_actions_before_time(o, m):

@@ -48,7 +48,7 @@ class Environment():
             elif message.recipient == (2, 0): # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
                 self.forward_to_all(messages)
             else: # all other messages
-                self.message_dispatch_table[message.recipient[0]).inbox.append(message)
+                self.message_dispatch_table[message.recipient[0]].inbox.append(message)
 
                 
     def send_messages(self, messages):

@@ -1,4 +1,4 @@
-from watchlist import Watchlist
+from supervisor.watchlist import Watchlist
 import numpy as np
 
 class Supervisor():
@@ -19,7 +19,7 @@ class Supervisor():
     def bring_watchlist_up_to_date(self):
         '''This method ensures that the lead item on the watchlist is in fact the next one that should be executed. It should work by checking the simulated time of the lead item on the watchlist and then asking relevant objects in the environment (agents, etc.) whether they will or might cause an event of interest in that timeframe.'''
         next_time = self.watchlist.peek.time
-        if self.environment.time = next_time: # no opportunity for next event not to be correct
+        if self.environment.time == next_time: # no opportunity for next event not to be correct
             return None 
         # STEP 1
         self.outbox.append('message deterministic event between self.time and next_time:') # send message to environment telling it to identify soonest deterministic event (if any) between self.time and next_time

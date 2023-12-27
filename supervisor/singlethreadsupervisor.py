@@ -1,5 +1,5 @@
-from supervisor import Supervisor
-from watchlist import WatchlistItem
+from supervisor.supervisor import Supervisor
+from supervisor.watchlist import WatchlistItem
 
 
 # define WatchlistItems
@@ -34,7 +34,9 @@ class Pause(WatchlistItem):
 # AnticipatedDispositionChange
 
 class AnticipatedDispositionChange(WatchlistItem):
-    '''This WatchlistItem flags that a specific object in the environment is anticipated to change dispositions at a particular time.'''
+    '''This WatchlistItem flags that a specific object in the environment is anticipated to change dispositions at a particular time.
+
+    While it is unnecessary for this simple demo, an imporant application for this kind of watchlist item is to reconfigure agents' perception engines to reflect altered dispositions. For example, if an object moves into an agent's possible visible field, the AnticipatedDispositionChange could alter that agent's perception engine accordingly.'''
 
     def __init__(self, time, object_uid, granularity=None):
         super().init(time)
@@ -172,7 +174,7 @@ class DeactivateRadar(WatchlistItem):
     def process(self, supervisor):
         radar = supervisor.environment.message_dispatch_table[radar_uid]
         radar.deactivate_radar()
-        screen = [s for s in radar.children if s.__class__.__name__ = 'RadarScreen'][0]
+        screen = [s for s in radar.children if s.__class__.__name__ == 'RadarScreen'][0]
         # TODO: add method to radar screen to log this correctly
         if screen.blip_to_display:
             screen.blip_to_display = False # radar screen goes blank when radar is deactivated
@@ -271,7 +273,7 @@ class SingleThreadSupervisor(Supervisor):
 
 
     def __init__(self, environment=None, random_seed=12345):
-        super().__init__(self, environment=None, random_seed=random_seed)
+        super().__init__(environment, random_seed)
         self.paused = False # is supervisor currently paused?
         self.check_for_percepts = False # flag indicating whether percept-generating event may have occured
         self.dispatch_table = {'AttemptActivateECM': attempt_activate_ecm,
@@ -328,7 +330,7 @@ class SingleThreadSupervisor(Supervisor):
         '''This method ensures that the lead item on the watchlist is in fact the next one that should be executed. It should work by checking the simulated time of the lead item on the watchlist and then asking relevant objects in the environment (agents, etc.) whether they will or might cause an event of interest in that timeframe.'''
         # check if already at watchlist item time
         next_time = self.watchlist.peek.time
-        if self.environment.time = next_time: # no opportunity for next event not to be correct
+        if self.environment.time == next_time: # no opportunity for next event not to be correct
             return None # nothing to do, watchlist is up to date
         # deterministic events?
         self.environment.deterministic_events_before_time(next_time) # SingleThreadSupervisor can simply tell environment to do this rather than sending message

@@ -8,7 +8,7 @@ class DispositionStump():
         self.contents = list() # objects currently stored in root
 
 
-    def set_disposition(obj, location, granularity):
+    def set_disposition(self, obj, location, granularity):
         if self.bounds[0] <= location <= self.bounds[1]:
             self.contents.append(obj)
         else:
@@ -32,7 +32,7 @@ class DispositionStump():
 
         
         
-class 1DimensionalDispositionTree():
+class OneDimensionalDispositionTree():
 
     '''The root node for a one-dimensional disposition tree. The purpose of disposition trees is to provide efficient clustering of items that may have interactions.'''
 
@@ -58,7 +58,7 @@ class 1DimensionalDispositionTree():
             else:
                 new_bounds = (self.bounds[1], self.gap[1]) # right
             # new_gap = ((new_bounds[1] - new_bounds[0]) / 2 - (gap_width / gap_reduction_factor) / 2, (new_bounds[1] - new_bounds[0]) / 2 + (gap_width / gap_reduction_factor) / 2)
-            new_child = 1DimensionalDispositionTree(new_bounds, granularity / granularity_reduction_factor, gap_width / gap_reduction_factor, self, granularity_reduction_factor, gap_reduction_factor)
+            new_child = OneDimensionalDispositionTree(new_bounds, granularity / granularity_reduction_factor, gap_width / gap_reduction_factor, self, granularity_reduction_factor, gap_reduction_factor)
             self.children.append(new_child)
             return new_child
 

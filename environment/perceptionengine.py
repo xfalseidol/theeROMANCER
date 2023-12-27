@@ -1,4 +1,4 @@
-from percept import Percept
+from environment.percept import Percept
 from operator import ne
 
 def make_observer(obj, attr, value):
@@ -93,7 +93,7 @@ class PerceptionEngine():
 
     def remove_observer(self, agent_id, observer):
         if observer in self.observers[agent_id]:
-            self.observers[agent_id].remove(observer):
+            self.observers[agent_id].remove(observer)
         else:
             raise ValueError("Observer not found in perception engine: ", observer)
 

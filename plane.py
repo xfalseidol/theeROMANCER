@@ -23,8 +23,8 @@ class TemporalROMANCERMessage(NamedTuple):
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
-    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     time: float # simulation time
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
 
 
 class SpeedROMANCERMessage(NamedTuple):
@@ -32,8 +32,8 @@ class SpeedROMANCERMessage(NamedTuple):
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
-    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     speed: float # speed (km/hr)
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
 
 
 def next_deterministic_action(o, m):
@@ -80,7 +80,7 @@ class BZero(RomancerObject):
     def next_anticipated_disposition_change(self):
         '''Identify future time at which plane will leave its current disposition tree node based on its current speed and trajectory.'''
         low, high = self.dispositions[0].bounds
-        if speed = 0: # disposition will never change
+        if speed == 0: # disposition will never change
             return None
         elif speed > 0:
             delta_d = high - self.location
@@ -114,7 +114,7 @@ class BZero(RomancerObject):
         if self.time == time:
             pass
         low, high = self.loglist.temporal_bounds()
-        elif low <= time:
+        if low <= time:
             self.loglist.truncate_to_time(time) # maybe this shouldn't truncate
             latest = self.loglist[-1] # most recent logpoint < time
             self.time = latest.time # set plane time to logpoint time
@@ -144,7 +144,7 @@ class BZero(RomancerObject):
         
 
     def set_aircraft_speed(self, speed):
-        if speed = self.speed:
+        if speed == self.speed:
             pass
         else:
             self.speed = speed
@@ -176,7 +176,7 @@ def red_light_stochastic_actions_before_time(o, m):
                     peer.forward_simulation(t)
                     distance = abs(peer.location - o.location)
                     # check to see if adversary radar is now off or out of range and turn off light
-                    if peer.on = False or distance > 250.0:
+                    if peer.on == False or distance > 250.0:
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOff', time=t, probability=0.95)
                         messages.append(message)
             peer.rewind(initial_time)
@@ -192,7 +192,7 @@ def red_light_stochastic_actions_before_time(o, m):
                     peer.forward_simulation(t)
                     distance = abs(peer.location - o.location)
                     # check to see if adversary radar is now on and in range and turn off light if so
-                    if peer.on = True and distance < 250.0:
+                    if peer.on == True and distance < 250.0:
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOn', time=t, probability=0.95)
                         messages.append(message)
             peer.rewind(initial_time)
@@ -205,7 +205,8 @@ def red_light_stochastic_actions_before_time(o, m):
     
 class RedLight(RomancerObject):
     '''This red light can turn on to indicate possible detection by adversary radar. It can also turn on by random chance due to stochastic malfunctions.'''
-     def __init__(self, environment, time, location):
+    
+    def __init__(self, environment, time, location):
         super().__init__(environment, time) # set up standard object slots
         self.parent = None
         self.on = False # used to generate percept

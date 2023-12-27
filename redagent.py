@@ -49,12 +49,13 @@ def red_agent_deterministic_actions_before_time(o, m):
 def red_agent_stochastic_actions_before_time(o, m):
     '''This function could account for random behavior by the red agent--for example, turning on the radar before the appointed time on a whim. For the initial demo, however, its sole purpose is to possibly attempt to report a possible attack from Blue based on the number of radar blips the Red Agent has perceived.'''
     delta_t = 7.0 # 5 second detection interval
+    messages = list()
     times = list(range(o.time, m.time, delta_t))
     reporting_probability = max(o.blip_count / 50.0, 1.0)
     for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptContactSuperior', time=t, probability=reporting_probability)
             messages.append(message)
-        self.send_messages(messages)
+    self.send_messages(messages)
 
 
 def red_agent_next_deliberate_action(o, m):
@@ -90,7 +91,7 @@ class RedAgent(Agent):
         if self.time == time:
             pass
         low, high = self.loglist.temporal_bounds()
-        elif low <= time:
+        if low <= time:
             self.loglist.truncate_to_time(time)
             latest = self.loglist[-1]
             self.time = latest.time
@@ -108,7 +109,7 @@ class RedAgent(Agent):
             self.forward_simulation(max_time)
             # if red agent believes radar is currently off:
             # possibly update self.intended_radar_activation_time
-            # if a new intended radar activation ime is generated, send message to supervisor reflecting it
+            # if a new intended radar activation time is generated, send message to supervisor reflecting it
             # if agent believes radar is on and has perceived radar blips:
             # possibly update state polled by red_agent_stochastic_actions_before_time
             
