@@ -32,7 +32,7 @@ class BlueAgentLogpoint(Logpoint):
     '''Since this agent implementation is quite simple internally, it can use logpoints that document all of the egent's internal state with the exception of the loglist itself.'''
 
     def __init__(self, time, red_light_on, ecm, intended_ecm_activation_time):
-        self.super.__init__(time=time)
+        super().__init__(time=time)
         self.red_light_on = red_light_on
         self.ecm = ecm
         self.intended_ecm_activation_time = intended_ecm_activation_time
@@ -70,7 +70,7 @@ class BlueAgent(Agent):
         self.ecm = ecm # does blue agent believe that ecm is on?
         self.red_light_on = red_light_on # does blue agent believe that the red light is on?
         self.intended_ecm_activation_time = intended_ecm_activation_time # does blue agent intend to activate ecm, and if so, when?
-        self.repr_list = super().repr_list + ['ecm', 'red_light_on']
+        self.repr_list = self.repr_list + ['ecm', 'red_light_on']
         initial_logpoint = BlueAgentLogpoint(time=self.time, red_light_on=self.red_light_on, ecm=self.ecm, intended_ecm_activation_time=self.intended_ecm_activation_time)
         self.loglist.append(initial_logpoint)
         self.dispatch_table = {'DeterministicActionsBeforeTime': blue_agent_deterministic_actions_before_time,
@@ -108,3 +108,15 @@ class BlueAgent(Agent):
             # possibly set/update self.intended_ecm_activation_time
             # if a new intended ecm activation time is generated, send message to supervisor reflecting it
             # self.rewind(cur_time)
+
+
+    @property
+    def location(self):
+        '''The pilot is treated as part of the plane, so their location is the same as that of the plane.'''
+        return self.parent.location
+    
+
+    @property
+    def granularity(self):
+        '''The pilot is treated as part of the plane, so their granularity is the same as that of the plane.'''
+        return self.parent.granularity

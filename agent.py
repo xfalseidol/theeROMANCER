@@ -44,7 +44,7 @@ class Agent(RomancerObject):
                                'StochasticActionsBeforeTime': lambda o, m: None,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'NextDeliberateAction': next_deliberate_action}
-        self.repr_list = super().repr_list + ['perception_filter']
+        self.repr_list = self.repr_list + ['perception_filter']
 
 
     def perceive(self, percept):

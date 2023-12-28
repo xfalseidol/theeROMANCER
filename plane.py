@@ -56,7 +56,7 @@ class BZero(RomancerObject):
         self.speed = speed # speed along trajectory in km/hr
         self.ecm = ecm # electronic countermeasures that can confound adversary radar; boolean
         self.granularity = granularity # used for disposition tree
-        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.granularity)]
+        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.location, self.granularity)]
         self.dispatch_table = {'DeterministicActionsBeforeTime': next_deterministic_action, 
                                'StochasticActionsBeforeTime': lambda o, m: None,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
@@ -64,7 +64,7 @@ class BZero(RomancerObject):
                                'DeactivateECM': lambda o, m: o.deactivate_ecm(),
                                'SetAircraftSpeed': lambda o, m: set_aircraft_speed(o, m.speed)
                                } # dict of functions for processing messages
-        self.repr_list = super().repr_list + ['location', 'speed', 'ecm', 'granularity']
+        self.repr_list = self.repr_list + ['location', 'speed', 'ecm', 'granularity']
         # initial logpoint
 
 
@@ -215,13 +215,19 @@ class RedLight(RomancerObject):
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'RedLightOn': lambda o, m: o.red_light_on(),
                                'RedLightOff': lambda o, m: o.red_light_off()}
-        self.repr_list = super().repr_list + ['parent', 'on']
+        self.repr_list = self.repr_list + ['parent', 'on']
 
 
     @property
     def location(self):
         '''The light is part of the plane, so its location is the same as that of the plane.'''
         return self.parent.location
+
+    
+    @property
+    def granularity(self):
+        '''The light is part of the plane, so its granularity is the same as that of the plane.'''
+        return self.parent.granularity
 
 
     def red_light_on(self):

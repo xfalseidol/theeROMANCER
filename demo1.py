@@ -37,14 +37,14 @@ engine.environment = env # set perception engine's environment attribute
 # Step 3: Create environmental objects
 
 # Step 3.1: Create and configure plane
-bomber = BZero(environment=env, time=0.0, location =-750.0, speed=800.0)
+bomber = BZero(environment=env, time=0.0, location=-750.0, speed=800.0)
 env.register_object(bomber)
 env.add_object(bomber)
 
 # The red warning light in the cockpit turns on to indicate adversary radar detected
-light = RedLight()
+light = RedLight(environment=env, time=0.0, location=-750.0)
 env.register_object(light)
-env.add_object(light, parent_object=plane)
+env.add_object(light, parent_object=bomber)
 
 # Step 3.2: Create and configure red radar
 radar = RedRadar(environment=env, time=0.0, location=0.0)
@@ -58,13 +58,15 @@ env.add_object(screen, parent_object=radar)
 # Step 4: Create and configure agents
 
 # Step 4.1: Create blue agent
-pilot = BlueAgent()
+pilot = BlueAgent(environment=env, time=0.0, perception_filter=None, ecm=False, red_light_on=False, intended_ecm_activation_time=None)
+pilot.perception_filter = BlueAgentPerceptionFilter(agent=pilot)
 env.register_object(pilot)
 env.add_agent(pilot, parent_object=bomber) # place blue agent in bomber
 
 # Step 4.2: Create red agent
 
-operator = RedAgent(environment=env, time=0.0, perception_filter=RedAgentPerceptionFilter(), intended_radar_activation_time=400.0, blip_count=0, believed_radar_state=False)
+operator = RedAgent(environment=env, time=0.0, perception_filter=None, intended_radar_activation_time=400.0, blip_count=0, believed_radar_state=False)
+operator.perception_filter = RedAgentPerceptionFilter(agent=operator)
 env.register_object(operator)
 env.add_agent(operator, parent_object=radar) # associate red agent with radar
 
@@ -95,10 +97,10 @@ engine.add_observer(agent_id=operator.uid, observer=red_observer)
 
 # Step 6: Save configured environment
 
-filepath = '/my/desired/filepath.pkl'
+# filepath = '/my/desired/filepath.pkl'
 
-with open(filepath, 'wb') as f:
-    dump(sup, f)
+# with open(filepath, 'wb') as f:
+#     dump(sup, f)
 
 # Step 7: Run simulation
 

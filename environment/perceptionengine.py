@@ -14,10 +14,10 @@ def make_observer(obj, attr, value):
 def make_change_observer(obj, attr):
     '''This function makes an observer that produces a Percept if a particular attribute has changed since the last time it was run.'''
 
-    val = get(obj, attr)
+    val = getattr(obj, attr)
 
     def change_observer():
-        cur_val = get(obj, attr)
+        cur_val = getattr(obj, attr)
         if val != cur_val:
             percept = Percept(uid=obj.uid, attr=attr, val=val, new_val=cur_val)
         else:
@@ -84,7 +84,7 @@ class PerceptionEngine():
 
 
     def add_observer(self, agent_id, observer):
-        if get(self.observers, agent_id, None):
+        if self.observers.get(agent_id, None):
             self.observers[agent_id].append(observer)
         else:
             self.observers[agent_id] = list()

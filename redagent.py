@@ -31,7 +31,7 @@ class RedAgentLogpoint(Logpoint):
     '''Since this agent implementation is quite simple internally, it can use logpoints that document all of the egent's internal state with the exception of the loglist itself.'''
 
     def __init__(self, time, intended_radar_activation_time, blip_count, believed_radar_state=False):
-        self.super.__init__(time=time)
+        super().__init__(time=time)
         self.intended_radar_activation_time = intended_radar_activation_time
         self.blip_count = blip_count
         self.believed_radar_state = believed_radar_state
@@ -76,7 +76,7 @@ class RedAgent(Agent):
         self.intended_radar_activation_time = intended_radar_activation_time # planned time to activate radar
         self.believed_radar_state = believed_radar_state # state that agent believes radar is in (may not be correct)
         self.blip_count = blip_count # number of radar screen blips that the agent has perceived
-        self.repr_list = super().repr_list + ['intended_radar_activation_time', 'believed_radar_state']
+        self.repr_list = self.repr_list + ['intended_radar_activation_time', 'believed_radar_state']
         initial_logpoint = RedAgentLogpoint(time=self.time, intended_radar_activation_time=self.intended_radar_activation_time, blip_count=self.blip_count, believed_radar_state=self.believed_radar_state)
         self.loglist.append(initial_logpoint)
         self.dispatch_table = {'DeterministicActionsBeforeTime': red_agent_deterministic_actions_before_time,
@@ -113,3 +113,14 @@ class RedAgent(Agent):
             # if agent believes radar is on and has perceived radar blips:
             # possibly update state polled by red_agent_stochastic_actions_before_time
             
+
+    @property
+    def location(self):
+        '''The operator is treated as part of the radar, so their location is the same as that of the radar.'''
+        return self.parent.location
+    
+
+    @property
+    def granularity(self):
+        '''The operator is treated as part of the radar, so their granularity is the same as that of the radar.'''
+        return self.parent.granularity

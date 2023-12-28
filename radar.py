@@ -75,7 +75,7 @@ class RedRadar(RomancerObject):
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'ActivateRadar': lambda o, m: o.activate_radar(),
                                'DeactivateRadar': lambda o, m: o.deactivate_radar()} # dict of functions for processing messages
-        self.repr_list = super().repr_list + ['location', 'on', 'granularity']
+        self.repr_list = self.repr_list + ['location', 'on', 'granularity']
         initial_logpoint = RedRadarLogpoint(time=self.time, on=self.on)
         self.loglist.append(initial_logpoint)
 
@@ -167,13 +167,19 @@ class RadarScreen(RomancerObject):
                                'StochasticActionsBeforeTime': screen_stochastic_actions_before_time,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'DisplayBlip': lambda o,m: o.display_blip()}
-        self.repr_list = super().repr_list + ['parent'] # should this include blip_to_display?
+        self.repr_list = self.repr_list + ['parent'] # should this include blip_to_display?
 
 
     @property
     def location(self):
         '''The radar screen is part of the radar, so its location is the same as that of the radar.'''
         return self.parent.location
+
+
+    @property
+    def granularity(self):
+        '''The screen is part of the radar, so its granularity is the same as that of the radar.'''
+        return self.parent.granularity
     
         
     def display_blip(self):
