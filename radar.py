@@ -23,15 +23,19 @@ class ProbabilisticROMANCERMessage(NamedTuple):
     confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     
 
-def stochastic_actions_before_time(o, m):
-    if self.on:
+def radar_stochastic_actions_before_time(o, m):
+    if o.on:
+        delta_t = 5.0 # 5 second detection interval
         messages = list()
-        peers = {d.peers() for d in self.dispositions} # Use disposition tree to identify objects radar might detect (e.g., plane)
+        peers = list()
+        for d in o.dispositions:
+            for item in d.identify_peers(o):
+                if item not in peers:
+                    peers.append(item)
         for peer in peers:
             if peer.__class__.__name__ == 'BZero':
                 initial_time = peer.time
-                delta_t = 5.0 # 5 second detection interval
-                times = range(o.time, m.time, delta_t)
+                times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
                 if not peer.ecm:
                     for t in times:
                         peer.forward_simulation(t)
@@ -51,12 +55,13 @@ def stochastic_actions_before_time(o, m):
             peer.rewind(initial_time) # rewind bomber to previous state
     
         # Also produce message(s) representing false positives
-        times = range(o.time, m.time, delta_t)
+        times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
         false_blip_rate = 0.01 # stochastic blips per second
         for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptDisplayBlip', time=t, probability=false_blip_rate * delta_t)
             messages.append(message)
-        self.send_messages(messages)
+        for message in messages:
+            o.outbox.append(message)
     else:
         pass # nothing happens if the radar is turned off    
 
@@ -71,7 +76,7 @@ class RedRadar(RomancerObject):
         self.granularity = granularity # used for disposition tree
         # self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.granularity)] # perhaps this should be part of Environment.register_object(RedRadar)?
         self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: None, # radar generates no autonomous deterministic actions
-                               'StochasticActionsBeforeTime': stochastic_actions_before_time,
+                               'StochasticActionsBeforeTime': radar_stochastic_actions_before_time,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'ActivateRadar': lambda o, m: o.activate_radar(),
                                'DeactivateRadar': lambda o, m: o.deactivate_radar()} # dict of functions for processing messages
@@ -83,9 +88,11 @@ class RedRadar(RomancerObject):
     def dispatcher(self, message):
         '''This is the function that decides how to process messages in the radar's inbox. Each subclass will need a unique implementation of it. It should return functions with an (obj, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
         try:
-            f = self.dispatch_table.getattr(message.messagetype)
-        except AttributeError:
+            f = self.dispatch_table.get(message.messagetype)
+        except KeyError:
             print('No dispatch set for ', message)
+        finally:
+            return f
 
 
     def update_disposition(self):
@@ -106,7 +113,7 @@ class RedRadar(RomancerObject):
     def rewind(self, time):
         if self.time == time:
             pass
-        elif low <= time:
+        elif self.time <= time:
             self.loglist.truncate_to_time(time)
             latest = self.loglist[-1]
             self.on = latest.on
@@ -144,7 +151,7 @@ class RadarScreenLogpoint(Logpoint):
 
 
 def screen_stochastic_actions_before_time(o, m):
-    if self.parent.on: # ensure radar is on before generating blips
+    if o.parent.on: # ensure radar is on before generating blips
         # Produce message(s) representing false positives irrespective of whether blip_to_display is True; these are false positives originating inside the screen as opposed to the radar
         delta_t = 10.0 # 5 second detection interval
         times = range(o.time, m.time, delta_t)
@@ -152,7 +159,7 @@ def screen_stochastic_actions_before_time(o, m):
         for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptDisplayBlip', time=t, probability=false_blip_rate * delta_t)
             messages.append(message)
-        self.send_messages(messages)
+        o.outbox.append(message)
     else:
         pass # nothing happens if the radar is turned off
     
@@ -168,7 +175,18 @@ class RadarScreen(RomancerObject):
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'DisplayBlip': lambda o,m: o.display_blip()}
         self.repr_list = self.repr_list + ['parent'] # should this include blip_to_display?
+        initial_logpoint = RadarScreenLogpoint(time=self.time, blip_to_display=self.blip_to_display)
+        self.loglist.append(initial_logpoint)
 
+        
+    def dispatcher(self, message):
+        '''This is the function that decides how to process messages in the radar screen's inbox. Each subclass will need a unique implementation of it. It should return functions with an (obj, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
+        try:
+            f = self.dispatch_table.get(message.messagetype)
+        except KeyError:
+            print('No dispatch set for ', message)
+        finally:
+            return f
 
     @property
     def location(self):
@@ -180,6 +198,12 @@ class RadarScreen(RomancerObject):
     def granularity(self):
         '''The screen is part of the radar, so its granularity is the same as that of the radar.'''
         return self.parent.granularity
+
+
+    @property
+    def dispositions(self):
+        '''The screen is part of the radar, so its dispositions are shared with the radar.'''
+        return self.parent.dispositions
     
         
     def display_blip(self):

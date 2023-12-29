@@ -12,7 +12,7 @@ class Stop(WatchlistItem):
     '''This WatchlistItem halts the supervisor once simulation is complete. It defines the simulated time at which simulation will be terminated.'''
 
     def process(self, supervisor):
-        print('Simulation terminated at time = {}', supervisor.time)
+        print('Simulation terminated at time = ', supervisor.environment.time)
 
 
     def __repr__(self):
@@ -39,7 +39,7 @@ class AnticipatedDispositionChange(WatchlistItem):
     While it is unnecessary for this simple demo, an imporant application for this kind of watchlist item is to reconfigure agents' perception engines to reflect altered dispositions. For example, if an object moves into an agent's possible visible field, the AnticipatedDispositionChange could alter that agent's perception engine accordingly.'''
 
     def __init__(self, time, object_uid, granularity=None):
-        super().init(time)
+        super().__init__(time)
         self.object_uid = object_uid
         self.granularity = granularity
 
@@ -61,12 +61,12 @@ class AnticipatedDispositionChange(WatchlistItem):
 class RedLightOn(WatchlistItem):
 
     def __init__(self, time, red_light_uid):
-        super().init(time)
+        super().__init__(time)
         self.red_light_uid = red_light_uid
         
 
     def process(self, supervisor):
-        red_light = supervisor.environment.message_dispatch_table[red_light_uid]
+        red_light = supervisor.environment.message_dispatch_table[self.red_light_uid]
         red_light.red_light_on()
         supervisor.check_for_percepts = True # red light likely to generate percepts
 
@@ -79,7 +79,7 @@ class RedLightOn(WatchlistItem):
 class RedLightOff(WatchlistItem):
 
     def __init__(self, time, red_light_uid):
-        super().init(time)
+        super().__init__(time)
         self.red_light_uid = red_light_uid
 
         
@@ -97,7 +97,7 @@ class RedLightOff(WatchlistItem):
 class ActivateECM(WatchlistItem):
 
     def __init__(self, time, bomber_uid):
-        super().init(time)
+        super().__init__(time)
         self.bomber_uid = bomber_uid
 
 
@@ -114,7 +114,7 @@ class ActivateECM(WatchlistItem):
 class DeactivateECM(WatchlistItem):
 
     def __init__(self, time, bomber_uid):
-        super().init(time)
+        super().__init__(time)
         self.bomber_uid = bomber_uid
 
 
@@ -131,7 +131,7 @@ class DeactivateECM(WatchlistItem):
 class DisplayBlip(WatchlistItem):
 
     def __init__(self, time, screen_uid):
-        super().init(time)
+        super().__init__(time)
         self.screen_uid = red_light_uid
         
 
@@ -149,12 +149,12 @@ class DisplayBlip(WatchlistItem):
 class ActivateRadar(WatchlistItem):
 
     def __init__(self, time, radar_uid):
-        super().init(time)
+        super().__init__(time)
         self.radar_uid = radar_uid
 
 
     def process(self, supervisor):
-        radar = supervisor.environment.message_dispatch_table[radar_uid]
+        radar = supervisor.environment.message_dispatch_table[self.radar_uid]
         radar.activate_radar()
         # the radar takes a nonzero amount of time to generate a percept, so supervisor.check_for_percepts need not be set here
 
@@ -167,7 +167,7 @@ class ActivateRadar(WatchlistItem):
 class DeactivateRadar(WatchlistItem):
 
     def __init__(self, time, radar_uid):
-        super().init(time)
+        super().__init__(time)
         self.radar_uid = radar_uid
 
 
@@ -188,7 +188,7 @@ class DeactivateRadar(WatchlistItem):
 class SetAircraftSpeed(WatchlistItem):
 
     def __init__(self, time, plane_uid, speed):
-        super().init(time)
+        super().__init__(time)
         plane_uid = plane_uid
         self.speed = speed
 
@@ -219,48 +219,48 @@ class ContactSuperior(WatchlistItem):
 
 def attempt_activate_ecm(sup, message):
     '''This function is used to act on messages sent by the blue agent that reflect attempts to activate the bomber's ECMs.'''
-    item = ActivateECM(time = message.time, bomber_uid = message.sender[0])
+    item = ActivateECM(time = message.time, bomber_uid = message.sender[1])
     return item
 
 
 def attempt_deactivate_ecm(sup, message):
     '''This function is used to act on messages sent by the blue agent that reflect attempts to deactivate the bomber's ECMs.'''
-    item = DeactivateECM(time = message.time, bomber_uid = message.sender[0])
+    item = DeactivateECM(time = message.time, bomber_uid = message.sender[1])
     return item
 
 
 def attempt_red_light_on(sup, message):
     '''This function is used to act on messages sent by the bomber's red light reflecting attempts to turn the red warning light on.'''
-    item = RedLightOn(time = message.time, red_light_uid = message.sender[0])
+    item = RedLightOn(time = message.time, red_light_uid = message.sender[1])
     return item
 
 
 def attempt_red_light_off(sup, message):
-    item = RedLightOff(time = message.time, red_light_uid = message.sender[0])
+    item = RedLightOff(time = message.time, red_light_uid = message.sender[1])
     return item
 
     
 def attempt_activate_radar(sup, message):
     '''This function is used to act on messages sent by the red agent that reflect attempts to turn the radar on.'''
-    item = ActivateRadar(time = message.time, radar_uid = message.sender[0])
+    item = ActivateRadar(time = message.time, radar_uid = sup.environment.message_dispatch_table[message.sender[1]].parent.uid)
     return item
 
 
 def attempt_deactivate_radar(sup, message):
     '''This function is used to act on messages sent by the red agent that reflect attempts to turn the radar off.'''
-    item = DectivateRadar(time = message.time, radar_uid = message.sender[0])
+    item = DectivateRadar(time = message.time, radar_uid = sup.environment.message_dispatch_table[message.sender[1]].parent.uid)
     return item
 
 
 def attempt_display_blip(sup, message):
     '''This function is used to act on messages sent by the radar screen that reflect attempts to display a radar blip.'''
-    item = DisplayBlip(time = message.time, screen_uid = message.sender[0])
+    item = DisplayBlip(time = message.time, screen_uid = message.sender[1])
     return item
 
 
 def attempt_set_speed(sup, message):
     '''This function is used to act on messages sent by the blue agent that reflect attempts to adjust the bomber's speed.'''
-    item = SetAircraftSpeed(time = message.time, speed=message.speed, bomber_uid = message.sender[0])
+    item = SetAircraftSpeed(time = message.time, speed=message.speed, bomber_uid = message.sender[1])
     return item
 
 
@@ -291,11 +291,10 @@ class SingleThreadSupervisor(Supervisor):
     def dispatcher(self, message):
         '''This is the function that decides how to process messages in the supervisor's inbox. It should return functions with an (supervisor, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
         try:
-            f = self.dispatch_table.get(message.messagetype)
+            f = self.dispatch_table[message.messagetype]
+            return f
         except KeyError:
             print('No dispatch found for message type:', message.messagetype)
-        finally:
-            return f
 
 
     def deterministic_events_process_inbox(self, max_time):
@@ -304,7 +303,7 @@ class SingleThreadSupervisor(Supervisor):
         if len(self.inbox) > 0:
             self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
             f = self.dispatcher(self.inbox[0])
-            candidate_next_item = f(self.inbox[0])
+            candidate_next_item = f(self, self.inbox[0])
             new_max_time = candidate_next_item.time
         self.inbox.clear()
         return candidate_next_item, new_max_time
@@ -315,11 +314,11 @@ class SingleThreadSupervisor(Supervisor):
         candidate_next_item, new_max_time = candidate_next_item, max_time
         if len(self.inbox) > 0:
             self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
-            for message in inbox:
+            for message in self.inbox:
                 # assess whether possible event described by message occurs and if so when
                 if self.rng.random() <= message.probability:
-                    f = self.dispatcher(self.inbox[0])
-                    candidate_next_item = f(self.inbox[0])
+                    f = self.dispatcher(message)
+                    candidate_next_item = f(self, message)
                     new_max_time = candidate_next_item.time
                     break
         self.inbox.clear()
@@ -329,7 +328,7 @@ class SingleThreadSupervisor(Supervisor):
     def bring_watchlist_up_to_date(self, verbose=False):
         '''This method ensures that the lead item on the watchlist is in fact the next one that should be executed. It should work by checking the simulated time of the lead item on the watchlist and then asking relevant objects in the environment (agents, etc.) whether they will or might cause an event of interest in that timeframe.'''
         # check if already at watchlist item time
-        next_time = self.watchlist.peek.time
+        next_time = self.watchlist.peek().time
         if self.environment.time == next_time: # no opportunity for next event not to be correct
             return None # nothing to do, watchlist is up to date
         # deterministic events?
@@ -338,8 +337,7 @@ class SingleThreadSupervisor(Supervisor):
         # if multiple deterministic events are scheduled for the same time, send them all
         # examine inbox to see if new deterministic events have been identified prior to next_time
         # if so, store them as possible_next_events, next_time == new_next_time
-        candidate_next_item, next_time = self.deterministic_events_process_inbox(self, next_time)
-        
+        candidate_next_item, next_time = self.deterministic_events_process_inbox(next_time)
         # stochastic events?
         self.environment.stochastic_events_before_time(next_time) # SingleThreadSupervisor can simply tell environment to do this rather than sending message
         # this method should send messages regarding possible stochastic event(s) to the supervisor
@@ -347,7 +345,7 @@ class SingleThreadSupervisor(Supervisor):
         # use rng to test whether each possible stochastic event turns into a watchlist item
         # if so, this event becomes next watchlist item, next_time=that item's time
         # if no stochastic event has occured, then push the deterministic events in possible_next_events onto watchlist
-        candidate_next_item, next_time = self.stochastic_events_process_inbox(self, candidate_next_item, next_time)
+        candidate_next_item, next_time = self.stochastic_events_process_inbox(candidate_next_item, next_time)
         
         if candidate_next_item:
             self.watchlist.push(candidate_next_item)
@@ -371,7 +369,7 @@ class SingleThreadSupervisor(Supervisor):
         self.environment.perceive_and_deliberate(max_time)
         
 
-    def send_messages(self, messages):
+    def send_messages(self):
         '''Send the messages in the supervisor's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
             if recipient[0] == 1: # self-addressed

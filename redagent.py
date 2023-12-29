@@ -1,6 +1,7 @@
 from agent import Agent, PerceptionFilter, ActionROMANCERMessage
 from environment.percept import Percept
 from loglist import Logpoint
+from radar import ProbabilisticROMANCERMessage
 
 # The purpose of this file is to define the Red Agent, the percepts that it can receive, and the actions that it can take
 
@@ -49,24 +50,22 @@ def red_agent_deterministic_actions_before_time(o, m):
 def red_agent_stochastic_actions_before_time(o, m):
     '''This function could account for random behavior by the red agent--for example, turning on the radar before the appointed time on a whim. For the initial demo, however, its sole purpose is to possibly attempt to report a possible attack from Blue based on the number of radar blips the Red Agent has perceived.'''
     delta_t = 7.0 # 5 second detection interval
-    messages = list()
-    times = list(range(o.time, m.time, delta_t))
-    reporting_probability = max(o.blip_count / 50.0, 1.0)
+    times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
+    reporting_probability = 0.0 # max(o.blip_count / 50.0, 1.0)
     for t in times:
-            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='AttemptContactSuperior', time=t, probability=reporting_probability)
-            messages.append(message)
-    self.send_messages(messages)
+            message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptContactSuperior', time=t, probability=reporting_probability)
+            o.outbox.append(message)
 
 
 def red_agent_next_deliberate_action(o, m):
     '''The red agent plans to activate the radar at a certain time. If the agent believes that the radar is off, it plans to activate the radar at that time.'''
-    if m.time > self.intended_radar_activation_time and self.believed_radar_state == False:
+    if m.time > o.intended_radar_activation_time and o.believed_radar_state == False:
         if o.most_recent_percept_time:
             last_percept_time = o.most_recent_percept_time
         else:
             last_percept_time = -1.0
-        new_message = ActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='PlannedAction', action='activate radar', time=self.intended_radar_activation_time, most_recent_percept_time=last_percept_time)
-        self.outbox.append(new_message)
+        new_message = ActionROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptActivateRadar', action='activate radar', time=o.intended_radar_activation_time, most_recent_percept_time=last_percept_time)
+        o.outbox.append(new_message)
     
 
 class RedAgent(Agent):

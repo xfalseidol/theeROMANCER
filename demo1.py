@@ -34,6 +34,8 @@ engine = PerceptionEngine()
 env = SingleThreadEnvironment(supervisor=sup, disposition_tree=stump, perception_engine=engine)
 engine.environment = env # set perception engine's environment attribute
 
+sup.environment = env # set supervisor's environment attribute
+
 # Step 3: Create environmental objects
 
 # Step 3.1: Create and configure plane
@@ -109,7 +111,7 @@ engine.add_observer(agent_id=operator.uid, observer=red_observer)
 sup.process_inbox() # probably unnecessary
 print("Initial watchlist: ", sup.watchlist)
     
-while len(self.watchlist) > 0:
+while len(sup.watchlist) > 0:
     sup.bring_watchlist_up_to_date()
     print("Updated watchlist: ", sup.watchlist)
     sup.process_inbox() # needed?

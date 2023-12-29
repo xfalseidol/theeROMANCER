@@ -11,19 +11,27 @@ class DispositionStump():
     def set_disposition(self, obj, location, granularity):
         if self.bounds[0] <= location <= self.bounds[1]:
             self.contents.append(obj)
+            return self
         else:
             raise ValueError('Location outside bounds.')
 
 
     def adjust_disposition(self, obj, location, granularity):
-        if not self.bounds[0] <= location <= self.bounds[1]:
-            raise ValueError('Location outside bounds.')
+        # if not self.bounds[0] <= location <= self.bounds[1]:
+        #     raise ValueError('Location outside bounds.')
+        # else:
+        #     return self # no adjustment needed
+        print(self.bounds)
+        print(location)
+        if self.bounds[0] <= location <= self.bounds[1]:
+            return self
         else:
-            pass # no adjustment needed
+            raise ValueError('Location outside bounds.')
 
         
     def identify_peers(self, obj):
-        peers = self.contents.remove(obj)
+        peers = self.contents.copy()
+        peers.remove(obj)
         return peers
         
 

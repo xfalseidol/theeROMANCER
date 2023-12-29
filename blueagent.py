@@ -39,7 +39,7 @@ class BlueAgentLogpoint(Logpoint):
 
 
     def __repr__(self):
-        return 'BlueAgentLogpoint(time={}, red_light_on={}, intended_ecm_activation_time={})'.format(self.time, self.red_light_on, intended_ecm_activation_time)
+        return 'BlueAgentLogpoint(time={}, red_light_on={}, intended_ecm_activation_time={})'.format(self.time, self.red_light_on, self.intended_ecm_activation_time)
 
 
 def blue_agent_deterministic_actions_before_time(o, m):
@@ -60,7 +60,7 @@ def blue_agent_next_deliberate_action(o, m):
         else:
             last_percept_time = -1.0
         new_message = ActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='PlannedAction', action='activate ecm', time=self.intended_ecm_activation_time, most_recent_percept_time=last_percept_time)
-        self.outbox.append(new_message)
+        o.outbox.append(new_message)
 
 
 class BlueAgent(Agent):

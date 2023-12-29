@@ -61,16 +61,16 @@ class Environment():
         self.outbox.clear()
 
 
-    def deliver_all_messages(self):
-        '''Recurse through the contents of the environment and deliver the messages in outbox of every subsidiary object to their intended recipients.'''
+    # def deliver_all_messages(self):
+    #     '''Recurse through the contents of the environment and deliver the messages in outbox of every subsidiary object to their intended recipients.'''
 
-        def deliver_all_messages_inner(obj):
-            self.deliver_messages(obj.outbox)
-            obj.outbox.clear()
-            for child in obj.contents:
-                deliver_all_messages_inner(obj)
+    #     def deliver_all_messages_inner(obj):
+    #         self.deliver_messages(obj.outbox)
+    #         obj.outbox.clear()
+    #         for child in obj.contents:
+    #             deliver_all_messages_inner(obj)
 
-        deliver_all_messages_inner(self)
+    #     deliver_all_messages_inner(self)
         
 
     def register_object(self, obj):

@@ -40,11 +40,21 @@ class Agent(RomancerObject):
     def __init__(self, environment, time, perception_filter):
         super().__init__(environment, time)
         self.perception_filter = perception_filter
+        self.most_recent_percept_time = None
         self.dispatch_table = {'DeterministicActionsBeforeTime': next_deterministic_action, 
                                'StochasticActionsBeforeTime': lambda o, m: None,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'NextDeliberateAction': next_deliberate_action}
-        self.repr_list = self.repr_list + ['perception_filter']
+        self.repr_list = self.repr_list + ['perception_filter', 'most_recent_percept_time']
+
+
+    def dispatcher(self, message):
+        '''This is the function that decides how to process messages in the agent's inbox. It should return functions with an (supervisor, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
+        try:
+            f = self.dispatch_table[message.messagetype]
+            return f
+        except KeyError:
+            print('No dispatch found for message type:', message.messagetype)
 
 
     def perceive(self, percept):
@@ -71,3 +81,4 @@ class ActionROMANCERMessage(NamedTuple):
     action: str
     confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     most_recent_percept_time: float = -1.0 # negative value means 'None'
+    target_uid: int = 0 # target object if needed, 0 means 'none'

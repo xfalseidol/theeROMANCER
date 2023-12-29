@@ -72,7 +72,7 @@ class PerceptionEngine():
         
     def run(self, **kwargs): # kwargs accounts for addition of future functionality 
         new_percepts = dict()
-        for agent in observers.keys():
+        for agent in self.observers.keys():
             agent_percepts = list()
             for observers in self.observers[agent]:
                 possible_percept = observer()

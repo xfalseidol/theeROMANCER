@@ -34,7 +34,8 @@ class RomancerObject():
 
     def send_messages(self):
         '''Pass messages from outbox to environment so they can be routed to their appropriate recipients.'''
-        self.environment.deliver_messages(outbox) # maybe this should send self-addressed messages directly to inbox
+        self.environment.deliver_messages(self.outbox) # maybe this should send self-addressed messages directly to inbox
+        self.outbox.clear()
 
 
     def get_children(self):

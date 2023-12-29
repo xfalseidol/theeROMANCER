@@ -13,7 +13,7 @@ class Supervisor():
         self.time = 0 # supervisor initializes to simulation time of 0
         self.watchlist = Watchlist()
         self.message_index = 1 # increments with each message to assign unique ids
-        self.logger = lambda s, i: None # function used to write logfile, if desired
+        self.logger = lambda s: None # function used to write logfile, if desired
 
 
     def bring_watchlist_up_to_date(self):
@@ -71,8 +71,8 @@ class Supervisor():
             self.inbox.append(message)
 
 
-    def send_messages(self, messages):
-        '''Send the messages in the supervisor's inbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
+    def send_messages(self):
+        '''Send the messages in the supervisor's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
             if recipient[0] == 1: # self-addressed
                 self.inbox.append(message)

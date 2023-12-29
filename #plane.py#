@@ -39,7 +39,7 @@ class SpeedROMANCERMessage(NamedTuple):
 class ProbabilisticROMANCERMessage(NamedTuple):
     uid: int # unique identifier used for routing message and confirming receipt
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
-    sender: tuple[int, int] # specific object sending message
+    sengit der: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
     time: float # simulation time
     probability: float # probability of event in anticipated occurrences per second

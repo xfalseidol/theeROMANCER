@@ -43,8 +43,8 @@ class SingleThreadEnvironment(Environment):
         
         def process_all_inboxes_inner(o):
             o.process_inbox()
-            o.send_messages()
-            self.deliver_messages(self.outbox)
+            # o.send_messages() # pass messages from object to environment
+            self.deliver_messages(self.outbox) # forward objects either to objects in environment or to supervisor
             self.outbox.clear()
             try:
                 children = o.children
@@ -73,7 +73,7 @@ class SingleThreadEnvironment(Environment):
 
         for item in self.contents:
             forward_to_all_inner(item)
-            
+
         
     def deterministic_events_before_time(self, next_time):
         # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
@@ -88,7 +88,7 @@ class SingleThreadEnvironment(Environment):
         message = TemporalROMANCERMessage(uid=self.new_message_index(), sender=(self.uid, self.uid), recipient=(self.uid, 0), messagetype='StochasticActionsBeforeTime', time=next_time)
         self.forward_to_all([message])
         self.process_all_inboxes()
-
+        
 
     def perceive_and_deliberate(self, max_time):
         '''This method runs the perception engine and tells those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time.'''
