@@ -34,9 +34,12 @@ class SingleThreadEnvironment(Environment):
 
     def forward_simulation(self, time):
         '''Run forward simulation on all objects in the environment by recurising through the heirarchical representation. Objects with children are expected to advance the forward simulation of thise child items as part of their forward_simulation() method.'''
-        for item in self.contents:
-            item.forward_simulation(time)
-        self.time = time
+        if self.time == time:
+            return None
+        else:
+            for item in self.contents:
+                item.forward_simulation(time)
+            self.time = time
 
 
     def process_all_inboxes(self):
@@ -93,10 +96,10 @@ class SingleThreadEnvironment(Environment):
     def perceive_and_deliberate(self, max_time):
         '''This method runs the perception engine and tells those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time.'''
         percepts = self.perception_engine.run()
-        for uid, agent_percepts in percepts.items:
+        for uid, agent_percepts in percepts.items():
             agent = self.message_dispatch_table[uid]
             for p in agent_percepts:
-                agent.digest_percept(p)
+                agent.perception_filter.digest_percept(p)
             agent.deliberate(max_time)
              
 

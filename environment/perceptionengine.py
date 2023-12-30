@@ -17,6 +17,7 @@ def make_change_observer(obj, attr):
     val = getattr(obj, attr)
 
     def change_observer():
+        nonlocal val
         cur_val = getattr(obj, attr)
         if val != cur_val:
             percept = Percept(uid=obj.uid, attr=attr, val=val, new_val=cur_val)
@@ -74,7 +75,7 @@ class PerceptionEngine():
         new_percepts = dict()
         for agent in self.observers.keys():
             agent_percepts = list()
-            for observers in self.observers[agent]:
+            for observer in self.observers[agent]:
                 possible_percept = observer()
                 if possible_percept:
                     agent_percepts.append(possible_percept)

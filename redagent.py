@@ -7,7 +7,7 @@ from radar import ProbabilisticROMANCERMessage
 
 class BlipOnRadarScreen(Percept):
     def __init__(self, **kwargs):
-        self.super.__init__(**kwargs)
+        super().__init__(**kwargs)
         try:
             getattr(self, 'time')
         except AttributeError:
@@ -24,7 +24,7 @@ class RedAgentPerceptionFilter(PerceptionFilter):
             # alter red agent's internal state based on the additional radar blip
             self.agent.blip_count += 1
             self.agent.most_recent_percept_time = percept.time
-            new_logpoint = RedAgentLogpoint(time=self.time, intended_radar_activation_time=self.intended_radar_activation_time, blip_count=self.blip_count, believed_radar_state=self.believed_radar_state)
+            new_logpoint = RedAgentLogpoint(time=self.agent.time, intended_radar_activation_time=self.agent.intended_radar_activation_time, blip_count=self.agent.blip_count, believed_radar_state=self.agent.believed_radar_state)
             self.agent.loglist.append(new_logpoint)
 
 
@@ -51,6 +51,7 @@ def red_agent_stochastic_actions_before_time(o, m):
     '''This function could account for random behavior by the red agent--for example, turning on the radar before the appointed time on a whim. For the initial demo, however, its sole purpose is to possibly attempt to report a possible attack from Blue based on the number of radar blips the Red Agent has perceived.'''
     delta_t = 7.0 # 5 second detection interval
     times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
+    # print(times)
     reporting_probability = 0.0 # max(o.blip_count / 50.0, 1.0)
     for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptContactSuperior', time=t, probability=reporting_probability)
@@ -65,6 +66,9 @@ def red_agent_next_deliberate_action(o, m):
         else:
             last_percept_time = -1.0
         new_message = ActionROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptActivateRadar', action='activate radar', time=o.intended_radar_activation_time, most_recent_percept_time=last_percept_time)
+        o.believed_radar_state = True
+        new_logpoint = RedAgentLogpoint(time=o.time, intended_radar_activation_time=o.intended_radar_activation_time, blip_count=o.blip_count, believed_radar_state=o.believed_radar_state)
+        o.loglist.append(new_logpoint)
         o.outbox.append(new_message)
     
 
@@ -90,14 +94,14 @@ class RedAgent(Agent):
         if self.time == time:
             pass
         low, high = self.loglist.temporal_bounds()
-        if low <= time:
+        if low <= time < high:
             self.loglist.truncate_to_time(time)
-            latest = self.loglist[-1]
-            self.time = latest.time
-            self.intended_radar_activation_time = latest.intended_radar_activation_time
-            self.believed_radar_state = latest.believed_radar_state 
-            self.blip_count = latest.blip_count
-            self.forward_simulation(time)
+        latest = self.loglist[-1]
+        self.time = latest.time
+        self.intended_radar_activation_time = latest.intended_radar_activation_time
+        self.believed_radar_state = latest.believed_radar_state 
+        self.blip_count = latest.blip_count
+        self.forward_simulation(time)
 
 
     def deliberate(self, max_time):

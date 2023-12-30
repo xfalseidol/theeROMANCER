@@ -49,9 +49,9 @@ class ProbabilisticROMANCERMessage(NamedTuple):
 def next_deterministic_action(o, m):
     '''This method sends a message to the supervisor indicating the time of the next deterministic action that the plane will take. As the only such action the plane can take on its own is traversing into a different disposition node, it simply sends a message indicating when this is predicated to take place.'''
     t = o.next_anticipated_disposition_change()
-    print(t)
-    message = TemporalROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AnticipatedDispositionChange', time=t)
-    o.outbox.append(message) # This doesn't actually send message to supervisor, environment needs to do that
+    if t <= m.time:
+        message = TemporalROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AnticipatedDispositionChange', time=t)
+        o.outbox.append(message) # This doesn't actually send message to supervisor, environment needs to do that
 
 
 def stochastic_actions_before_time(o, m):
@@ -84,15 +84,13 @@ class BZero(RomancerObject):
         '''This is the function that decides how to process messages in the plane's inbox. Each subclass will need a unique implementation of it. It should return functions with an (obj, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
         try:
             f = self.dispatch_table[message.messagetype]
+            return f
         except KeyError:
             print('No dispatch set for ', message)
-        finally:
-            return f
 
 
     def next_anticipated_disposition_change(self):
         '''Identify future time at which plane will leave its current disposition tree node based on its current speed and trajectory.'''
-        print(self.dispositions)
         low, high = self.dispositions[0].bounds
         if self.speed == 0: # disposition will never change
             return None
@@ -100,14 +98,15 @@ class BZero(RomancerObject):
             delta_d = high - self.location
         else:
             delta_d = -(self.location - low) # convert to negative to match negative speed
-        delta_t = delta_d / self.speed    
+        actual_speed = self.speed / 3600.0 # speed in km/s
+        delta_t = delta_d / actual_speed    
         return self.time + delta_t
 
 
     def update_disposition(self):
         '''Update the disposition of the plane. This method assumes that the time of the disposition change has already been identified with self.next_anticipated_disposition_change() and that the state of the plane has been evolved forward to that time using self.forward_simulation().'''
         cur = self.dispositions[0]
-        self.dispositions[0] =  self.dispositions[0] = self.dispositions[0].adjust_disposition(self, self.location, self.granularity)
+        self.dispositions[0] =  self.dispositions[0].adjust_disposition(self, self.location, self.granularity)
         if self.dispositions[0] is not cur:
             new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed , ecm = self.ecm)
             self.loglist.append(new_logpoint)
@@ -115,8 +114,11 @@ class BZero(RomancerObject):
 
     def forward_simulation(self, time):
         '''Evolve the plane's state forward in time. Except when rewinding, this ought not be called on an interval that will result in a changed disposition.'''
+        if time == self.time:
+            pass
         delta_t = time - self.time
-        new_location = self.location + self. speed * delta_t
+        actual_speed = self.speed / 3600.0 # speed in km/s
+        new_location = self.location + actual_speed * delta_t
         self.location = new_location
         self.time = time
         for child in self.children:
@@ -131,7 +133,6 @@ class BZero(RomancerObject):
         if low <= time:
             self.loglist.truncate_to_time(time) # maybe this shouldn't truncate
             latest = self.loglist[-1] # most recent logpoint < time
-            print(latest)
             self.time = latest.time # set plane time to logpoint time
             self.location = latest.location # set plane location to logpoint location
             self.speed = latest.speed # set plane speed to logpoint speed
@@ -181,7 +182,6 @@ class RedLightLogpoint(Logpoint):
 def red_light_stochastic_actions_before_time(o, m):
     
     messages = list()
-    initial_time = o.time
     peers = list()
     for d in o.dispositions:
         for item in d.identify_peers(o):
@@ -190,17 +190,19 @@ def red_light_stochastic_actions_before_time(o, m):
     delta_t = 5.0 # 5 second detection interval
     # times = list(range(o.time, m.time, delta_t)) range doesn't work for floats
     times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
+    # print(times)
     if o.on:
         for peer in peers:
+            initial_time = o.parent.time
             for t in times:
                 if peer.__class__.__name__ == 'RedRadar':
-                    peer.forward_simulation(t)
+                    o.parent.forward_simulation(t)
                     distance = abs(peer.location - o.location)
                     # check to see if adversary radar is now off or out of range and turn off light
                     if peer.on == False or distance > 250.0:
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOff', time=t, probability=0.95)
                         messages.append(message)
-            peer.rewind(initial_time)
+            o.parent.rewind(initial_time)
         # possibly turn off at random
         for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOff', time=t, probability=0.001)
@@ -208,15 +210,17 @@ def red_light_stochastic_actions_before_time(o, m):
     else:
         # check to see if adversary radar is now on or in range and turn on light
         for peer in peers:
+            initial_time = o.parent.time
             for t in times:
                 if peer.__class__.__name__ == 'RedRadar':
-                    peer.forward_simulation(t)
+                    o.parent.forward_simulation(t)
                     distance = abs(peer.location - o.location)
+                    # print(distance)
                     # check to see if adversary radar is now on and in range and turn off light if so
                     if peer.on == True and distance < 250.0:
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOn', time=t, probability=0.95)
                         messages.append(message)
-            peer.rewind(initial_time)
+            o.parent.rewind(initial_time)
             # possibly turn on at random
         for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOn', time=t, probability=0.001)
@@ -246,10 +250,9 @@ class RedLight(RomancerObject):
         '''This is the function that decides how to process messages in the plane's inbox. Each subclass will need a unique implementation of it. It should return functions with an (obj, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
         try:
             f = self.dispatch_table[message.messagetype]
+            return f
         except KeyError:
             print('No dispatch set for ', message)
-        finally:
-            return f
 
         
     @property

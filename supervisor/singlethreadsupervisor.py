@@ -132,11 +132,12 @@ class DisplayBlip(WatchlistItem):
 
     def __init__(self, time, screen_uid):
         super().__init__(time)
-        self.screen_uid = red_light_uid
+        self.screen_uid = screen_uid
         
 
     def process(self, supervisor):
-        screen = supervisor.environment.message_dispatch_table[screen_uid]
+        screen = supervisor.environment.message_dispatch_table[self.screen_uid]
+        screen.display_blip()
         if screen.blip_to_display: # ensure there is still a blip on the screen
             supervisor.check_for_percepts = True
 
@@ -254,7 +255,8 @@ def attempt_deactivate_radar(sup, message):
 
 def attempt_display_blip(sup, message):
     '''This function is used to act on messages sent by the radar screen that reflect attempts to display a radar blip.'''
-    item = DisplayBlip(time = message.time, screen_uid = message.sender[1])
+    screen_uid = [child for child in sup.environment.message_dispatch_table[message.sender[1]].children if child.__class__.__name__ == 'RadarScreen'][0].uid
+    item = DisplayBlip(time = message.time, screen_uid = screen_uid)
     return item
 
 
@@ -295,6 +297,7 @@ class SingleThreadSupervisor(Supervisor):
             return f
         except KeyError:
             print('No dispatch found for message type:', message.messagetype)
+            print(message)
 
 
     def deterministic_events_process_inbox(self, max_time):
@@ -314,6 +317,7 @@ class SingleThreadSupervisor(Supervisor):
         candidate_next_item, new_max_time = candidate_next_item, max_time
         if len(self.inbox) > 0:
             self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
+            # print(self.inbox)
             for message in self.inbox:
                 # assess whether possible event described by message occurs and if so when
                 if self.rng.random() <= message.probability:
@@ -359,6 +363,7 @@ class SingleThreadSupervisor(Supervisor):
         item.process(self) # run code associated with WatchlistItem; this can cause arbitrary changes to environment and supervisor state
         self.logger(self.watchlist.pop()) # pop the just-processed item off of the watchlist and log it if desired
         if self.check_for_percepts:
+            print('check')
             next_time = self.watchlist.peek().time
             self.perceive_and_deliberate(next_time)
             self.check_for_percepts = False
@@ -366,6 +371,7 @@ class SingleThreadSupervisor(Supervisor):
 
     def perceive_and_deliberate(self, max_time, verbose=False):
         '''This method is supposed to be called as part of process_next_watchlist_item(), in cases where new percepts have been generated and agents need to deliberate about those percepts. It tells the environment to run the perception engine and command those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time. If such actions are planned, they will be messaged to the supervisor when bring_watchlist_up_to_date is next called.'''
+        print('perceiving and deliberating')
         self.environment.perceive_and_deliberate(max_time)
         
 

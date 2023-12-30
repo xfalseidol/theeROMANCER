@@ -6,7 +6,7 @@ from environment.percept import Percept
 from plane import BZero, RedLight
 from radar import RedRadar, RadarScreen
 from blueagent import BlueAgent, BlueAgentPerceptionFilter
-from redagent import RedAgent, RedAgentPerceptionFilter
+from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen
 from dill import dump, load
 
 # STEP 1: Make supervisor
@@ -88,9 +88,9 @@ engine.add_observer(agent_id=pilot.uid, observer=blue_observer)
 # the radar screen has a blip to display--is True. If so it generates a possible percept and then resets that variable to False.
 
 def red_observer():
-    if screen.blips_to_display:
-        percept = Percept(uid=screen.uid, attr='blips_to_display', val=True)
-        screen.blips_to_display = False
+    if screen.blip_to_display:
+        percept = BlipOnRadarScreen(uid=screen.uid, attr='blips_to_display', val=True, time=screen.time)
+        screen.blip_to_display = False
         return percept
 
 engine.add_observer(agent_id=operator.uid, observer=red_observer)
@@ -114,9 +114,9 @@ print("Initial watchlist: ", sup.watchlist)
 while len(sup.watchlist) > 0:
     sup.bring_watchlist_up_to_date()
     print("Updated watchlist: ", sup.watchlist)
-    sup.process_inbox() # needed?
+    # sup.process_inbox() # needed?
     sup.process_next_watchlist_item()
-    sup.process_inbox() # needed?
+    # sup.process_inbox() # needed?
 
 # Step 8: analyze results of simulation
 

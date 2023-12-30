@@ -21,8 +21,6 @@ class DispositionStump():
         #     raise ValueError('Location outside bounds.')
         # else:
         #     return self # no adjustment needed
-        print(self.bounds)
-        print(location)
         if self.bounds[0] <= location <= self.bounds[1]:
             return self
         else:
