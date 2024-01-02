@@ -11,7 +11,7 @@ def make_observer(obj, attr, value):
     return observer
 
 
-def make_change_observer(obj, attr):
+def make_change_observer(obj, attr, percept_class=Percept):
     '''This function makes an observer that produces a Percept if a particular attribute has changed since the last time it was run.'''
 
     val = getattr(obj, attr)
@@ -20,7 +20,7 @@ def make_change_observer(obj, attr):
         nonlocal val
         cur_val = getattr(obj, attr)
         if val != cur_val:
-            percept = Percept(uid=obj.uid, attr=attr, val=val, new_val=cur_val)
+            percept = percept_class(uid=obj.uid, attr=attr, val=val, new_val=cur_val, time=obj.time)
         else:
             return None
         val = cur_val

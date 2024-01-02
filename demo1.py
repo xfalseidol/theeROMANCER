@@ -5,7 +5,7 @@ from environment.perceptionengine import PerceptionEngine, make_change_observer
 from environment.percept import Percept
 from plane import BZero, RedLight
 from radar import RedRadar, RadarScreen
-from blueagent import BlueAgent, BlueAgentPerceptionFilter
+from blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
 from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen
 from dill import dump, load
 
@@ -39,12 +39,12 @@ sup.environment = env # set supervisor's environment attribute
 # Step 3: Create environmental objects
 
 # Step 3.1: Create and configure plane
-bomber = BZero(environment=env, time=0.0, location=-750.0, speed=800.0)
+bomber = BZero(environment=env, time=0.0, location=-100.0, speed=800.0)
 env.register_object(bomber)
 env.add_object(bomber)
 
 # The red warning light in the cockpit turns on to indicate adversary radar detected
-light = RedLight(environment=env, time=0.0, location=-750.0)
+light = RedLight(environment=env, time=0.0, location=-100.0)
 env.register_object(light)
 env.add_object(light, parent_object=bomber)
 
@@ -80,7 +80,7 @@ env.add_agent(operator, parent_object=radar) # associate red agent with radar
 # that representing the warning light in the bomber cockpit that indicates possible detection by adversary radar--
 # has changed from the last seen value.
 
-blue_observer = make_change_observer(light, 'on')
+blue_observer = make_change_observer(light, 'on', PerceiveRedLightOn)
 
 engine.add_observer(agent_id=pilot.uid, observer=blue_observer)
 

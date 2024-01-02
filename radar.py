@@ -37,13 +37,15 @@ def radar_stochastic_actions_before_time(o, m):
             if peer.__class__.__name__ == 'BZero':
                 print('bomber detected')
                 initial_time = peer.time
-                times = [peer.time + delta_t * i for i in range(int((m.time - peer.time) / delta_t))]
+                times = [peer.time + delta_t * i for i in range(1, int((m.time - peer.time) / delta_t) + 1)]
+                print(times)
                 if not peer.ecm:
                     for t in times:
                         peer.forward_simulation(t)
                         distance = abs(peer.location - o.location)
                         # print(distance)
-                        detection_prob = max(0.5 - 0.002 * distance, 0.0)
+                        detection_prob = max(0.5 - 0.002 * distance, 0.0) # detection w/i 250 km
+                        # print(detection_prob)
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptDisplayBlip', time=t, probability=detection_prob)
                         messages.append(message)
                 else:
@@ -51,14 +53,15 @@ def radar_stochastic_actions_before_time(o, m):
                         peer.forward_simulation(t)
                         distance = abs(peer.location - o.location)
                         # and the probability that it will detect them during time interval
-                        detection_prob = max(0.75 - 0.015 * distance, 0.0)
+                        detection_prob = max(0.75 - 0.015 * distance, 0.0) # detection only w/i 50 km
+                        # print(detection_prob)
                         # Generate message(s) to send to supervisor about these possible events, their probabilities, and the times at which they would occur if they do
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptDisplayBlip', time=t, probability=detection_prob)
                         messages.append(message)
             peer.rewind(initial_time) # rewind bomber to previous state
     
         # Also produce message(s) representing false positives
-        times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
+        times = [o.time + delta_t * i for i in range(1, int((m.time - o.time) / delta_t) + 1)]
         false_blip_rate = 0.01 # stochastic blips per second
         for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptDisplayBlip', time=t, probability=false_blip_rate * delta_t)

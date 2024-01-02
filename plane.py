@@ -189,7 +189,7 @@ def red_light_stochastic_actions_before_time(o, m):
                 peers.append(item)
     delta_t = 5.0 # 5 second detection interval
     # times = list(range(o.time, m.time, delta_t)) range doesn't work for floats
-    times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
+    times = [o.time + delta_t * i for i in range(1, int((m.time - o.time) / delta_t) + 1)]
     # print(times)
     if o.on:
         for peer in peers:

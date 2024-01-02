@@ -4,9 +4,9 @@ from loglist import Logpoint
 
 # The purpose of this file is to define the Blue Agent, the percepts that it can receive, and the actions that it can take
 
-class RedLightOn(Percept):
+class PerceiveRedLightOn(Percept):
     def __init__(self, **kwargs):
-        self.super.__init__(**kwargs)
+        super().__init__(**kwargs)
         try:
             getattr(self, 'time')
         except AttributeError:
@@ -17,14 +17,15 @@ class BlueAgentPerceptionFilter(PerceptionFilter):
     '''This perception filter converts percepts into possible changes in the red agent's internal state.'''
 
     def digest_percept(self, percept):
-        if not isinstance(percept, (RedLightOn)):
+        if not isinstance(percept, (PerceiveRedLightOn)):
             raise TypeError('Percept not recognized by perception engine')
         else:
             # alter blue agent's internal state based on believing red light is on
-            if not self.red_light_on:
+            if not self.agent.red_light_on:
                 self.agent.red_light_on = True
                 self.agent.most_recent_percept_time = percept.time
-                new_logpoint = BlueAgentLogpoint(time=self.time, red_light_on=self.red_light_on, ecm=self.ecm, intended_ecm_activation_time=self.intended_ecm_activation_time)
+                self.agent.intended_ecm_activation_time = self.agent.most_recent_percept_time + 20 # twenty seconds to make up mind to turn on ecms
+                new_logpoint = BlueAgentLogpoint(time=self.agent.time, red_light_on=self.agent.red_light_on, ecm=self.agent.ecm, intended_ecm_activation_time=self.agent.intended_ecm_activation_time)
                 self.agent.loglist.append(new_logpoint)
 
 
@@ -59,7 +60,7 @@ def blue_agent_next_deliberate_action(o, m):
             last_percept_time = o.most_recent_percept_time
         else:
             last_percept_time = -1.0
-        new_message = ActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(m.sender[0], m.sender[1]), messagetype='PlannedAction', action='activate ecm', time=self.intended_ecm_activation_time, most_recent_percept_time=last_percept_time)
+        new_message = ActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptActivateECM', action='activate ecm', time=o.intended_ecm_activation_time, most_recent_percept_time=last_percept_time)
         o.outbox.append(new_message)
 
 
@@ -120,3 +121,17 @@ class BlueAgent(Agent):
     def granularity(self):
         '''The pilot is treated as part of the plane, so their granularity is the same as that of the plane.'''
         return self.parent.granularity
+
+
+    def believes_ecm_activated(self):
+        '''Log that the agent believes that the ecm is now on.'''
+        self.ecm = True
+        new_logpoint = BlueAgentLogpoint(time=self.time, red_light_on=self.red_light_on, ecm=self.ecm, intended_ecm_activation_time=self.intended_ecm_activation_time)
+        self.loglist.append(new_logpoint)
+
+
+    def believes_ecm_deactivated(self):
+        '''Log that the agent believes that the ecm is now off.'''
+        self.ecm = false
+        new_logpoint = BlueAgentLogpoint(time=self.time, red_light_on=self.red_light_on, ecm=self.ecm, intended_ecm_activation_time=self.intended_ecm_activation_time)
+        self.loglist.append(new_logpoint)

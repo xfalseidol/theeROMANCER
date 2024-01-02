@@ -49,8 +49,8 @@ def red_agent_deterministic_actions_before_time(o, m):
 
 def red_agent_stochastic_actions_before_time(o, m):
     '''This function could account for random behavior by the red agent--for example, turning on the radar before the appointed time on a whim. For the initial demo, however, its sole purpose is to possibly attempt to report a possible attack from Blue based on the number of radar blips the Red Agent has perceived.'''
-    delta_t = 7.0 # 5 second detection interval
-    times = [o.time + delta_t * i for i in range(int((m.time - o.time) / delta_t))]
+    delta_t = 7.0 # 7 second detection interval
+    times = [o.time + delta_t * i for i in range(1, int((m.time - o.time) / delta_t) + 1)]
     # print(times)
     reporting_probability = 0.0 # max(o.blip_count / 50.0, 1.0)
     for t in times:

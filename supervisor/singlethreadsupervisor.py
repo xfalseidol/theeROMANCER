@@ -84,7 +84,7 @@ class RedLightOff(WatchlistItem):
 
         
     def process(self, supervisor):
-        red_light = supervisor.environment.message_dispatch_table[red_light_uid]
+        red_light = supervisor.environment.message_dispatch_table[self.red_light_uid]
         red_light.red_light_off()
         supervisor.check_for_percepts = True # red light likely to generate percepts
 
@@ -96,14 +96,17 @@ class RedLightOff(WatchlistItem):
 
 class ActivateECM(WatchlistItem):
 
-    def __init__(self, time, bomber_uid):
+    def __init__(self, time, bomber_uid, agent_uid):
         super().__init__(time)
         self.bomber_uid = bomber_uid
+        self.agent_uid = agent_uid
 
 
     def process(self, supervisor):
-        bomber = supervisor.environment.message_dispatch_table[bomber_uid]
+        bomber = supervisor.environment.message_dispatch_table[self.bomber_uid]
+        agent = supervisor.environment.message_dispatch_table[self.agent_uid]
         bomber.activate_ecm()
+        agent.believes_ecm_activated() # agent believes ECM is now on
 
 
     def __repr__(self):
@@ -113,15 +116,17 @@ class ActivateECM(WatchlistItem):
 
 class DeactivateECM(WatchlistItem):
 
-    def __init__(self, time, bomber_uid):
+    def __init__(self, time, bomber_uid, agent_uid):
         super().__init__(time)
         self.bomber_uid = bomber_uid
-
+        self.agent_uid = agent_uid
 
     def process(self, supervisor):
-        bomber = supervisor.environment.message_dispatch_table[bomber_uid]
+        bomber = supervisor.environment.message_dispatch_table[self.bomber_uid]
+        agent = supervisor.environment.message_dispatch_table[self.agent_uid]
         bomber.deactivate_ecm()
-
+        agent.believes_ecm_deactivated() # agent believes ECM is now off
+        
 
     def __repr__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
@@ -220,13 +225,13 @@ class ContactSuperior(WatchlistItem):
 
 def attempt_activate_ecm(sup, message):
     '''This function is used to act on messages sent by the blue agent that reflect attempts to activate the bomber's ECMs.'''
-    item = ActivateECM(time = message.time, bomber_uid = message.sender[1])
+    item = ActivateECM(time = message.time, bomber_uid = sup.environment.message_dispatch_table[message.sender[1]].parent.uid, agent_uid = message.sender[1])
     return item
 
 
 def attempt_deactivate_ecm(sup, message):
     '''This function is used to act on messages sent by the blue agent that reflect attempts to deactivate the bomber's ECMs.'''
-    item = DeactivateECM(time = message.time, bomber_uid = message.sender[1])
+    item = DeactivateECM(time = message.time, bomber_uid = sup.environment.message_dispatch_table[message.sender[1]].parent.uid, agent_uid = message.sender[1])
     return item
 
 
