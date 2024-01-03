@@ -52,7 +52,7 @@ def red_agent_stochastic_actions_before_time(o, m):
     delta_t = 7.0 # 7 second detection interval
     times = [o.time + delta_t * i for i in range(1, int((m.time - o.time) / delta_t) + 1)]
     # print(times)
-    reporting_probability = 0.0 # max(o.blip_count / 50.0, 1.0)
+    reporting_probability = min(o.blip_count / 50.0, 1.0)
     for t in times:
             message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptContactSuperior', time=t, probability=reporting_probability)
             o.outbox.append(message)

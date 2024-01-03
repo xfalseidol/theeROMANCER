@@ -212,8 +212,13 @@ class SetAircraftSpeed(WatchlistItem):
 
 class ContactSuperior(WatchlistItem):
 
+    def __init__(self, time):
+        super().__init__(time)
+        
+
     def process(self, supervisor):
-        pass
+        print('Radar operator attempted to contact superior at time = ', supervisor.environment.time)
+        
 
     def __repr__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
@@ -273,7 +278,8 @@ def attempt_set_speed(sup, message):
 
 def attempt_contact_superior(sup, message):
     '''This function is used to act on messages sent by the red agent that reflect attempts to contact his superiors.'''
-    pass
+    item = ContactSuperior(time = message.time)
+    return item
 
 
 class SingleThreadSupervisor(Supervisor):
@@ -368,7 +374,6 @@ class SingleThreadSupervisor(Supervisor):
         item.process(self) # run code associated with WatchlistItem; this can cause arbitrary changes to environment and supervisor state
         self.logger(self.watchlist.pop()) # pop the just-processed item off of the watchlist and log it if desired
         if self.check_for_percepts:
-            print('check')
             next_time = self.watchlist.peek().time
             self.perceive_and_deliberate(next_time)
             self.check_for_percepts = False
@@ -376,7 +381,6 @@ class SingleThreadSupervisor(Supervisor):
 
     def perceive_and_deliberate(self, max_time, verbose=False):
         '''This method is supposed to be called as part of process_next_watchlist_item(), in cases where new percepts have been generated and agents need to deliberate about those percepts. It tells the environment to run the perception engine and command those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time. If such actions are planned, they will be messaged to the supervisor when bring_watchlist_up_to_date is next called.'''
-        print('perceiving and deliberating')
         self.environment.perceive_and_deliberate(max_time)
         
 

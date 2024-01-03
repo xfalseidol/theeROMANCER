@@ -8,6 +8,8 @@ from radar import RedRadar, RadarScreen
 from blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
 from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen
 from dill import dump, load
+from pathlib import Path
+
 
 # STEP 1: Make supervisor
 # Note that the supervisor as initialized here does not have its environment set; need to set it once environment is created
@@ -18,6 +20,11 @@ stop = Stop(time=600.0) # simulation duration 10 minutes
 sup.watchlist.push(stop) # push stop time onto watchlist
 
 # Step 1.2: Configure logger
+
+def demologger(s):
+    print('Processed watchlist item: ', s)
+
+sup.logger = demologger
 
 # Step 2: Make environment
 # The environment needs a disposition tree and a perception engine, so we make those first
@@ -99,10 +106,10 @@ engine.add_observer(agent_id=operator.uid, observer=red_observer)
 
 # Step 6: Save configured environment
 
-# filepath = '/my/desired/filepath.pkl'
+filepath = Path.cwd() / 'demo1supervisor.pkl'
 
-# with open(filepath, 'wb') as f:
-#     dump(sup, f)
+with open(filepath, 'wb') as f:
+    dump(sup, f)
 
 # Step 7: Run simulation
 

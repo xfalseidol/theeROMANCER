@@ -25,7 +25,6 @@ class ProbabilisticROMANCERMessage(NamedTuple):
 
 def radar_stochastic_actions_before_time(o, m):
     if o.on:
-        print('generating possible radar detections')
         delta_t = 5.0 # 5 second detection interval
         messages = list()
         peers = list()
@@ -35,10 +34,8 @@ def radar_stochastic_actions_before_time(o, m):
                     peers.append(item)
         for peer in peers:
             if peer.__class__.__name__ == 'BZero':
-                print('bomber detected')
                 initial_time = peer.time
                 times = [peer.time + delta_t * i for i in range(1, int((m.time - peer.time) / delta_t) + 1)]
-                print(times)
                 if not peer.ecm:
                     for t in times:
                         peer.forward_simulation(t)
