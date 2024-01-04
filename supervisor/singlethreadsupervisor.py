@@ -308,13 +308,13 @@ class SingleThreadSupervisor(Supervisor):
             return f
         except KeyError:
             print('No dispatch found for message type:', message.messagetype)
-            print(message)
 
 
     def deterministic_events_process_inbox(self, max_time):
         '''The purpose of this method is to process a set of messages sent by environmental objects in response to a query from the supervisor for the next deterministic event those objects envision making. It identifies which of those events is earliest and returns it as the candidate next event.'''
         candidate_next_item, new_max_time = None, max_time
         if len(self.inbox) > 0:
+            self.rng.shuffle(self.inbox)
             self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
             f = self.dispatcher(self.inbox[0])
             candidate_next_item = f(self, self.inbox[0])
@@ -327,6 +327,7 @@ class SingleThreadSupervisor(Supervisor):
         '''The purpose of this method is to process a set of messages sent by environmental objects in response to a query from the supervisor about possible stochastic events that those objects might make before max_time. Each of these messages is assumed to have a probability attribute that the supervisor uses to assess whether the event happens. This method goes through the messages in chronological order and assesses whether each possible event occurs. If one is assessed positively, then it becomes the candidate next item and its time become the new max time. Otherwise, the candidate_next_item and max_time passed into the method are returned unchanged.'''
         candidate_next_item, new_max_time = candidate_next_item, max_time
         if len(self.inbox) > 0:
+            self.rng.shuffle(self.inbox)
             self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
             # print(self.inbox)
             for message in self.inbox:
