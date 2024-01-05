@@ -1,6 +1,20 @@
 from dataclasses import dataclass
 from numpy import sin, cos, arctan2, arcsin, pi, sqrt
 
+
+def decdegrees_to_degrees(decdegrees):
+    '''Converts decimal degrees into a (degrees, minutes, seconds) tuple.'''
+    degrees = decdegrees // 1.0
+    minutes = ((decdegrees - degrees) * 60.0) // 60
+    seconds = (((decdegrees - degrees) * 60.0) % 60) * 60.0
+    return degrees, minutes, seconds
+
+
+def decdegrees_to_degrees(degrees, minutes, seconds):
+    '''Converts degrees, minutes, seconds location into unitary decimal degrees.'''
+    return degrees + (minutes / 60.0) + (seconds / 3600.0)
+
+    
 # Formulas adapted from https://www.movable-type.co.uk/scripts/latlong.html
 
 def bearing(lat1, long1, lat2, long2):
@@ -16,7 +30,7 @@ def bearing(lat1, long1, lat2, long2):
 class GeographicLocation:
     latitude: float # in radians, -pi ... pi, equator = 0
     longitude: float # in radians, -pi ... pi, Prime Meridian = 0
-    bearing : float # in radians, 0 ... 2 pi, compass bearing
+    bearing: float # in radians, 0 ... 2 pi, compass bearing
 
 
     def distance(self, location):
@@ -46,7 +60,28 @@ class GeographicLocation:
 
     def to_decimal_degrees(self):
         '''This method returns a (latitude, longitude, bearing) tuple with the location given in decimal degrees rather than radians.'''
-        decimal_latitude = self.latitude * 180.0
-        decimal_longitude = self.longitude * 180.0
-        decimal_bearing = self.bearing * 180.0
+        decimal_latitude = (self.latitude / pi) * 180.0
+        decimal_longitude = (self.longitude / pi) * 180.0
+        decimal_bearing = (self.bearing / pi) * 180.0
         return decimal_latitude, decimal_longitude, decimal_bearing
+
+
+@dataclass
+class StationaryGeographicLocation(GeographicLocation):
+    latitude: float # in radians, -pi ... pi, equator = 0
+    longitude: float # in radians, -pi ... pi, Prime Meridian = 0
+    bearing: bool = None # stationary location lacks bearing
+    
+
+    def destination_point(self, distance):
+        '''Throws an error as StationaryGeographicLocation cannot move and lacks a bearing.'''
+        raise RuntimeError('StationaryGeographicLocation lacks bearing and cannot move')
+
+
+    def to_decimal_degrees(self):
+        '''This method returns a (latitude, longitude, bearing) tuple with the location given in decimal degrees rather than radians.'''
+        decimal_latitude = (self.latitude / pi) * 180.0
+        decimal_longitude = (self.longitude / pi) * 180.0
+        return decimal_latitude, decimal_longitude, decimal_bearing, self.bearing
+
+    
