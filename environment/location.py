@@ -4,10 +4,10 @@ from numpy import sin, cos, arctan2, arcsin, pi, sqrt
 
 def decdegrees_to_degrees(decdegrees):
     '''Converts decimal degrees into a (degrees, minutes, seconds) tuple.'''
-    degrees = int(decdegrees)
+    degrees = decdegrees // 1
     decimal_minutes = (decdegrees - degrees) / 60
-    minutes = int(decimal_minutes)
-    seconds = (decimal_minutes - minutes) * 60.0
+    minutes = decimal_minutes // 1 
+    seconds = (decimal_minutes - minutes) * 60
     return degrees, minutes, seconds
 
 
