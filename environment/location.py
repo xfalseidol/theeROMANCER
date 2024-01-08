@@ -89,6 +89,6 @@ class StationaryGeographicLocation(GeographicLocation):
         '''This method returns a (latitude, longitude, bearing) tuple with the location given in decimal degrees rather than radians.'''
         decimal_latitude = (self.latitude / pi) * 180.0
         decimal_longitude = (self.longitude / pi) * 180.0
-        return decimal_latitude, decimal_longitude, decimal_bearing, self.bearing
+        return decimal_latitude, decimal_longitude, self.bearing
 
     
