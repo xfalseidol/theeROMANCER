@@ -69,8 +69,8 @@ class GeographicLocation:
     def to_decimal_degrees(self):
         '''This method returns a (latitude, longitude, bearing) tuple with the location given in decimal degrees rather than radians.'''
         decimal_latitude = rad2deg(self.latitude)
-        decimal_longitude = decimal_latitude(self.longitude)
-        decimal_bearing = decimal_latitude(self.bearing)
+        decimal_longitude = rad2deg(self.longitude)
+        decimal_bearing = rad2deg(self.bearing)
         return decimal_latitude, decimal_longitude, decimal_bearing
 
 
