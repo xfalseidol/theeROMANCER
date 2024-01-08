@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from numpy import sin, cos, arctan2, arcsin, pi, sqrt
+from numpy import sin, cos, arctan2, arcsin, pi, sqrt, rad2deg
 
 def decdegrees_to_degrees(decdegrees):
     '''Converts decimal degrees into a (degrees, minutes, seconds) tuple.'''
@@ -68,9 +68,9 @@ class GeographicLocation:
 
     def to_decimal_degrees(self):
         '''This method returns a (latitude, longitude, bearing) tuple with the location given in decimal degrees rather than radians.'''
-        decimal_latitude = (self.latitude / pi) * 180.0
-        decimal_longitude = (self.longitude / pi) * 180.0
-        decimal_bearing = (self.bearing / pi) * 180.0
+        decimal_latitude = rad2deg(self.latitude)
+        decimal_longitude = decimal_latitude(self.longitude)
+        decimal_bearing = decimal_latitude(self.bearing)
         return decimal_latitude, decimal_longitude, decimal_bearing
 
 
