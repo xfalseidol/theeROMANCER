@@ -1,18 +1,26 @@
 from dataclasses import dataclass
 from numpy import sin, cos, arctan2, arcsin, pi, sqrt
 
-
 def decdegrees_to_degrees(decdegrees):
     '''Converts decimal degrees into a (degrees, minutes, seconds) tuple.'''
-    degrees = decdegrees // 1.0
-    minutes = ((decdegrees - degrees) * 60.0) // 60
-    seconds = (((decdegrees - degrees) * 60.0) % 60) * 60.0
-    return degrees, minutes, seconds
+    # We need to remember if it was positive or negative so we can round in the correct direction
+    is_positive = decdegrees >= 0
+    # Then turn it into an int so it rounds toward 0
+    degrees = abs(decdegrees)
+    whole_degrees, minutes = divmod(degrees * 60, 60)
+    whole_minutes, seconds = divmod(minutes * 60, 60)
+    if is_positive:
+        return whole_degrees, whole_minutes, seconds
+    else:
+        return -1*whole_degrees, whole_minutes, seconds
 
-
-def decdegrees_to_degrees(degrees, minutes, seconds):
+def degrees_to_decdegrees(degrees, minutes, seconds):
     '''Converts degrees, minutes, seconds location into unitary decimal degrees.'''
-    return degrees + (minutes / 60.0) + (seconds / 3600.0)
+    is_positive = degrees >= 0
+    ans = abs(degrees) + (minutes / 60.0) + (seconds / 3600.0)
+    if not is_positive:
+        return -1 * ans
+    return ans
 
     
 # Formulas adapted from https://www.movable-type.co.uk/scripts/latlong.html
@@ -72,7 +80,6 @@ class StationaryGeographicLocation(GeographicLocation):
     longitude: float # in radians, -pi ... pi, Prime Meridian = 0
     bearing: bool = None # stationary location lacks bearing
     
-
     def destination_point(self, distance):
         '''Throws an error as StationaryGeographicLocation cannot move and lacks a bearing.'''
         raise RuntimeError('StationaryGeographicLocation lacks bearing and cannot move')
