@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from types import NoneType
 from numpy import sin, cos, arctan2, arcsin, pi, sqrt, rad2deg
 
 def decdegrees_to_degrees(decdegrees):
@@ -12,8 +13,9 @@ def decdegrees_to_degrees(decdegrees):
     if is_positive:
         return whole_degrees, whole_minutes, seconds
     else:
-        return -1*whole_degrees, whole_minutes, seconds
+        return -1 * whole_degrees, whole_minutes, seconds
 
+    
 def degrees_to_decdegrees(degrees, minutes, seconds):
     '''Converts degrees, minutes, seconds location into unitary decimal degrees.'''
     is_positive = degrees >= 0
@@ -45,7 +47,7 @@ class GeographicLocation:
         '''Return the distnace, in kilometers, between self and location, using the haversine formula.'''
         delta_lat = location.latitude - self.latitude
         delta_long = location.longitude - self.longitude
-        a = sin(delta_lat / 2)**2 + cos(self.latitude) * cos(location.latitude) * sin(delta_long)**2
+        a = sin(delta_lat / 2)**2 + cos(self.latitude) * cos(location.latitude) * sin(delta_long / 2)**2
         c = 2 * arctan2(sqrt(a), sqrt(1 - a))
         d = c * 6371.0
         return d
@@ -61,7 +63,7 @@ class GeographicLocation:
         delta = distance / 6371.0 # kilometers
         lat2 = arcsin(sin(self.latitude) * cos(delta) + cos(self.latitude) * sin(delta) * cos(self.bearing))
         long2 = self.longitude + arctan2(sin(self.bearing) * sin(delta) * cos(self.latitude), cos(delta) - sin(self.latitude) * sin(lat2))
-        long2 = (long2 + 3 * pi) % (2 * p1) - pi # normalize longitude to -pi ... pi
+        long2 = (long2 + 3 * pi) % (2 * pi) - pi # normalize longitude to -pi ... pi
         final_bearing = (bearing(lat2, long2, self.latitude, self.longitude) + pi) % (2 * pi) # reverse bearing from endpoint to starting point
         return GeographicLocation(latitude = lat2, longitude = long2, bearing = final_bearing)
 
@@ -78,7 +80,7 @@ class GeographicLocation:
 class StationaryGeographicLocation(GeographicLocation):
     latitude: float # in radians, -pi ... pi, equator = 0
     longitude: float # in radians, -pi ... pi, Prime Meridian = 0
-    bearing = None # stationary location lacks bearing
+    bearing: NoneType = None # stationary location lacks bearing
     
     def destination_point(self, distance):
         '''Throws an error as StationaryGeographicLocation cannot move and lacks a bearing.'''
