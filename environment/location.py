@@ -78,7 +78,7 @@ class GeographicLocation:
 class StationaryGeographicLocation(GeographicLocation):
     latitude: float # in radians, -pi ... pi, equator = 0
     longitude: float # in radians, -pi ... pi, Prime Meridian = 0
-    bearing: bool = None # stationary location lacks bearing
+    bearing = None # stationary location lacks bearing
     
     def destination_point(self, distance):
         '''Throws an error as StationaryGeographicLocation cannot move and lacks a bearing.'''
