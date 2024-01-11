@@ -60,6 +60,8 @@ class GeographicLocation:
 
     def destination_point(self, distance):
         '''Calculate the destination point and final bearing traveling distance from location along a (shortest distance) great circle arc. Returns a new GeographicLocation object representing that point.'''
+        if distance == 0.0:
+            return self
         delta = distance / 6371.0 # kilometers
         lat2 = arcsin(sin(self.latitude) * cos(delta) + cos(self.latitude) * sin(delta) * cos(self.bearing))
         long2 = self.longitude + arctan2(sin(self.bearing) * sin(delta) * cos(self.latitude), cos(delta) - sin(self.latitude) * sin(lat2))

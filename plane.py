@@ -1,6 +1,10 @@
 from typing import NamedTuple
 from environment.object import RomancerObject
+from environment.location import GeographicLocation
 from loglist import Logpoint
+from numpy import pi, inf
+from copy import copy
+from scipy.optimize import root_scalar
 
 # Introducing the B-0: a plane that really, really sucks
 
@@ -9,7 +13,7 @@ class BZeroLogpoint(Logpoint):
 
     def __init__(self, time, location, speed, ecm):
         self.time = time
-        self.location = location
+        self.location = copy(location) # GeographicLocation is mutable so logpoints need to store copy
         self.speed = speed
         self.ecm = ecm
 
@@ -63,7 +67,7 @@ class BZero(RomancerObject):
     def __init__(self, environment, time, location, speed, ecm=False, granularity=100):
         super().__init__(environment, time) # set up standard object slots
         self.children = list() # pilot and red light go here
-        self.location = location # one-dimensional, this plane can't steer!
+        self.location = location # GeographicLocation representing plane latitude, longitude, and bearing
         self.speed = speed # speed along trajectory in km/hr
         self.ecm = ecm # electronic countermeasures that can confound adversary radar; boolean
         self.granularity = granularity # used for disposition tree
@@ -91,14 +95,40 @@ class BZero(RomancerObject):
 
     def next_anticipated_disposition_change(self):
         '''Identify future time at which plane will leave its current disposition tree node based on its current speed and trajectory.'''
-        low, high = self.dispositions[0].bounds
         if self.speed == 0: # disposition will never change
             return None
-        elif self.speed > 0:
-            delta_d = high - self.location
-        else:
-            delta_d = -(self.location - low) # convert to negative to match negative speed
         actual_speed = self.speed / 3600.0 # speed in km/s
+        
+        # use bearing to determine which boundaries plane will cross first
+        lowlat, highlat, lowlong, highlong = self.dispositions[0].bounds
+        if self.location.bearing > pi: # heading west
+            longbound = lowlong
+        elif self.location.bearing < pi: # heading east
+            longbound = highlong
+        elif self.location.bearing == 0 or self.location.bearing == pi: # heading north or south
+            longbound = None
+        if self.location.bearing < pi / 2 or 1.5 * pi < self.location.bearing: # heading north
+            latbound = highlat
+        elif  pi / 2 < self.location.bearing < 1.5 * pi: # heading south
+            latbound = lowlat
+        elif self.location.bearing == pi / 2 or self.location.bearing == 1.5 * pi: # heading east or west
+            latbound = None
+
+        # use scipy to find root
+
+        if latbound:
+            x0 = self.location.distance(GeographicLocation(latitude=latbound, longitude=self.location.longitude, bearing=self.location.bearing))
+            delta_d1 = root_scalar(lambda d: self.location.destination_point(d).latitude - latbound, x0 = x0, x1 = x0 + x0 * 0.01).root
+        else:
+            delta_d1 = inf
+        if longbound:
+            x0 = self.location.distance(GeographicLocation(latitude=self.location.latitude, longitude=longbound, bearing=self.location.bearing))
+            delta_d2 = root_scalar(lambda d: self.location.destination_point(d).longitude - longbound, x0 = x0, x1 = x0 + x0 * 0.01).root
+        else:
+            delta_d2 = inf
+
+        delta_d = min(delta_d1, delta_d2)
+        
         delta_t = delta_d / actual_speed    
         return self.time + delta_t
 
@@ -118,7 +148,8 @@ class BZero(RomancerObject):
             pass
         delta_t = time - self.time
         actual_speed = self.speed / 3600.0 # speed in km/s
-        new_location = self.location + actual_speed * delta_t
+        # print(actual_speed * delta_t)
+        new_location = self.location.destination_point(actual_speed * delta_t)
         self.location = new_location
         self.time = time
         for child in self.children:
@@ -197,7 +228,7 @@ def red_light_stochastic_actions_before_time(o, m):
             for t in times:
                 if peer.__class__.__name__ == 'RedRadar':
                     o.parent.forward_simulation(t)
-                    distance = abs(peer.location - o.location)
+                    distance = o.location.distance(peer.location)
                     # check to see if adversary radar is now off or out of range and turn off light
                     if peer.on == False or distance > 250.0:
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptRedLightOff', time=t, probability=0.95)
@@ -214,7 +245,7 @@ def red_light_stochastic_actions_before_time(o, m):
             for t in times:
                 if peer.__class__.__name__ == 'RedRadar':
                     o.parent.forward_simulation(t)
-                    distance = abs(peer.location - o.location)
+                    distance = o.location.distance(peer.location)
                     # print(distance)
                     # check to see if adversary radar is now on and in range and turn off light if so
                     if peer.on == True and distance < 250.0:

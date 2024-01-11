@@ -39,7 +39,7 @@ def radar_stochastic_actions_before_time(o, m):
                 if not peer.ecm:
                     for t in times:
                         peer.forward_simulation(t)
-                        distance = abs(peer.location - o.location)
+                        distance = o.location.distance(peer.location)
                         # print(distance)
                         detection_prob = max(0.5 - 0.002 * distance, 0.0) # detection w/i 250 km
                         # print(detection_prob)
@@ -48,7 +48,7 @@ def radar_stochastic_actions_before_time(o, m):
                 else:
                     for t in times:
                         peer.forward_simulation(t)
-                        distance = abs(peer.location - o.location)
+                        distance = o.location.distance(peer.location)
                         # and the probability that it will detect them during time interval
                         detection_prob = max(0.75 - 0.015 * distance, 0.0) # detection only w/i 50 km
                         # print(detection_prob)

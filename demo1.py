@@ -1,6 +1,7 @@
 from supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.dispositiontree import DispositionStump
+from environment.dispositiontree import GeographicDispositionStump
+from environment.location import GeographicLocation, StationaryGeographicLocation
 from environment.perceptionengine import PerceptionEngine, make_change_observer
 from environment.percept import Percept
 from plane import BZero, RedLight
@@ -9,6 +10,7 @@ from blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
 from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen
 from dill import dump, load
 from pathlib import Path
+from numpy import deg2rad
 
 
 # STEP 1: Make supervisor
@@ -30,8 +32,14 @@ sup.logger = demologger
 # The environment needs a disposition tree and a perception engine, so we make those first
 
 # Step 2.1:  Make disposition tree
-# This minimal demo contains just a couple of items, therefore the full disposition tree isn't essential and we can use DispositionStump instead
-stump = DispositionStump(bounds=(-1000.0, 1000.0)) # bounds represent a 2000-km linear space
+# This minimal demo contains just a couple of items, therefore the full disposition tree isn't essential and we can use GeographicDispositionStump instead
+
+min_lat = deg2rad(15)
+max_lat = deg2rad(35)
+min_long = deg2rad(110)
+max_long = deg2rad(130)
+
+stump = GeographicDispositionStump(bounds=(min_lat, max_lat, min_long, max_long)) # bounds represent Taiwan strait, Taiwan
 
 # Step 2.2: Make perception engine
 # Note that the perception engine needs to be configured, but this needs to wait until agents and environmental objects have been created
@@ -46,17 +54,17 @@ sup.environment = env # set supervisor's environment attribute
 # Step 3: Create environmental objects
 
 # Step 3.1: Create and configure plane
-bomber = BZero(environment=env, time=0.0, location=-100.0, speed=800.0)
+bomber = BZero(environment=env, time=0.0, location=GeographicLocation(latitude=deg2rad(22.95), longitude=deg2rad(118.05), bearing=deg2rad(45)), speed=800.0)
 env.register_object(bomber)
 env.add_object(bomber)
 
 # The red warning light in the cockpit turns on to indicate adversary radar detected
-light = RedLight(environment=env, time=0.0, location=-100.0)
+light = RedLight(environment=env, time=0.0, location=bomber.location)
 env.register_object(light)
 env.add_object(light, parent_object=bomber)
 
 # Step 3.2: Create and configure red radar
-radar = RedRadar(environment=env, time=0.0, location=0.0)
+radar = RedRadar(environment=env, time=0.0, location=StationaryGeographicLocation(latitude=deg2rad(24.7816), longitude=deg2rad(118.5517)))
 env.register_object(radar)
 env.add_object(radar)
 

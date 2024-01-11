@@ -17,10 +17,6 @@ class DispositionStump():
 
 
     def adjust_disposition(self, obj, location, granularity):
-        # if not self.bounds[0] <= location <= self.bounds[1]:
-        #     raise ValueError('Location outside bounds.')
-        # else:
-        #     return self # no adjustment needed
         if self.bounds[0] <= location <= self.bounds[1]:
             return self
         else:
@@ -37,7 +33,26 @@ class DispositionStump():
         self.contents.remove(obj)
 
         
-        
+class GeographicDispositionStump(DispositionStump):
+    '''Like DispositionStump, but with latitude and longitude bounds to work with GeographicLocation. GeographicDispositionStump.bounds takes the form of a (low_latitude, high_latitude, low_longitude, high_longitude) tuple with locations in radians.'''
+
+    def set_disposition(self, obj, location, granularity):
+        lowlat, highlat, lowlong, highlong = self.bounds
+        if lowlat <= location.latitude <= highlat and  lowlong <= location.longitude <= highlong:
+            self.contents.append(obj)
+            return self
+        else:
+            raise ValueError('Location outside bounds.')
+
+
+    def adjust_disposition(self, obj, location, granularity):
+        lowlat, highlat, lowlong, highlong = self.bounds
+        if lowlat <= location.latitude <= highlat and  lowlong <= location.longitude <= highlong:
+            return self
+        else:
+            raise ValueError('Location outside bounds.')
+
+    
 class OneDimensionalDispositionTree():
 
     '''The root node for a one-dimensional disposition tree. The purpose of disposition trees is to provide efficient clustering of items that may have interactions.'''
