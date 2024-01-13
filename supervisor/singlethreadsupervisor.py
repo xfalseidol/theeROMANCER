@@ -12,12 +12,18 @@ class Stop(WatchlistItem):
     '''This WatchlistItem halts the supervisor once simulation is complete. It defines the simulated time at which simulation will be terminated.'''
 
     def process(self, supervisor):
+        supervisor.watchlist.data=[(self.time, self)] # ensure that stop is sole item on watchlist after executed.
         print('Simulation terminated at time = ', supervisor.environment.time)
 
 
     def __repr__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         return '{}(time={})'.format(self.__class__.__name__, self.time)
+
+    
+    def __gt__(self, item):
+        '''Needed to ensure that Stop will always be last item on the Watchlist.'''
+        return True
 
 # Pause
 

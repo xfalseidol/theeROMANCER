@@ -59,6 +59,16 @@ class WatchlistItem():
         return 'WatchlistItem(time={})'.format(self.time)
 
 
+    def __gt__(self, item):
+        '''This is necessary for resolving ties in priority queue insertions.'''
+        return False
+
+
+    def __lt__(self, item):
+        '''This is necessary for resolving ties in priority queue insertions.'''
+        return False
+
+
     def process(self, supervisor):
         '''The code that runs when a WatchlistItem is processed is triggered by running this method.'''
         pass        

@@ -136,3 +136,4 @@ while len(sup.watchlist) > 0:
 # Step 8: analyze results of simulation
 
 # analyze logfile?
+print(bomber)
