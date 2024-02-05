@@ -1,3 +1,16 @@
+# Custom Exceptions
+class DispositionError(Exception):
+    """Base class for errors in the disposition tree."""
+    pass
+
+class LocationError(DispositionError):
+    """Raised when a location is outside the bounds or on an invalid boundary."""
+    pass
+
+class GranularityError(DispositionError):
+    """Raised when an operation would result in a granularity that doesn't make sense."""
+    pass
+
 class DispositionStump():
 
     '''A disposition tree consisting solely of one (root) node, but adhering to the intended API. A placeholder during development but also potentially useful for scenarios that either largely discount physical space or are so simple as to not require full functionality.'''
@@ -72,76 +85,85 @@ class GeographicDispositionTree():
         self.minimum_granularity = minimum_granularity # this represents the width of the smallest possible child region in meters
         self.granularity_reduction_factor = granularity_reduction_factor # this determines the granularity of the child of a node
 
-        # if granularity / num_children > minimum_granularity:
-        #     self.make_children()
 
-
+    def is_on_boundary(self, location): 
+        """
+        Determines if the given location is within a tolerance beyond the boundary of this node.
+        :param location: The location to check.        
+        :return: True if on the boundary or close enough past it; False otherwise.
+        """
+        # a direct change to the lower and upper bounds for latitude/longitude (to account for something being "just over the border")
+        ## TODO: brainstorm with Ed how to calculate tolerance
+        tolerance = self.granularity / self.granularity_reduction_factor * 0.001 # tolerance is a number of radians, scaled by the next smallest granularity
+        lat_on_boundary = (self.bounds[0] - tolerance <= location.latitude <= self.bounds[0]) or (self.bounds[1] <= location.latitude <= self.bounds[1] + tolerance)
+        lat_in_boundary = (self.bounds[0] - tolerance <= location.latitude <= self.bounds[1] + tolerance)
+        long_on_boundary = (self.bounds[2] - tolerance <= location.longitude <= self.bounds[2]) or (self.bounds[3] <= location.longitude <= self.bounds[3] + tolerance)
+        long_in_boundary = (self.bounds[2] - tolerance <= location.longitude <= self.bounds[3] + tolerance)
+        return (lat_on_boundary and long_in_boundary) or (lat_in_boundary and long_on_boundary)
+        
+        
     def make_children(self):
         latitude_width = (self.bounds[1] - self.bounds[0]) / self.num_children
         for i in range(self.num_children):
             new_bounds = (self.bounds[0] + latitude_width * i, self.bounds[0] + latitude_width * (i + 1), self.bounds[2], self.bounds[3])
-            new_granularity = self.granularity / self.num_children
+            new_granularity = self.granularity / self.granularity_reduction_factor 
+            if new_granularity < self.minimum_granularity or self.is_on_boundary(location):
+                # Avoid creating a new child if below minimum granularity or if the location is on a boundary.
+                return self.find_child(location) 
             child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.num_children)
             self.children.append(child)
 
 
     def make_child(self, location):
         '''
-        Make a new child node containing the given location.
-        Returns the new child node or the child that contains the location already.
+        Makes and returns a new child node containing the given location, or returns the highest-level child already containing the node
         '''
-        # TODO: loop over this node's children, check to see if the location is within
-        #       the bounds of any child. if the location is contained in a child already, 
-        #       return that child node.
+        # Check existing children first: if a child of this node already contains the location, return it
+        for child in self.children:
+            if child.location_in_bounds(location):
+                return child
 
-        # TODO: we should not make a child if the new granularity will be below the minimum granularity
-        #       in this case, we should return the node containing this location (use find_child)
+        # Ensure not to create a child below minimum granularity: if the new granularity would be too small, this node is the child we want
+        new_granularity = self.granularity / self.granularity_reduction_factor
+        if new_granularity < self.minimum_granularity: # or self.is_on_boundary(location):
+            return self
         
+        # Create a new child if needed.
         latitude_width = (self.bounds[1] - self.bounds[0]) / self.granularity_reduction_factor
         for i in range(self.granularity_reduction_factor):
             left_bound = self.bounds[0] + latitude_width * i
             right_bound = self.bounds[0] + latitude_width * (i + 1) 
             if left_bound <= location.latitude <= right_bound:
                 new_bounds = (left_bound, right_bound, self.bounds[2], self.bounds[3])
-        new_granularity = self.granularity / self.granularity_reduction_factor
-        new_child = GeographicDispositionTree(bounds=new_bounds, granularity=new_granularity, minimum_granularity=self.minimum_granularity, parent=self, granularity_reduction_factor=self.granularity_reduction_factor)
-        self.children.append(new_child)
+                new_child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.granularity_reduction_factor)                
+                self.children.append(new_child) 
+                return new_child 
 
-        return new_child
+        # Error handling if no valid child is found (should not happen)
+        raise LocationError("Location couldn't be placed in any child segment.") 
 
 
-    def find_child(self, location):
+    def find_child(self, location): 
         '''
-        Finds the lowest-level child containing this location.
-        If the location is on the boundary, return this node.
+        Tries to find the lowest-level child containing this location.
+
+        If the location is on/near the boundary, return this node.
         If the location is within the boundary, find and return the child containing this location.
         If the location is outside the bounds, return None.
         '''
-        # location_on_boundary = False
-        # if location_on_boundary:
-        #     return self
+        # the tolerance will be the next smallest granularity from this node
+        for child in self.children:
+            if child.location_in_bounds(location):
+                return child.find_child(location)
 
-        if self.location_in_bounds(location):
-            if len(self.children) == 0:
-                return self
-            # look for the child containing this location
-            child = None
-            for c in self.children:
-                # recursively find the child node
-                child = c.find_child(location)
-                if child:
-                    return child 
+        if self.is_on_boundary(location) or self.location_in_bounds(location):
+            return self
 
-            # otherwise, the location does not belong to any descendent, so we create a child containing the location
-            # TODO: determine the size of the new child
-            # TODO: determine if we should even be making new children -- how big will they be? how can we be sure they don't overlap with other children?
-            # TODO: do we even need this?
-            # new_child = GeographicDispositionTree()
-            # self.children.append(new_child)
-            return None  
+        if not self.location_in_bounds(location):
+            raise LocationError("Requested location falls too far outside bounds of this node.")
 
-        else: # location out of bounds
-            return None
+        return None
+
 
     def location_in_bounds(self, location):
         '''
@@ -154,66 +176,44 @@ class GeographicDispositionTree():
         return False
 
 
-    def set_disposition(self, obj, location, granularity):
+    def set_disposition(self, obj, location, granularity): 
         '''
         Used for setting initial disposition of the parent node of a disposition tree.
+        The obj will be place in the contents of the currently existing, lowest-granularity node, whose granularity is higher than granularity
         Shifting an object should be done with adjust_disposition.
+        :param obj: object to place into the disposition tree
+        :param location: location of the object, used to place the object at the right node
+        :param granularity: minimum acceptable granularity for the node obj will belong to
+        Returns the node we attach the object to
         '''
         if self.parent:
-            raise Exception('Cannot set disposition starting at non-root node.') # TODO: define appropriate Exception class for this
-        else:
-            # find the lowest-level node containing this location
-            node = self.find_child(location)
+            raise DispositionError('Cannot set disposition starting at non-root node.')
 
-            # find the node with the appropriate granularity:
-            
-            # case 1: the node we found is "too high" in the tree
-            # then, make children below this node until the goal granularity is
-            # between the parent's granularity and the child's granularity
-            # TODO: try to reduce the complexity of this code by removing the if statement, somehow
-            if granularity < node.granularity:
-                child_granularity = node.granularity / node.granularity_reduction_factor
-                while granularity < child_granularity:
-                    node = node.make_child(location)
-                    print("Added child: Node", node.id)
-                    child_granularity = node.granularity / node.granularity_reduction_factor
+        # Find or create the node with the appropriate granularity
+        node = self.find_child(location)
+        # walk up the tree until the node's granularity is smaller than granularity, or stop at the root node
+        while node and node.granularity < granularity and node.parent:
+            node = node.parent # if the node's granularity is too small, walk up the tree
 
-            # case 2: the node we found is "too low" in the tree
-            # traverse back up the tree from the lowest-level child
-            # until the correct granularity is found
-            # TODO: try to reduce the complexity of this code by removing the if statement, somehow
-            if granularity > node.granularity:
-                parent_granularity = node.granularity * node.granularity_reduction_factor
-                while granularity > node.granularity:
-                    if node.parent:
-                        node = node.parent
-                        parent_granularity = node.granularity * node.granularity_reduction_factor
-                    else:
-                        raise Exception('Specified granularity is too high: given granularity {granularity} is higher than root node granularity {node.granularity}.')
-
-            # append the object to the correct node's contents
-            node.contents.append(obj)
+        if node.granularity < granularity:
+            raise GranularityError(f'Object granularity too large. Node granularity: {node.granularity}, Requested granularity: {granularity}')
+        
+        node.contents.append(obj)
+        return node
 
 
-    def adjust_disposition(self, obj, location, granularity):
+    def adjust_disposition(self, obj, location, granularity): 
         '''
         Removes the object from this nodes contents.
         Sets the disposition of the correct new node.
         Returns the new node and a set containing the difference between old peers and new peers.
         '''
         if obj not in self.contents:
-            raise Exception('Cannot adjust disposition of object not in node.')
+            raise LocationError('Object not found in the current node.')
 
-        self.contents.remove(obj)
-        old_peers = {o.id for o in self.identify_peers()}
-
-        p = self
-        while p.parent: # find root
-            p = p.parent
-
-        new_node = p.set_disposition(obj, location, granularity)
-        new_peers = {o.id for o in new_node.identify_peers(obj)}
-        return new_node, old_peers.difference(new_peers)
+        self.remove(obj)
+        new_node = self.set_disposition(obj, location, granularity)
+        return new_node
 
 
     def descendent_nodes(self):
@@ -251,7 +251,7 @@ class GeographicDispositionTree():
             peers.update(p.contents)
 
         # include objects in this node's descendents' contents
-        for descendent in self.descendent_nodes:
+        for descendent in self.descendent_nodes():
             peers.update(descendent.contents)
 
         return peers
@@ -265,18 +265,12 @@ class GeographicDispositionTree():
         and will remove the object from all nodes in the tree.
         '''          
         if self.parent:
-            raise Exception('Cannot remove object from non-root node.') # TODO: define appropriate Exception class for this
+            raise LocationError('Cannot remove object from non-root node.')
         
-        # remove the object from the contents of this node
-        if obj in self.contents:
-            self.contents.remove(obj)
-
-        # remove the object from all children
-        for child in self.children:
-            child._remove(obj)
+        self._remove(obj)  # Call the internal _remove method to handle actual removal process
 
 
-    def _remove(self, obj):
+    def _remove(self, obj): 
         '''
         Removes object from contents of node and all children.
         Should not be called outside of this class.
@@ -284,7 +278,7 @@ class GeographicDispositionTree():
         if obj in self.contents:
             self.contents.remove(obj)
         for child in self.children:
-            child._remove(obj)
+            child._remove(obj)  # Recursively remove obj from all descendants
 
 
     def next_anticipated_disposition_change(self, obj):
@@ -406,19 +400,27 @@ class OneDimensionalDispositionTree():
         return nodes
         
         
-    def identify_peers(self, obj):
+    def identify_peers(self, obj): #Implement the logic for identifying peers based on the definition provided
         '''This method uses the disposition tree to identify all of an object's peers--those objects with which it might interact.'''
-        peers = list() # maybe this should be a set?
-        cur = self
-        while cur.parent: # capture all items in curent node and its ancestors
-            for o in cur.contents:
-                peers.append(o)
-                cur = cur.parent
-        desendents = list()
-        self.descendent_nodes(desendents)
-        for d in desendents:
-            for o in d.contents:
-                peers.append(o)
+        peers = set()
+
+        # Include objects in this node's contents.
+        peers.update(self.contents)
+
+        # Include objects in this node's ancestors' contents.
+        ancestor = self.parent
+        while ancestor:
+            peers.update(ancestor.contents)
+            ancestor = ancestor.parent
+
+        # Include objects in this node's descendants' contents.
+        descendents = self.descendent_nodes()
+        for descendent in descendents:
+            peers.update(descendent.contents)
+
+        # Ensure the original object is not considered its own peer.
+        peers.discard(obj)
+
         return peers
         
         
