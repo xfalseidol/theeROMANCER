@@ -55,7 +55,7 @@ def radar_stochastic_actions_before_time(o, m):
                         # Generate message(s) to send to supervisor about these possible events, their probabilities, and the times at which they would occur if they do
                         message = ProbabilisticROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AttemptDisplayBlip', time=t, probability=detection_prob)
                         messages.append(message)
-            peer.rewind(initial_time) # rewind bomber to previous state
+                peer.rewind(initial_time) # rewind bomber to previous state
     
         # Also produce message(s) representing false positives
         times = [o.time + delta_t * i for i in range(1, int((m.time - o.time) / delta_t) + 1)]
