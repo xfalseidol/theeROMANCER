@@ -3,11 +3,11 @@ class DispositionError(Exception):
     """Base class for errors in the disposition tree."""
     pass
 
-class LocationError(DispositionError):
+class LocationError(Exception):
     """Raised when a location is outside the bounds or on an invalid boundary."""
     pass
 
-class GranularityError(DispositionError):
+class GranularityError(Exception):
     """Raised when an operation would result in a granularity that doesn't make sense."""
     pass
 
@@ -86,7 +86,7 @@ class GeographicDispositionTree():
         self.granularity_reduction_factor = granularity_reduction_factor # this determines the granularity of the child of a node
 
 
-    def is_on_boundary(self, location): 
+    def is_on_boundary(self, location):
         """
         Determines if the given location is within a tolerance beyond the boundary of this node.
         :param location: The location to check.        
@@ -106,10 +106,10 @@ class GeographicDispositionTree():
         latitude_width = (self.bounds[1] - self.bounds[0]) / self.num_children
         for i in range(self.num_children):
             new_bounds = (self.bounds[0] + latitude_width * i, self.bounds[0] + latitude_width * (i + 1), self.bounds[2], self.bounds[3])
-            new_granularity = self.granularity / self.granularity_reduction_factor 
+            new_granularity = self.granularity / self.granularity_reduction_factor
             if new_granularity < self.minimum_granularity or self.is_on_boundary(location):
                 # Avoid creating a new child if below minimum granularity or if the location is on a boundary.
-                return self.find_child(location) 
+                return self.find_child(location)
             child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.num_children)
             self.children.append(child)
 
@@ -135,11 +135,11 @@ class GeographicDispositionTree():
             right_bound = self.bounds[0] + latitude_width * (i + 1) 
             if left_bound <= location.latitude <= right_bound:
                 new_bounds = (left_bound, right_bound, self.bounds[2], self.bounds[3])
-                new_child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.granularity_reduction_factor)                
+                new_child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.granularity_reduction_factor)             
                 self.children.append(new_child) 
                 return new_child 
 
-        # Error handling if no valid child is found (should not happen)
+        # Error handling if no valid child is found (should not happen). 
         raise LocationError("Location couldn't be placed in any child segment.") 
 
 
@@ -202,7 +202,7 @@ class GeographicDispositionTree():
         return node
 
 
-    def adjust_disposition(self, obj, location, granularity): 
+    def adjust_disposition(self, obj, location, granularity): #entire bottom changed
         '''
         Removes the object from this nodes contents.
         Sets the disposition of the correct new node.
@@ -211,8 +211,14 @@ class GeographicDispositionTree():
         if obj not in self.contents:
             raise LocationError('Object not found in the current node.')
 
+        old_peers = self.identify_peers(obj)
+
         self.remove(obj)
         new_node = self.set_disposition(obj, location, granularity)
+
+        new_peers = self.identify_peers(obj)
+        peer_difference = old_peers.difference(new_peers)
+
         return new_node
 
 
@@ -231,7 +237,7 @@ class GeographicDispositionTree():
         return descendents
 
 
-    def identify_peers(self):
+    def identify_peers(self, obj):
         '''
         Finds and returns all objects that may interact with one another.
         These objects are:
@@ -241,18 +247,22 @@ class GeographicDispositionTree():
         '''
         peers = set()
 
-        # include objects in this node's contents
+        # Include objects in this node's contents.
         peers.update(self.contents)
 
-        # include objects in this node's ancestors' contents
-        p = self
-        while p.parent:
-            p = p.parent
-            peers.update(p.contents)
+        # Include objects in this node's ancestors' contents.
+        ancestor = self.parent
+        while ancestor:
+            peers.update(ancestor.contents)
+            ancestor = ancestor.parent
 
-        # include objects in this node's descendents' contents
-        for descendent in self.descendent_nodes():
+        # Include objects in this node's descendants' contents.
+        descendents = self.descendent_nodes()
+        for descendent in descendents:
             peers.update(descendent.contents)
+
+        # Ensure the original object is not considered its own peer.
+        peers.discard(obj)
 
         return peers
 
@@ -265,12 +275,12 @@ class GeographicDispositionTree():
         and will remove the object from all nodes in the tree.
         '''          
         if self.parent:
-            raise LocationError('Cannot remove object from non-root node.')
+            raise LocationError('Cannot remove object from non-root node.')  # Use custom exception for clarity
         
-        self._remove(obj)  # Call the internal _remove method to handle actual removal process
+        self._remove(obj)  #Call the internal _remove method to handle actual removal process
 
 
-    def _remove(self, obj): 
+    def _remove(self, obj):
         '''
         Removes object from contents of node and all children.
         Should not be called outside of this class.
