@@ -16,7 +16,7 @@ class RomancerObject():
         self.loglist = Loglist() # list of logpoints
         self.repr_list = ['inbox', 'outbox', 'uid', 'message_index', 'time', 'loglist'] # used for __repr__ with keywords
 
-        # self.dispositions = [self.environment.disposition_tree.set_disposition(self), self.environment.perception_engine.emplace(self)... ]
+        # self.dispositions = [self.environment.disposition_tree.set_disposition(self), self.environment.perception_engine.emplace(self)]
 
         
     def new_message_index(self):
