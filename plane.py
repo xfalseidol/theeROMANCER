@@ -118,25 +118,53 @@ class BZero(RomancerObject):
 
         if latbound:
             x0 = self.location.distance(GeographicLocation(latitude=latbound, longitude=self.location.longitude, bearing=self.location.bearing))
-            delta_d1 = root_scalar(lambda d: self.location.destination_point(d).latitude - latbound, x0 = x0, x1 = x0 + x0 * 0.01).root
-        else:
+            delta_d1 = root_scalar(lambda d: self.location.destination_point(d).latitude - latbound, x0 = x0, x1 = x0 + x0 * 0.01)
+        else: # 0 = dest_lat - lat_bound
             delta_d1 = inf
         if longbound:
             x0 = self.location.distance(GeographicLocation(latitude=self.location.latitude, longitude=longbound, bearing=self.location.bearing))
-            delta_d2 = root_scalar(lambda d: self.location.destination_point(d).longitude - longbound, x0 = x0, x1 = x0 + x0 * 0.01).root
+            delta_d2 = root_scalar(lambda d: self.location.destination_point(d).longitude - longbound, x0 = x0, x1 = x0 + x0 * 0.01)
         else:
             delta_d2 = inf
 
+        # check if the delta values converged or not
+        if not delta_d1.converged:
+            print("**** CONVERGENCE ERROR ****")
+            print("delta_d1 did not converge")
+            print("here are the arguments we passed to root_scalar:")
+            print("bearing: ", self.location.bearing)
+            print("latbound: ", latbound)
+            print("x0: ", x0)
+            print("x0 + x0 * 0.01: ", x0 + x0 * 0.01) # don't we want x0 + 0.01, x0 + delta_x
+            print("with these RootResults:")
+            print(delta_d1)
+            print("***************************")
+            delta_d1 = inf
+        else:
+            delta_d1 = delta_d1.root
+        if not delta_d2.converged:
+            print("delta_d2 did not converge")
+            delta_d2 = inf 
+        else:
+            delta_d2 = delta_d2.root
+        #
+
         delta_d = min(delta_d1, delta_d2)
         
-        delta_t = delta_d / actual_speed    
+        delta_t = delta_d / actual_speed
+
+        result = self.time + delta_t
+        if result < 0:
+            print("Problem is here, delta_d1 is a huge negative number:")
+            print(delta_d1, delta_d2)
+            input()
         return self.time + delta_t
 
 
     def update_disposition(self):
         '''Update the disposition of the plane. This method assumes that the time of the disposition change has already been identified with self.next_anticipated_disposition_change() and that the state of the plane has been evolved forward to that time using self.forward_simulation().'''
         cur = self.dispositions[0]
-        self.dispositions[0] =  self.dispositions[0].adjust_disposition(self, self.location, self.granularity)
+        self.dispositions[0], new_peers =  self.dispositions[0].adjust_disposition(self, self.location, self.granularity)
         if self.dispositions[0] is not cur:
             new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed , ecm = self.ecm)
             self.loglist.append(new_logpoint)
@@ -170,7 +198,7 @@ class BZero(RomancerObject):
             self.ecm = latest.ecm # set plane ecm to logpoint ecm
             self.forward_simulation(time)
             # self.update_disposition() # reset plane disposition, if necessary
-            self.dispositions[0] = self.dispositions[0].adjust_disposition(self, self.location, self.granularity) # don't add superfluous logpoint
+            self.dispositions[0], peer_difference = self.dispositions[0].adjust_disposition(self, self.location, self.granularity) # don't add superfluous logpoint
 
 
     def activate_ecm(self):
