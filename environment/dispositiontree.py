@@ -1,4 +1,4 @@
-# Custom Exceptions
+# NH Custom Exceptions
 class DispositionError(Exception):
     """Base class for errors in the disposition tree."""
     pass
@@ -86,7 +86,7 @@ class GeographicDispositionTree():
         self.granularity_reduction_factor = granularity_reduction_factor # this determines the granularity of the child of a node
 
 
-    def is_on_boundary(self, location):
+    def is_on_boundary(self, location): #NH implement the is_on_boundary method
         """
         Determines if the given location is within a tolerance beyond the boundary of this node.
         :param location: The location to check.        
@@ -106,10 +106,10 @@ class GeographicDispositionTree():
         latitude_width = (self.bounds[1] - self.bounds[0]) / self.num_children
         for i in range(self.num_children):
             new_bounds = (self.bounds[0] + latitude_width * i, self.bounds[0] + latitude_width * (i + 1), self.bounds[2], self.bounds[3])
-            new_granularity = self.granularity / self.granularity_reduction_factor
+            new_granularity = self.granularity / self.granularity_reduction_factor #NH
             if new_granularity < self.minimum_granularity or self.is_on_boundary(location):
                 # Avoid creating a new child if below minimum granularity or if the location is on a boundary.
-                return self.find_child(location)
+                return self.find_child(location) #NH
             child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.num_children)
             self.children.append(child)
 
@@ -118,12 +118,12 @@ class GeographicDispositionTree():
         '''
         Makes and returns a new child node containing the given location, or returns the highest-level child already containing the node
         '''
-        # Check existing children first: if a child of this node already contains the location, return it
+        # NH Check existing children first: if a child of this node already contains the location, return it
         for child in self.children:
             if child.location_in_bounds(location):
                 return child
 
-        # Ensure not to create a child below minimum granularity: if the new granularity would be too small, this node is the child we want
+        # NH Ensure not to create a child below minimum granularity: if the new granularity would be too small, this node is the child we want
         new_granularity = self.granularity / self.granularity_reduction_factor
         if new_granularity < self.minimum_granularity: # or self.is_on_boundary(location):
             return self
@@ -132,18 +132,18 @@ class GeographicDispositionTree():
         latitude_width = (self.bounds[1] - self.bounds[0]) / self.granularity_reduction_factor
         for i in range(self.granularity_reduction_factor):
             left_bound = self.bounds[0] + latitude_width * i
-            right_bound = self.bounds[0] + latitude_width * (i + 1) 
+            right_bound = self.bounds[0] + latitude_width * (i + 1) #NH
             if left_bound <= location.latitude <= right_bound:
                 new_bounds = (left_bound, right_bound, self.bounds[2], self.bounds[3])
-                new_child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.granularity_reduction_factor)             
-                self.children.append(new_child) 
-                return new_child 
+                new_child = GeographicDispositionTree(new_bounds, new_granularity, self.minimum_granularity, self, self.granularity_reduction_factor) #NH                
+                self.children.append(new_child) #NH
+                return new_child #NH
 
-        # Error handling if no valid child is found (should not happen). 
+        # Error handling if no valid child is found (should not happen). #NH
         raise LocationError("Location couldn't be placed in any child segment.") 
 
 
-    def find_child(self, location): 
+    def find_child(self, location): #NH commented out orignal code
         '''
         Tries to find the lowest-level child containing this location.
 
@@ -160,7 +160,7 @@ class GeographicDispositionTree():
             return self
 
         if not self.location_in_bounds(location):
-            raise LocationError("Requested location falls too far outside bounds of this node.")
+            raise LocationError(f"Requested location {location} falls too far outside bounds {self.bounds} of this node.")
 
         return None
 
@@ -176,7 +176,7 @@ class GeographicDispositionTree():
         return False
 
 
-    def set_disposition(self, obj, location, granularity): 
+    def set_disposition(self, obj, location, granularity): #NH commented out original code
         '''
         Used for setting initial disposition of the parent node of a disposition tree.
         The obj will be place in the contents of the currently existing, lowest-granularity node, whose granularity is higher than granularity
@@ -190,7 +190,13 @@ class GeographicDispositionTree():
             raise DispositionError('Cannot set disposition starting at non-root node.')
 
         # Find or create the node with the appropriate granularity
-        node = self.find_child(location)
+        try:
+            node = self.find_child(location)
+        except LocationError:
+            print("The object ", obj.uid, " is outside the bounds of this disposition tree.")
+            print("TODO: send a message to alert the supervisor")
+            return
+
         # walk up the tree until the node's granularity is smaller than granularity, or stop at the root node
         while node and node.granularity < granularity and node.parent:
             node = node.parent # if the node's granularity is too small, walk up the tree
@@ -205,12 +211,13 @@ class GeographicDispositionTree():
     def adjust_disposition(self, obj, location, granularity): #entire bottom changed
         '''
         Removes the object from this nodes contents.
-        Sets the disposition of the correct new node.
+        Sets the disposition of the correct new node, if a correct node exists.
         Returns the new node and a set containing the difference between old peers and new peers.
+        Otherwise, it returns None.
         '''
         if obj not in self.contents:
             raise LocationError('Object not found in the current node.')
-
+            
         old_peers = self.identify_peers(obj)
 
         self.remove(obj)
@@ -219,7 +226,7 @@ class GeographicDispositionTree():
         new_peers = self.identify_peers(obj)
         peer_difference = old_peers.difference(new_peers)
 
-        return new_node
+        return new_node, peer_difference
 
 
     def descendent_nodes(self):
@@ -275,12 +282,12 @@ class GeographicDispositionTree():
         and will remove the object from all nodes in the tree.
         '''          
         if self.parent:
-            raise LocationError('Cannot remove object from non-root node.')  # Use custom exception for clarity
+            raise LocationError('Cannot remove object from non-root node.')  # NH Use custom exception for clarity
         
-        self._remove(obj)  #Call the internal _remove method to handle actual removal process
+        self._remove(obj)  # NH Call the internal _remove method to handle actual removal process
 
 
-    def _remove(self, obj):
+    def _remove(self, obj): #NH changed all
         '''
         Removes object from contents of node and all children.
         Should not be called outside of this class.
@@ -410,7 +417,7 @@ class OneDimensionalDispositionTree():
         return nodes
         
         
-    def identify_peers(self, obj): #Implement the logic for identifying peers based on the definition provided
+    def identify_peers(self, obj): #NH Implement the logic for identifying peers based on the definition provided
         '''This method uses the disposition tree to identify all of an object's peers--those objects with which it might interact.'''
         peers = set()
 
