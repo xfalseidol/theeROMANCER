@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from types import NoneType
-from numpy import sin, cos, arctan2, arcsin, pi, sqrt, rad2deg
+from numpy import sin, cos, arctan2, arcsin, arccos, pi, sqrt, rad2deg
 
 def decdegrees_to_degrees(decdegrees):
     '''Converts decimal degrees into a (degrees, minutes, seconds) tuple.'''
@@ -76,6 +76,39 @@ class GeographicLocation:
         decimal_longitude = rad2deg(self.longitude)
         decimal_bearing = rad2deg(self.bearing)
         return decimal_latitude, decimal_longitude, decimal_bearing
+
+
+    def calculate_intersection(location_1, location_2):
+        lat1, lon1, bearing1 = location_1.latitude, location_1.longitude, location_1.bearing
+        lat2, lon2, bearing2 = location_2.latitude, location_2.longitude, location_2.bearing
+
+        # lat1, lon1, bearing1 = radians(point1[0]), radians(point1[1]), radians(bearing1)
+        # lat2, lon2, bearing2 = radians(point2[0]), radians(point2[1]), radians(bearing2)
+
+        dLat = lat2 - lat1
+        dLon = lon2 - lon1
+
+        delta12 = 2 * arcsin( sqrt( sin(dLat/2)**2 + cos(lat1) * cos(lat2) * sin(dLon/2)**2 ) )
+        thetaA = arccos( ( sin(lat2) - sin(lat1) * cos(delta12) ) / ( sin(delta12) * cos(lat1) ) )
+        thetaB = arccos( ( sin(lat1) - sin(lat2) * cos(delta12) ) / ( sin(delta12) * cos(lat2) ) )
+
+        if sin(lon2 - lon1) > 0:
+            theta12 = thetaA
+            theta21 = 2 * pi - thetaB
+        else:
+            theta12 = 2 * pi - thetaA
+            theta21 = thetaB
+
+        alpha1 = bearing1 - theta12
+        alpha2 = theta21 - bearing2
+
+        alpha3 = arccos( -cos(alpha1) * cos(alpha2) + sin(alpha1) * sin(alpha2) * cos(delta12) )
+        delta13 = arctan2( sin(delta12) * sin(alpha1) * sin(alpha2) , cos(alpha2) + cos(alpha1) * cos(alpha3) )
+        lat3 = arcsin( sin(lat1) * cos(delta13) + cos(lat1) * sin(delta13) * cos(bearing1) )
+        dLon13 = arctan2( sin(bearing1) * sin(delta13) * cos(lat1) , cos(delta13) - sin(lat1) * sin(lat3) )
+        lon3 = lon1 + dLon13
+
+        return GeographicLocation(lat3, lon3, 0)
 
 
 @dataclass
