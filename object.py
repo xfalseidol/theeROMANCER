@@ -121,7 +121,7 @@ class LoggedList(UserList):
     def __init__(self, data, parent, varname):
         self.parent = parent
         self.varname = varname
-        self.data = data
+        self.data = data # to log properly it may be necessary to iterate through data and append one item at a time
 
    
     def append(self, x):
@@ -351,17 +351,18 @@ class ImprovedRomancerObject():
         if attr in self.unlogged_attrs:
             super().__setattr__(attr, val)
         # check to see if object currently has this attr
-        if hasattr(self, attr):
-        # if attr already exists, create AttrSetLog
-            logpoint = UniversalLogpoint(time = self.time, difs = tuple(AttrSetLog(attr_name=attr, oldval=getattr(self, attr), to=val)))
         else:
-        # if attr doesn't currently exist, create AttrAdditionLog
-            logpoint = UniversalLogpoint(time = self.time, difs = tuple(AttrAdditionLog(attr_name=attr, val=val)))
-        # check to see if this requires truncating loglist
-        if self.time < loglist.maximum_time():
-            loglist.truncate_to_time(self.time)
-        self.loglist.append(logpoint)
-        super().__setattr__(attr, val)
+            if hasattr(self, attr):
+                # if attr already exists, create AttrSetLog
+                logpoint = UniversalLogpoint(time = self.time, difs = tuple(AttrSetLog(attr_name=attr, oldval=getattr(self, attr), to=val)))
+            else:
+                # if attr doesn't currently exist, create AttrAdditionLog
+                logpoint = UniversalLogpoint(time = self.time, difs = tuple(AttrAdditionLog(attr_name=attr, val=val)))
+                # check to see if this requires truncating loglist
+                if self.time < loglist.maximum_time():
+                    loglist.truncate_to_time(self.time)
+                self.loglist.append(logpoint)
+                super().__setattr__(attr, val)
 
 
     def __delattr__(self, attr):
@@ -374,11 +375,11 @@ class ImprovedRomancerObject():
                 # if attr currently exists, create AttrRemovalLog
             else:
                 logpoint = UniversalLogpoint(time = self.time, difs = tuple(AttrRemovalLog(attr_name=attr, val=getattr(self, attr))))
-        # check to see if this requires truncating loglist
-        if self.time < loglist.maximum_time():
-            loglist.truncate_to_time(self.time)
-        self.loglist.append(logpoint)
-        super().__delattr__(attr)
+                # check to see if this requires truncating loglist
+                if self.time < loglist.maximum_time():
+                    loglist.truncate_to_time(self.time)
+                    self.loglist.append(logpoint)
+                    super().__delattr__(attr)
 
         
     def new_message_index(self):
