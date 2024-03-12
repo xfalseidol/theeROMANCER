@@ -54,7 +54,8 @@ def plot_scenario(map_bounds, disp_tree):
 	disp_tree.plot_all(ax)
 
 	# test plot peers
-	disp_tree.children[0].plot_peers(ax, color='darkgreen')
+	child_index =0  # Change the index value here
+	disp_tree.children[child_index].plot_peers(ax, color='darkgreen')
 
 	# test next_anticipated_disp_change
 	## test 1
