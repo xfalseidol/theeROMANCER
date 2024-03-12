@@ -1,13 +1,19 @@
 from typing import NamedTuple
 from loglist import Loglist
+from numpy import rad2deg
+from matplotlib.path import Path
+from matplotlib.markers import MarkerStyle
+import matplotlib.patheffects as pe
+
 
 class RomancerObject():
 
     '''This is the base class for objects in the ROMANCER environment.'''
 
-    def __init__(self, environment, time):
+    def __init__(self, environment, time, location=None):
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
+        # self.location = location
         self.environment = environment # ROMANCEREnvironment instance containing object
         self.uid = self.environment.register_object(self) # assign unique id to object
         self.message_index = 1 # increments with each message to assign unique ids
@@ -16,7 +22,7 @@ class RomancerObject():
         self.loglist = Loglist() # list of logpoints
         self.repr_list = ['inbox', 'outbox', 'uid', 'message_index', 'time', 'loglist'] # used for __repr__ with keywords
 
-        # self.dispositions = [self.environment.disposition_tree.set_disposition(self), self.environment.perception_engine.emplace(self)]
+        # self.dispositions = [self.environment.disposition_tree.set_disposition(self), self.environment.perception_engine.emplace(self)... ]
 
         
     def new_message_index(self):
@@ -76,6 +82,10 @@ class RomancerObject():
         As this base class cannot change state, it returns None.'''
         return None
 
+        
+    def plot(self, ax):
+        print(f"Object {self.uid} does not have a location or does not know how to plot itself.")
+
 
     def __repr__(self):
         '''This method is designed to print representations useful in experimental programming on the repl.
@@ -84,3 +94,31 @@ class RomancerObject():
         class_name = self.__class__.__name__
         results = {key: self.__getattribute__(key) for key in self.repr_list}
         return f"{class_name}({', '.join([f'{k}={v.__repr__()}' for k,v in results.items()])})"
+
+
+class PlottableObject():
+    id_counter = 0
+
+    def __init__(self, location):
+        self.location = location # GeographicLocation representing plane latitude, longitude, and bearing
+        PlottableObject.id_counter += 1
+        self.uid = PlottableObject.id_counter
+        self.speed = 100 # km/hr
+        self.time = 0
+
+
+    def plot(self, ax):
+        lon = rad2deg(self.location.longitude)
+        lat = rad2deg(self.location.latitude)
+        ber = rad2deg(self.location.bearing)
+        triangle = Path([[-0.5, 0], [0.5, 0], [0, 0.5]])
+        rotated_triangle = MarkerStyle(triangle).rotated(deg=-ber)
+        ax.plot(lon, lat, marker=rotated_triangle, color='blue', markersize=11, linestyle='')
+        txt = ax.text(lon, lat, self.uid,
+              size=8,
+              color='white',
+              path_effects=[pe.withStroke(linewidth=1, foreground="black")])
+
+ 
+    def __repr__(self):
+        return "PlottableObject" + str(self.uid)
