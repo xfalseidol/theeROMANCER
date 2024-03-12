@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from types import NoneType
 from numpy import sin, cos, arctan2, arcsin, arccos, pi, sqrt, rad2deg
+import math
 
 def decdegrees_to_degrees(decdegrees):
     '''Converts decimal degrees into a (degrees, minutes, seconds) tuple.'''
@@ -79,18 +80,30 @@ class GeographicLocation:
 
 
     def calculate_intersection(location_1, location_2):
+        if location_1.latitude == location_2.latitude and location_1.longitude == location_2.longitude:
+            return GeographicLocation(location_1.latitude, location_1.longitude, 0)
+        if location_1.bearing == location_2.bearing:
+            return GeographicLocation(math.nan, math.nan, 0)
+
         lat1, lon1, bearing1 = location_1.latitude, location_1.longitude, location_1.bearing
         lat2, lon2, bearing2 = location_2.latitude, location_2.longitude, location_2.bearing
-
-        # lat1, lon1, bearing1 = radians(point1[0]), radians(point1[1]), radians(bearing1)
-        # lat2, lon2, bearing2 = radians(point2[0]), radians(point2[1]), radians(bearing2)
 
         dLat = lat2 - lat1
         dLon = lon2 - lon1
 
         delta12 = 2 * arcsin( sqrt( sin(dLat/2)**2 + cos(lat1) * cos(lat2) * sin(dLon/2)**2 ) )
-        thetaA = arccos( ( sin(lat2) - sin(lat1) * cos(delta12) ) / ( sin(delta12) * cos(lat1) ) )
-        thetaB = arccos( ( sin(lat1) - sin(lat2) * cos(delta12) ) / ( sin(delta12) * cos(lat2) ) )
+        # print("in calculate_intersection: ", delta12)
+        # print(sin(delta12), cos(lat1))
+        # round the arguments to eliminate floating-point calculations resulting in out-of-domain errors
+        arg1 = ( sin(lat2) - sin(lat1) * cos(delta12) ) / ( sin(delta12) * cos(lat1) )
+        if arg1 < -1 or arg1 > 1:
+            return GeographicLocation(math.nan, math.nan, 0)
+        arg2 = ( sin(lat1) - sin(lat2) * cos(delta12) ) / ( sin(delta12) * cos(lat2) )
+        if arg2 < -1 or arg2 > 1:
+            return GeographicLocation(math.nan, math.nan, 0)
+
+        thetaA = arccos( arg1 )
+        thetaB = arccos( arg2 )
 
         if sin(lon2 - lon1) > 0:
             theta12 = thetaA
@@ -110,6 +123,51 @@ class GeographicLocation:
 
         return GeographicLocation(lat3, lon3, 0)
 
+
+        def coords(lat, lon):
+            x = np.cos(np.deg2rad(lon)) * np.cos(np.deg2rad(lat))
+            y = np.sin(np.deg2rad(lon)) * np.cos(np.deg2rad(lat))
+            z = np.sin(np.deg2rad(lat))
+            return {'x': x, 'y': y, 'z': z}
+
+
+        def vec_cross(V1, V2):
+            if len(V1) != 3 or len(V2) != 3:
+                raise ValueError("Wrong vector size")
+
+            x = V1['y'] * V2['z'] - V2['y'] * V1['z']
+            y = V1['z'] * V2['x'] - V2['z'] * V1['x']
+            z = V1['x'] * V2['y'] - V2['x'] * V1['y']
+
+            return {'x': x, 'y': y, 'z': z}
+
+
+        def lat_intersect(lat1, lon1, lat2, lon2, LonIntercept):
+            # takes two points on a great circle path (eg, path of an object)
+            # calculates the arc angle along the great circle path until 
+            # the path intersects with LonIntercept
+            Start = coords(lat=lat1, lon=lon1)
+            End = coords(lat=lat2, lon=lon2)
+
+            GC = vec_cross(Start, End)
+            N = sum([value**2 for value in GC.values()])
+            GC = {k: v / np.sqrt(N) for k, v in GC.items()}
+
+            zProj = np.sin(np.deg2rad(LonIntercept))
+
+            a = Start['z']
+            b = Start['y'] * GC['x'] - Start['x'] * GC['y']
+            c = zProj
+
+            arc = np.arctan(b/a) - np.arccos(c / np.sqrt(a**2 + b**2))
+
+            return arc
+
+        def __round__(precision):
+            return (round(latitude, precision), round(longitude, precision), round(bearing, precision))
+
+        # def __repr__():
+        #     return "(" + str(round(latitude, 2)) + ", " + str(round(longitude, 2)) + ", " + str(round(bearing, 2)) + ")"
 
 @dataclass
 class StationaryGeographicLocation(GeographicLocation):
