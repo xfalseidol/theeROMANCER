@@ -1,6 +1,6 @@
 from numpy import pi, sin, cos, sqrt, rad2deg, deg2rad, inf
-from location import GeographicLocation
-from object import PlottableObject
+from environment.location import GeographicLocation
+from environment.object import PlottableObject
 from dill import dump
 from pathlib import Path
 import matplotlib.patheffects as pe

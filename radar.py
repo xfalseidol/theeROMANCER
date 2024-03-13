@@ -1,6 +1,6 @@
 from typing import NamedTuple
 from environment.object import RomancerObject
-from loglist import Logpoint
+from environment.loglist import Logpoint
 
 class RedRadarLogpoint(Logpoint):
     

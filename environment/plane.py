@@ -1,7 +1,7 @@
 from typing import NamedTuple
-from object import RomancerObject
-from location import GeographicLocation
-from loglist import Logpoint
+from environment.object import RomancerObject
+from environment.location import GeographicLocation
+from environment.loglist import Logpoint
 from numpy import pi, inf
 from copy import copy
 from scipy.optimize import root_scalar

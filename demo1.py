@@ -4,7 +4,7 @@ from environment.dispositiontree import GeographicDispositionStump, GeographicDi
 from environment.location import GeographicLocation, StationaryGeographicLocation
 from environment.perceptionengine import PerceptionEngine, make_change_observer
 from environment.percept import Percept
-from plane import BZero, RedLight
+from environment.plane import BZero, RedLight
 from radar import RedRadar, RadarScreen
 from blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
 from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen

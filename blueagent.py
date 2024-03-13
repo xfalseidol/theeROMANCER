@@ -1,6 +1,6 @@
 from agent import Agent, PerceptionFilter, ActionROMANCERMessage
 from environment.percept import Percept
-from loglist import Logpoint
+from environment.loglist import Logpoint
 
 # The purpose of this file is to define the Blue Agent, the percepts that it can receive, and the actions that it can take
 
