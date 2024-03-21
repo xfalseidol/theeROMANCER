@@ -17,7 +17,7 @@ states_provinces = cfeature.NaturalEarthFeature(
     scale='50m',
     facecolor='none')
 
-def plot_radar(rad, ax, n_points=1000):
+def plot_radar(rad, ax, n_points=1000): #should be radar.plot()
     lon = rad2deg(rad.location.longitude)
     lat = rad2deg(rad.location.latitude)
     outer_radius=250

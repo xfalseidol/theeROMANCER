@@ -71,19 +71,19 @@ def radar_stochastic_actions_before_time(o, m):
     
 class RedRadar(RomancerObject):
 
-    def __init__(self, environment, time, location, on=False, granularity=1000):
+    def __init__(self, environment, time, location, on=False, resolution=.01):
         super().__init__(environment, time) # set up standard object slots
         self.children = list() # screen and red agent can be added here
         self.location = location
         self.on = on # is radar on?
-        self.granularity = granularity # used for disposition tree
-        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.location, self.granularity)]
+        self.resolution = resolution # used for disposition tree
+        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.location, self.resolution)]
         self.dispatch_table = {'DeterministicActionsBeforeTime': lambda o, m: None, # radar generates no autonomous deterministic actions
                                'StochasticActionsBeforeTime': radar_stochastic_actions_before_time,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                'ActivateRadar': lambda o, m: o.activate_radar(),
                                'DeactivateRadar': lambda o, m: o.deactivate_radar()} # dict of functions for processing messages
-        self.repr_list = self.repr_list + ['location', 'on', 'granularity']
+        self.repr_list = self.repr_list + ['location', 'on', 'resolution']
         initial_logpoint = RedRadarLogpoint(time=self.time, on=self.on)
         self.loglist.append(initial_logpoint)
 
@@ -99,9 +99,9 @@ class RedRadar(RomancerObject):
 
 
     def update_disposition(self):
-        '''While the radar can't move, its disposition may change if its granularity is adjusted.'''
+        '''While the radar can't move, its disposition may change if its resolution is adjusted.'''
         cur = self.dispositions[0]
-        self.dispositions[0] = self.environment.disposition_tree.adjust_disposition(self, self.granularity)
+        self.dispositions[0] = self.environment.disposition_tree.adjust_disposition(self, self.resolution)
         if self.dispositions[0] is not cur:
             new_logpoint = RedRadarLogpoint(time = self.time, on = self.on)
             self.loglist.append(new_logpoint)
@@ -197,9 +197,9 @@ class RadarScreen(RomancerObject):
 
 
     @property
-    def granularity(self):
-        '''The screen is part of the radar, so its granularity is the same as that of the radar.'''
-        return self.parent.granularity
+    def resolution(self):
+        '''The screen is part of the radar, so its resolution is the same as that of the radar.'''
+        return self.parent.resolution
 
 
     @property

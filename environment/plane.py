@@ -6,6 +6,12 @@ from numpy import pi, inf
 from copy import copy
 from scipy.optimize import root_scalar
 import math
+from numpy import rad2deg, deg2rad
+from matplotlib.path import Path
+from matplotlib.markers import MarkerStyle
+import cartopy.crs as ccrs
+from matplotlib.lines import Line2D
+
 
 # Introducing the B-0: a plane that really, really sucks
 
@@ -53,7 +59,7 @@ class ProbabilisticROMANCERMessage(NamedTuple):
 
 def next_deterministic_action(o, m):
     '''This method sends a message to the supervisor indicating the time of the next deterministic action that the plane will take. As the only such action the plane can take on its own is traversing into a different disposition node, it simply sends a message indicating when this is predicated to take place.'''
-    t = o.next_anticipated_disposition_change()
+    t = o.dispositions[0].next_anticipated_disposition_change(o)
     if t <= m.time:
         message = TemporalROMANCERMessage(uid=o.new_message_index(), sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='AnticipatedDispositionChange', time=t)
         o.outbox.append(message) # This doesn't actually send message to supervisor, environment needs to do that
@@ -65,14 +71,14 @@ def stochastic_actions_before_time(o, m):
     
 class BZero(RomancerObject):
 
-    def __init__(self, environment, time, location, speed, ecm=False, granularity=100):
+    def __init__(self, environment, time, location, speed, ecm=False, resolution=0.01):
         super().__init__(environment, time) # set up standard object slots
         self.children = list() # pilot and red light go here
         self.location = location # GeographicLocation representing plane latitude, longitude, and bearing
         self.speed = speed # speed along trajectory in km/hr
         self.ecm = ecm # electronic countermeasures that can confound adversary radar; boolean
-        self.granularity = granularity # used for disposition tree
-        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.location, self.granularity)]
+        self.resolution = resolution # used for disposition tree
+        self.dispositions = [self.environment.disposition_tree.set_disposition(self, self.location, self.resolution)]
         self.dispatch_table = {'DeterministicActionsBeforeTime': next_deterministic_action, 
                                'StochasticActionsBeforeTime': lambda o, m: None,
                                'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
@@ -80,7 +86,7 @@ class BZero(RomancerObject):
                                'DeactivateECM': lambda o, m: o.deactivate_ecm(),
                                'SetAircraftSpeed': lambda o, m: set_aircraft_speed(o, m.speed)
                                } # dict of functions for processing messages
-        self.repr_list = self.repr_list + ['location', 'speed', 'ecm', 'granularity']
+        self.repr_list = self.repr_list + ['location', 'speed', 'ecm', 'resolution']
         initial_logpoint = BZeroLogpoint(time=self.time, location=self.location, speed=self.speed, ecm=self.ecm)
         self.loglist.append(initial_logpoint)
 
@@ -97,6 +103,7 @@ class BZero(RomancerObject):
     def next_anticipated_disposition_change(self):
         '''Identify future time at which plane will leave its current disposition tree node based on its current speed and trajectory.'''
         if self.speed == 0: # disposition will never change
+            5/0
             return None
         actual_speed = self.speed / 3600.0 # speed in km/s
         
@@ -126,11 +133,6 @@ class BZero(RomancerObject):
                 distance_to_latbound_intersection = self.location.distance(latbound_intersection)
                 # determine how long until the plane reaches that intersection
                 time_until_latbound_intersection = distance_to_latbound_intersection / actual_speed
-            print("latbound: ", latbound)
-            print(self.location)
-            print(latbound_location)
-            print(latbound_intersection)
-            print(distance_to_latbound_intersection)
         # find the intersection of the plane and the longbound
         if longbound:
             longbound_location = GeographicLocation(self.location.latitude, longbound, 0)
@@ -145,31 +147,30 @@ class BZero(RomancerObject):
 
         # determine when the plane will touch the closest boundary
         delta_t = min(time_until_latbound_intersection, time_until_longbound_intersection)
-        print(delta_t)
 
         return self.time + delta_t
 
 
-    def plot(ax):
+    def plot(self, ax):
         lon = rad2deg(self.location.longitude)
         lat = rad2deg(self.location.latitude)
         ber = rad2deg(self.location.bearing)
         triangle = Path([[-0.5, 0], [0.5, 0], [0, 0.5]])
         rotated_triangle = MarkerStyle(triangle).rotated(deg=-ber)
         ax.plot(lon, lat, marker=rotated_triangle, color='blue', markersize=11, linestyle='')
-        # traj_longs = [rad2deg(l.location.longitude) for l in bom.loglist] + [lon]
-        # traj_lats = [rad2deg(l.location.latitude) for l in bom.loglist] + [lat]
-        # ax.plot(traj_longs, traj_lats, color='blue', linewidth=2, transform=ccrs.Geodetic())
-        # leg_elms = [Line2D([0], [0], color=(0, 0, 0, 0), marker=triangle, markerfacecolor='blue', markeredgecolor='blue', markersize=15, label='bomber')]
-        # if len(traj_longs) > 2:
-        #     leg_elms.append(Line2D([0], [0], color='blue', linewidth=2, label='traversed flight path'))
-        # return leg_elms
+        traj_longs = [rad2deg(l.location.longitude) for l in self.loglist] + [lon]
+        traj_lats = [rad2deg(l.location.latitude) for l in self.loglist] + [lat]
+        ax.plot(traj_longs, traj_lats, color='blue', linewidth=2, transform=ccrs.Geodetic())
+        leg_elms = [Line2D([0], [0], color=(0, 0, 0, 0), marker=triangle, markerfacecolor='blue', markeredgecolor='blue', markersize=15, label='bomber')]
+        if len(traj_longs) > 2:
+            leg_elms.append(Line2D([0], [0], color='blue', linewidth=2, label='traversed flight path'))
+        return leg_elms
 
 
     def update_disposition(self):
         '''Update the disposition of the plane. This method assumes that the time of the disposition change has already been identified with self.next_anticipated_disposition_change() and that the state of the plane has been evolved forward to that time using self.forward_simulation().'''
         cur = self.dispositions[0]
-        self.dispositions[0], new_peers =  self.dispositions[0].adjust_disposition(self, self.location, self.granularity)
+        self.dispositions[0], new_peers =  self.dispositions[0].adjust_disposition(self, self.location, self.resolution)
         if self.dispositions[0] is not cur:
             new_logpoint = BZeroLogpoint(time = self.time, location = self.location, speed = self.speed , ecm = self.ecm)
             self.loglist.append(new_logpoint)
@@ -203,7 +204,7 @@ class BZero(RomancerObject):
             self.ecm = latest.ecm # set plane ecm to logpoint ecm
             self.forward_simulation(time)
             # self.update_disposition() # reset plane disposition, if necessary
-            self.dispositions[0], peer_difference = self.dispositions[0].adjust_disposition(self, self.location, self.granularity) # don't add superfluous logpoint
+            self.dispositions[0]= self.dispositions[0].adjust_disposition(self, self.location, self.resolution) # don't add superfluous logpoint
 
 
     def activate_ecm(self):
@@ -249,7 +250,7 @@ def red_light_stochastic_actions_before_time(o, m):
     peers = list()
     for d in o.dispositions:
         for item in d.identify_peers(o):
-            if item not in peers:
+            if item not in peers and item != o:
                 peers.append(item)
     delta_t = 5.0 # 5 second detection interval
     # times = list(range(o.time, m.time, delta_t)) range doesn't work for floats
@@ -326,9 +327,9 @@ class RedLight(RomancerObject):
 
     
     @property
-    def granularity(self):
-        '''The light is part of the plane, so its granularity is the same as that of the plane.'''
-        return self.parent.granularity
+    def resolution(self):
+        '''The light is part of the plane, so its resolution is the same as that of the plane.'''
+        return self.parent.resolution
 
     
     @property

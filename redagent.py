@@ -124,6 +124,6 @@ class RedAgent(Agent):
     
 
     @property
-    def granularity(self):
-        '''The operator is treated as part of the radar, so their granularity is the same as that of the radar.'''
-        return self.parent.granularity
+    def resolution(self):
+        '''The operator is treated as part of the radar, so their resolution is the same as that of the radar.'''
+        return self.parent.resolution

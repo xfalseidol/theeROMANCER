@@ -118,9 +118,9 @@ class BlueAgent(Agent):
     
 
     @property
-    def granularity(self):
-        '''The pilot is treated as part of the plane, so their granularity is the same as that of the plane.'''
-        return self.parent.granularity
+    def resolution(self):
+        '''The pilot is treated as part of the plane, so their resolution is the same as that of the plane.'''
+        return self.parent.resolution
 
 
     def believes_ecm_activated(self):

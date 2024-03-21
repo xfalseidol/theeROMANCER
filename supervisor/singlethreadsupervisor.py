@@ -1,5 +1,5 @@
-from supervisor.supervisor import Supervisor
-from supervisor.watchlist import WatchlistItem
+from supervisor import Supervisor
+from watchlist import WatchlistItem
 
 
 # define WatchlistItems
@@ -44,24 +44,24 @@ class AnticipatedDispositionChange(WatchlistItem):
 
     While it is unnecessary for this simple demo, an imporant application for this kind of watchlist item is to reconfigure agents' perception engines to reflect altered dispositions. For example, if an object moves into an agent's possible visible field, the AnticipatedDispositionChange could alter that agent's perception engine accordingly.'''
 
-    def __init__(self, time, object_uid, granularity=None):
+    def __init__(self, time, object_uid, resolution=None):
         super().__init__(time)
         self.object_uid = object_uid
-        self.granularity = granularity
+        self.resolution = resolution
 
 
     def process(self, supervisor):
-        obj = supervisor.environment.message_dispatch_table[object_uid]
-        if not self.granularity:
-            self.granularity = obj.granularity
+        obj = supervisor.environment.message_dispatch_table[self.object_uid]
+        if not self.resolution:
+            self.resolution = obj.resolution
         for disposition in obj.dispositions:
-            disposition.adjust_disposition(obj, obj.location, self.granularity)
+            disposition.adjust_disposition(obj, obj.location, self.resolution)
         supervisor.check_for_percepts = True # disposition changes are assumed to possibly generate percepts
 
 
     def __repr__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
-        return '{}(time={}, object_uid={}, granularity={})'.format(self.__class__.__name__, self.time, self.object_uid, self.granularity)
+        return '{}(time={}, object_uid={}, resolution={})'.format(self.__class__.__name__, self.time, self.object_uid, self.resolution)
 
 
 class RedLightOn(WatchlistItem):
@@ -288,6 +288,12 @@ def attempt_contact_superior(sup, message):
     return item
 
 
+def attempt_anticipated_disposition_change(sup, message):
+    '''This function is used to act on messages sent by the blue agent that reflect attempts to activate the bomber's ECM's.'''
+    item = AnticipatedDispositionChange(time = message.time, object_uid =sup.environment.message_dispatch_table[message.sender[1]].uid, resolution = None)
+    return item
+
+
 class SingleThreadSupervisor(Supervisor):
 
 
@@ -304,6 +310,7 @@ class SingleThreadSupervisor(Supervisor):
                                'AttemptDisplayBlip': attempt_display_blip,
                                'AttemptSetSpeed': attempt_set_speed,
                                'AttemptContactSuperior': attempt_contact_superior,
+                               'AttemptAnticipatedDispositionChange': attempt_anticipated_disposition_change,
                                } # dict of functions for processing messages
 
 
@@ -313,7 +320,7 @@ class SingleThreadSupervisor(Supervisor):
             f = self.dispatch_table[message.messagetype]
             return f
         except KeyError:
-            print('No dispatch found for message type:', message.messagetype)
+            print('No dispatch found for message type:', message.messagetype, " on ", self)
 
 
     def deterministic_events_process_inbox(self, max_time):
@@ -372,6 +379,7 @@ class SingleThreadSupervisor(Supervisor):
         if candidate_next_item:
             self.watchlist.push(candidate_next_item)
         # advance simulation time to next_time
+        next_time = max(0, next_time)
         self.environment.forward_simulation(next_time)
         
 

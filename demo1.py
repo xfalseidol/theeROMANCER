@@ -1,6 +1,6 @@
 from supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.dispositiontree import GeographicDispositionStump, GeographicDispositionTree
+from environment.dispositiontree import GeographicDispositionStump, GeographicDispositionTree, compute_bounds, compute_radius_for_resolution
 from environment.location import GeographicLocation, StationaryGeographicLocation
 from environment.perceptionengine import PerceptionEngine, make_change_observer
 from environment.percept import Percept
@@ -39,14 +39,21 @@ max_lat = deg2rad(35)
 min_long = deg2rad(110)
 max_long = deg2rad(130)
 
-stump = GeographicDispositionStump(bounds=(min_lat, max_lat, min_long, max_long)) # bounds represent Taiwan strait, Taiwan
-tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long))
+# tree = GeographicDispositionStump(bounds=(min_lat, max_lat, min_long, max_long)) # bounds represent Taiwan strait, Taiwan
+disp_tree_center = GeographicLocation(deg2rad(20), deg2rad(115), 0)
+disp_tree_resolution = 0.01
+disp_tree_radius = compute_radius_for_resolution(disp_tree_resolution)
+disp_tree_bounds = compute_bounds(disp_tree_center, disp_tree_radius)
+# print(disp_tree_bounds)
+disp_tree = GeographicDispositionTree(center=disp_tree_center, radius=disp_tree_radius, bounds=disp_tree_bounds, resolution=disp_tree_resolution)
+# print(tree.bounds)
+
 # Step 2.2: Make perception engine
 # Note that the perception engine needs to be configured, but this needs to wait until agents and environmental objects have been created
 engine = PerceptionEngine()
 
 # Step 2.3: Make environment
-env = SingleThreadEnvironment(supervisor=sup, disposition_tree=tree, perception_engine=engine)
+env = SingleThreadEnvironment(supervisor=sup, disposition_tree=disp_tree, perception_engine=engine)
 engine.environment = env # set perception engine's environment attribute
 
 sup.environment = env # set supervisor's environment attribute

@@ -11,7 +11,7 @@ import cartopy.geodesic as cgeodesic
 import shapely
 from dispositiontree import GeographicDispositionTree, generate_centers, compute_bounds
 from location import GeographicLocation
-from object import PlottableObject
+from object import PlottableObject, RomancerObject
 from numpy import pi, rad2deg, deg2rad
 import unittest
 import matplotlib.patheffects as pe
@@ -54,13 +54,12 @@ def plot_scenario(map_bounds, disp_tree):
 	disp_tree.plot_all(ax)
 
 	# test plot peers
-	child_index =0  # Change the index value here
-	disp_tree.children[child_index].plot_peers(ax, color='darkgreen')
+	# disp_tree.children[0].plot_peers(ax, color='darkgreen')
 
 	# test next_anticipated_disp_change
 	## test 1
 	obj_of_interest = disp_tree.contents[0]
-	disp_change_t = disp_tree.next_anticipated_disposition_change(obj_of_interest)
+	disp_change_t = obj_of_interest.next_anticipated_disposition_change()
 	# plot the next anticipated disposition change
 	delta_t = disp_change_t - obj_of_interest.time
 	distance_traveled = obj_of_interest.speed / 3600 * delta_t
@@ -70,7 +69,7 @@ def plot_scenario(map_bounds, disp_tree):
 
 	## test 2
 	obj_of_interest = disp_tree.children[0].contents[0]
-	disp_change_t = disp_tree.children[0].next_anticipated_disposition_change(obj_of_interest)
+	disp_change_t = obj_of_interest.next_anticipated_disposition_change()
 	# plot the next anticipated disposition change
 	delta_t = disp_change_t - obj_of_interest.time
 	distance_traveled = obj_of_interest.speed / 3600 * delta_t
@@ -80,7 +79,7 @@ def plot_scenario(map_bounds, disp_tree):
 
 	## test 3
 	obj_of_interest = disp_tree.children[0].children[7].contents[0]
-	disp_change_t = disp_tree.children[0].children[7].next_anticipated_disposition_change(obj_of_interest)
+	disp_change_t = obj_of_interest.next_anticipated_disposition_change()
 	# plot the next anticipated disposition change
 	delta_t = disp_change_t - obj_of_interest.time
 	distance_traveled = obj_of_interest.speed / 3600 * delta_t

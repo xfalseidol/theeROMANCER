@@ -1,7 +1,5 @@
 from numpy import pi, sin, cos, sqrt, rad2deg, deg2rad, inf
-from environment.location import GeographicLocation
-from environment.object import PlottableObject
-from dill import dump
+from location import GeographicLocation
 from pathlib import Path
 import matplotlib.patheffects as pe
 from scipy.optimize import root_scalar
@@ -26,10 +24,11 @@ def find_nearest_center(center, possible_centers):
 
 
 def compute_bounds(center, radius):
-        bounds = (center.latitude - deg2rad(radius * RADII_PER_DEGREE), 
-                center.latitude + deg2rad(radius * RADII_PER_DEGREE), 
-                center.longitude - deg2rad(radius * RADII_PER_DEGREE),
-                center.longitude + deg2rad(radius * RADII_PER_DEGREE)) 
+        adjustment = deg2rad(radius / KM_PER_DEGREE)
+        bounds = (center.latitude - adjustment, 
+                center.latitude + adjustment, 
+                center.longitude - adjustment,
+                center.longitude + adjustment) 
         return bounds
 
 
@@ -88,7 +87,7 @@ class LocationError(Exception):
     pass
 
 class ResolutionError(Exception):
-    """Raised when an operation would result in a granularity that doesn't make sense."""
+    """Raised when an operation would result in a resolution that doesn't make sense."""
     pass
 
 class DispositionStump():
@@ -101,7 +100,7 @@ class DispositionStump():
         self.contents = list() # objects currently stored in root
 
 
-    def set_disposition(self, obj, location, granularity):
+    def set_disposition(self, obj, location, resolution):
         if self.bounds[0] <= location <= self.bounds[1]:
             self.contents.append(obj)
             return self
@@ -109,7 +108,7 @@ class DispositionStump():
             raise ValueError('Location outside bounds.')
 
 
-    def adjust_disposition(self, obj, location, granularity):
+    def adjust_disposition(self, obj, location, resolution):
         if self.bounds[0] <= location <= self.bounds[1]:
             return self
         else:
@@ -129,7 +128,7 @@ class DispositionStump():
 class GeographicDispositionStump(DispositionStump):
     '''Like DispositionStump, but with latitude and longitude bounds to work with GeographicLocation. GeographicDispositionStump.bounds takes the form of a (low_latitude, high_latitude, low_longitude, high_longitude) tuple with locations in radians.'''
 
-    def set_disposition(self, obj, location, granularity):
+    def set_disposition(self, obj, location, resolution):
         lowlat, highlat, lowlong, highlong = self.bounds
         if lowlat <= location.latitude <= highlat and  lowlong <= location.longitude <= highlong:
             self.contents.append(obj)
@@ -138,7 +137,7 @@ class GeographicDispositionStump(DispositionStump):
             raise ValueError('Location outside bounds.')
 
 
-    def adjust_disposition(self, obj, location, granularity):
+    def adjust_disposition(self, obj, location, resolution):
         lowlat, highlat, lowlong, highlong = self.bounds
         if lowlat <= location.latitude <= highlat and  lowlong <= location.longitude <= highlong:
             return self
@@ -182,7 +181,6 @@ class GeographicDispositionTree():
         
     def plot_objects(self, ax):
         for obj in self.contents:
-            self.plot_line_to(obj.location, ax, style='dotted')
             obj.plot(ax)
 
 
@@ -250,7 +248,7 @@ class GeographicDispositionTree():
         """
         # a direct change to the lower and upper bounds for latitude/longitude (to account for something being "just over the border")
         ## TODO: brainstorm how to calculate tolerance
-        tolerance = self.granularity / self.granularity_reduction_factor * 0.001 # tolerance is a number of radians, scaled by the next smallest granularity
+        tolerance = self.resolution / self.resolution_reduction_factor * 0.001 # tolerance is a number of radians, scaled by the next smallest resolution
         lat_on_boundary = (self.bounds[0] - tolerance <= location.latitude <= self.bounds[0]) or (self.bounds[1] <= location.latitude <= self.bounds[1] + tolerance)
         lat_in_boundary = (self.bounds[0] - tolerance <= location.latitude <= self.bounds[1] + tolerance)
         long_on_boundary = (self.bounds[2] - tolerance <= location.longitude <= self.bounds[2]) or (self.bounds[3] <= location.longitude <= self.bounds[3] + tolerance)
@@ -343,7 +341,7 @@ class GeographicDispositionTree():
         Shifting an object should be done with adjust_disposition.
         :param obj: object to place into the disposition tree
         :param location: location of the object, used to place the object at the right node
-        :param resolution: minimum acceptable granularity for the node obj will belong to
+        :param resolution: minimum acceptable resolution for the node obj will belong to
         Returns the node we attach the object to
         '''
         if self.parent:
@@ -364,11 +362,11 @@ class GeographicDispositionTree():
             node = node.parent # if the node's resolution is too small, walk up the tree
 
         if node.resolution < resolution:
-            raise ResolutionError(f'Object resolution too large. Node resolution: {node.resolution}, Requested granularity: {resolution}')
+            raise ResolutionError(f'Object resolution too large. Node resolution: {node.resolution}, Requested resolution: {resolution}')
         
         node.contents.append(obj)
-        print(f"Set disp of obj {obj.uid} to node {node.id}")
-        print()
+        # print(f"Set disp of obj {obj.uid} to node {node.id}")
+        # print()
         return node
 
 
@@ -549,12 +547,12 @@ class OneDimensionalDispositionTree():
 
     '''The root node for a one-dimensional disposition tree. The purpose of disposition trees is to provide efficient clustering of items that may have interactions.'''
 
-    def __init__(self, bounds, granularity, gap_width, parent, granularity_reduction_factor = 10, gap_reduction_factor = 1):
+    def __init__(self, bounds, resolution, gap_width, parent, resolution_reduction_factor = 10, gap_reduction_factor = 1):
         self.bounds = bounds # tuple containing the left and right bounds of the one-dimensional space
         self.parent = parent
         self.children = list() # child nodes of root
         self.contents = list() # objects currently stored in root
-        self.granularity = granularity
+        self.resolution = resolution
         self.gap = ((bounds[1] - bounds[0]) / 2 - gap_width / 2, (bounds[1] - bounds[0]) / 2 + gap_width / 2) # gap in which objects that would otherwise be lower in the tree are contents of this node
 
 
@@ -576,12 +574,12 @@ class OneDimensionalDispositionTree():
             else:
                 new_bounds = (self.bounds[1], self.gap[1]) # right
             # new_gap = ((new_bounds[1] - new_bounds[0]) / 2 - (gap_width / gap_reduction_factor) / 2, (new_bounds[1] - new_bounds[0]) / 2 + (gap_width / gap_reduction_factor) / 2)
-            new_child = OneDimensionalDispositionTree(new_bounds, granularity / granularity_reduction_factor, gap_width / gap_reduction_factor, self, granularity_reduction_factor, gap_reduction_factor)
+            new_child = OneDimensionalDispositionTree(new_bounds, resolution / resolution_reduction_factor, gap_width / gap_reduction_factor, self, resolution_reduction_factor, gap_reduction_factor)
             self.children.append(new_child)
             return new_child
 
 
-    def set_disposition(self, obj, location, granularity):
+    def set_disposition(self, obj, location, resolution):
         '''This method is intended to accomplish initial placement of an object in the disposition tree. Shifting an object that already exists in the disposition tree should be accomplished using adjust_disposition.'''
         if self.parent:
             raise Exception('Cannot set location starting at non-root node.') # TODO: define appropriate Exception class for this
@@ -590,9 +588,9 @@ class OneDimensionalDispositionTree():
                 self.contents.append(obj)
                 return self
             else:
-                while child.granularity > granularity:
-                    child = self.find_or_make_child(location, granularity) # returns current node 
-                    if granularity > child.granularity or child.gap[0] < location < child.gap[1]:
+                while child.resolution > resolution:
+                    child = self.find_or_make_child(location, resolution) # returns current node 
+                    if resolution > child.resolution or child.gap[0] < location < child.gap[1]:
                         child.contents.append(obj)
                         return child
                     else:
@@ -632,7 +630,7 @@ class OneDimensionalDispositionTree():
         return peers
         
         
-    def adjust_disposition(self, obj, location, granularity):
+    def adjust_disposition(self, obj, location, resolution):
         if obj in self.contents:
             if location in self.gap:
                 return self, set() # same node
@@ -644,7 +642,7 @@ class OneDimensionalDispositionTree():
         p = self.parent
         while p.parent: # find root
             p = p.parent
-        new_node = p.set_disposition(obj, location, granularity)
+        new_node = p.set_disposition(obj, location, resolution)
         new_peers = {o.id for o in new_node.identify_peers(obj)}
         return new_node, old_peers.difference(new_peers)
         
@@ -677,9 +675,12 @@ if __name__ == "__main__":
     disp_tree.make_child(GeographicLocation(deg2rad(20.6), deg2rad(113), 0), 0.003)
     disp_tree.children[0].make_children(0.0003)
 
+    sup = SingleThreadSupervisor()
+    env = SingleThreadEnvironment(supervisor=sup, disposition_tree=disp_tree, perception_engine=None)
+
     # test set disposition
     bomber_location = GeographicLocation(deg2rad(23.5), deg2rad(120.5), 30)
-    bomber = PlottableObject(location=bomber_location)
+    bomber = BZero(environment=env, time=0)
     disp_tree.set_disposition(bomber, bomber_location, resolution=0.01)
 
     bomber2_location = GeographicLocation(deg2rad(25), deg2rad(115), 30)
@@ -714,7 +715,7 @@ if __name__ == "__main__":
         print(f"Contents for Node {node.id}: {node.contents}")
         print(f"Peers for Node {node.id}: {node.identify_peers()}")
 
-    filepath = Path.cwd() / 'sample_disptree.pkl'
+    filepath = Path.cwd() / '../sample_disptree.pkl'
 
     with open(filepath, 'wb') as f:
         dump(disp_tree, f)

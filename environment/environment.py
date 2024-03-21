@@ -88,7 +88,7 @@ class Environment():
             obj.parent = parent_object
         else:
             self.contents.append(obj)
-        self.disposition_tree.set_disposition(obj, obj.location, obj.granularity) 
+        self.disposition_tree.set_disposition(obj, obj.location, obj.resolution) 
 
 
     def add_agent(self, agent, parent_object=None):

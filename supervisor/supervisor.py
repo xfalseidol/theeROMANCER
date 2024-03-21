@@ -1,4 +1,4 @@
-from supervisor.watchlist import Watchlist
+from watchlist import Watchlist
 import numpy as np
 
 class Supervisor():

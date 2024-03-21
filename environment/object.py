@@ -1,9 +1,15 @@
 from typing import NamedTuple
-from environment.loglist import Loglist
+from loglist import Loglist
 from numpy import rad2deg
 from matplotlib.path import Path
 from matplotlib.markers import MarkerStyle
 import matplotlib.patheffects as pe
+import warnings
+from collections import UserList, UserDict
+from functools import singledispatch
+
+class MissingMethodWarning(Warning):
+    pass
 
 
 class RomancerObject():
@@ -83,8 +89,13 @@ class RomancerObject():
         return None
 
         
-    def plot(self, ax):
-        print(f"Object {self.uid} does not have a location or does not know how to plot itself.")
+    def plot(self, ax, owner):
+        '''
+        All RomancerObjects are responsible for plotting themselves.
+        They will plot themselves on the provided axis ax.
+        They may want to plot something relative to their owner (eg, a disposition tree).
+        '''
+        warnings.warn("Plot method not implemented for base RomancerObject class", MissingMethodWarning)
 
 
     def __repr__(self):

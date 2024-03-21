@@ -1,6 +1,6 @@
 from supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.dispositiontree import GeographicDispositionTree, GranularityError
+from environment.dispositiontree import GeographicDispositionTree, resolutionError
 from environment.location import GeographicLocation, StationaryGeographicLocation
 from environment.perceptionengine import PerceptionEngine, make_change_observer
 from environment.percept import Percept

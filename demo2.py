@@ -39,7 +39,7 @@ max_lat = deg2rad(35)
 min_long = deg2rad(110)
 max_long = deg2rad(130)
 
-parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), granularity=1000, minimum_granularity=10, parent=None, granularity_reduction_factor=4)
+parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), resolution=.01, minimum_resolution=10, parent=None, resolution_reduction_factor=4)
 
 # make_children is called when we create a tree, we can find out if it worked by printing the children of the tree
 # print("Here is the parent tree: ")
@@ -106,8 +106,8 @@ print("Test 1 set_disposition:")
 print("Root Contents Before:", parent_tree.contents)
 test_object = "test object 1"
 location = target_location
-granularity = 260
-parent_tree.set_disposition(test_object, location, granularity)
+resolution = 260
+parent_tree.set_disposition(test_object, location, resolution)
 print("Root Contents After:", parent_tree.contents)
 
 print()
@@ -115,8 +115,8 @@ print("Test 2 set_disposition:")
 print("Child Contents After:", parent_tree.children[1].contents)
 test_object = "test object 2"
 location = target_location
-granularity = 240
-parent_tree.set_disposition(test_object, location, granularity)
+resolution = 240
+parent_tree.set_disposition(test_object, location, resolution)
 print("Child Contents After:", parent_tree.children[1].contents)
 
 print()
@@ -124,19 +124,19 @@ print("Test 3 set_disposition:")
 print("Child Contents Before: No appropriate child")
 test_object = "test object 3"
 location = target_location
-granularity = 60
-parent_tree.set_disposition(test_object, location, granularity)
+resolution = 60
+parent_tree.set_disposition(test_object, location, resolution)
 print("Child Contents After:", parent_tree.children[1].children[0].contents)
 print(parent_tree)
 print()
 
 print()
 print("Test 4 set_disposition:")
-granularity = 10
+resolution = 10
 test_object = "test object 4"
 location = target_location
-granularity = 10
-parent_tree.set_disposition(test_object, location, granularity)
+resolution = 10
+parent_tree.set_disposition(test_object, location, resolution)
 print("Child Contents After:", parent_tree.children[1].children[0].children[0].contents)
 print(parent_tree)
 print()

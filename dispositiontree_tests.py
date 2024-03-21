@@ -1,6 +1,6 @@
 from supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.dispositiontree import GeographicDispositionTree, GranularityError
+from environment.dispositiontree import GeographicDispositionTree, resolutionError
 from environment.location import GeographicLocation, StationaryGeographicLocation
 from environment.perceptionengine import PerceptionEngine, make_change_observer
 from environment.percept import Percept
@@ -22,10 +22,10 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         max_lat = deg2rad(35)
         min_long = deg2rad(110)
         max_long = deg2rad(130)
-        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), granularity=1000, minimum_granularity=10, parent=None, granularity_reduction_factor=4)
+        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), resolution=.01, minimum_resolution=10, parent=None, resolution_reduction_factor=4)
         self.assertEqual(len(parent_tree.children), 0)
         # maybe add more (assertEqual, assertTrue, assertIsNone) to ensure the tree has created correctly
-        self.assertEqual(parent_tree.granularity, 1000)
+        self.assertEqual(parent_tree.resolution, .01)
 
 
     def test_make_child(self):
@@ -34,7 +34,7 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         max_lat = deg2rad(35) # broken into 4 equal pieces: 15-20, 20-25, 25-30, 30-35
         min_long = deg2rad(110)
         max_long = deg2rad(130) # min/max long is constant across all children
-        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), granularity=1000, minimum_granularity=10, parent=None, granularity_reduction_factor=4)
+        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), resolution=.01, minimum_resolution=10, parent=None, resolution_reduction_factor=4)
 
         target_location = GeographicLocation(deg2rad(21), deg2rad(120), bearing=0)
         parent_tree.make_child(target_location)
@@ -44,8 +44,8 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         self.assertEqual(len(parent_tree.children), 1)
         # test that the child has the correct bounds
         assert_almost_equal(new_child.bounds, new_bounds)
-        # test that the child has correct granularity
-        self.assertEqual(new_child.granularity, 250)
+        # test that the child has correct resolution
+        self.assertEqual(new_child.resolution, 250)
 
         # make a child at the location that the already-existing child contains
         # then the "new" child should equal that child we already made
@@ -64,7 +64,7 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         max_lat = deg2rad(35)
         min_long = deg2rad(110)
         max_long = deg2rad(130)
-        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), granularity=1000, minimum_granularity=10, parent=None, granularity_reduction_factor=4)
+        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), resolution=.01, minimum_resolution=10, parent=None, resolution_reduction_factor=4)
 
         target_location = GeographicLocation(deg2rad(20), deg2rad(120), 0)
         target_child = parent_tree.find_child(target_location)
@@ -79,7 +79,7 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         max_lat = deg2rad(35)
         min_long = deg2rad(110)
         max_long = deg2rad(130)
-        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), granularity=1000, minimum_granularity=10, parent=None, granularity_reduction_factor=4)
+        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), resolution=.01, minimum_resolution=10, parent=None, resolution_reduction_factor=4)
 
         target_location = GeographicLocation(deg2rad(20), deg2rad(120), 0)
         result = parent_tree.is_on_boundary(target_location)
@@ -111,13 +111,13 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         max_lat = deg2rad(35)
         min_long = deg2rad(110)
         max_long = deg2rad(130)
-        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), granularity=1000, minimum_granularity=10, parent=None, granularity_reduction_factor=4)
+        parent_tree = GeographicDispositionTree(bounds=(min_lat, max_lat, min_long, max_long), resolution=.01, minimum_resolution=10, parent=None, resolution_reduction_factor=4)
         
         # test peers of the root, with a single object added
         obj = "a"
         target_location = GeographicLocation(deg2rad(23), deg2rad(115), 0)
-        granularity = 10
-        parent_tree.set_disposition(obj, target_location, granularity)
+        resolution = 10
+        parent_tree.set_disposition(obj, target_location, resolution)
         expected_results = set()
         results = parent_tree.identify_peers(obj) # should be ["a"]
         self.assertEqual(len(results), 0)
@@ -126,7 +126,7 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         child = parent_tree.make_child(target_location) # create a new child
         obj = "b"
         expected_results = {"a"} # keep track of all objects added to compare them against the peers
-        parent_tree.set_disposition(obj, target_location, granularity) # add obj b to the this child
+        parent_tree.set_disposition(obj, target_location, resolution) # add obj b to the this child
         results = child.identify_peers(obj) # identify's the peers of the child node
         self.assertEqual(len(results), 1)
         self.assertEqual(results, expected_results)
@@ -135,7 +135,7 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         child = parent_tree.make_child(target_location)
         obj = "c"
         expected_results = {"a"}
-        parent_tree.set_disposition(obj, target_location, granularity)
+        parent_tree.set_disposition(obj, target_location, resolution)
         results = child.identify_peers(obj)
         self.assertEqual(len(results), 1)
         self.assertEqual(results, expected_results)
@@ -153,32 +153,32 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         # set the disposition of an object
         obj = "a"
         target_location = GeographicLocation(deg2rad(23), deg2rad(115), 0)
-        granularity = 10
-        tree.set_disposition(obj, target_location, granularity)
+        resolution = 10
+        tree.set_disposition(obj, target_location, resolution)
 
         # TEST 1: test that the disposition was set correctly
         self.assertEqual(tree.contents, [obj])
 
         obj = "b"
-        tree.set_disposition(obj, target_location, granularity)
+        tree.set_disposition(obj, target_location, resolution)
 
         self.assertEqual(tree.contents, ["a", "b"])
 
         # TEST 2: add a child and set the disposition of a new object
         tree.make_child(target_location)
         obj = "c"
-        tree.set_disposition(obj, target_location, granularity)
+        tree.set_disposition(obj, target_location, resolution)
 
         self.assertEqual(tree.contents, ["a", "b"])
         self.assertEqual(tree.children[0].contents, ["c"])
 
         # TEST 3: test that bad inputs result in an error
         obj = "z"
-        granularity = 10000
-        with self.assertRaises(GranularityError) as context:
-            tree.set_disposition(obj, target_location, granularity)
+        resolution = .010
+        with self.assertRaises(resolutionError) as context:
+            tree.set_disposition(obj, target_location, resolution)
 
-        self.assertTrue('Object granularity too large. Node granularity: 1000, Requested granularity: 10000' in str(context.exception))
+        self.assertTrue('Object resolution too large. Node resolution: .01, Requested resolution: .010' in str(context.exception))
 
 
 
@@ -194,15 +194,15 @@ class GeographicDispositionTreeTests(unittest.TestCase):
         # set the disposition of an object
         obj = "a"
         target_location = GeographicLocation(deg2rad(23), deg2rad(115), 0)
-        granularity = 10
-        tree.set_disposition(obj, target_location, granularity)
+        resolution = 10
+        tree.set_disposition(obj, target_location, resolution)
         obj = "b"
-        tree.set_disposition(obj, target_location, granularity)
+        tree.set_disposition(obj, target_location, resolution)
 
         # create some children
         tree.make_child(target_location)
         obj = "c"
-        tree.set_disposition(obj, target_location, granularity)
+        tree.set_disposition(obj, target_location, resolution)
 
         # adjust the disposition of the object
         tree.adjust_disposition("b", target_location, 10)
