@@ -55,3 +55,5 @@ def maplogger(s):
         plot_scenario(radar, bomber, tree)
 
 sup.logger = maplogger
+
+plot_scenario(radar, bomber, tree)

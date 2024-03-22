@@ -1,5 +1,5 @@
 from numpy import pi, sin, cos, sqrt, rad2deg, deg2rad, inf
-from location import GeographicLocation
+from environment.location import GeographicLocation
 from pathlib import Path
 import matplotlib.patheffects as pe
 from scipy.optimize import root_scalar

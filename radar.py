@@ -1,6 +1,16 @@
 from typing import NamedTuple
 from environment.object import RomancerObject
 from environment.loglist import Logpoint
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+from matplotlib.markers import MarkerStyle
+from matplotlib.patches import Patch
+from matplotlib.lines import Line2D
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import cartopy.geodesic as cgeodesic
+import shapely
+from numpy import pi, rad2deg, deg2rad
 
 class RedRadarLogpoint(Logpoint):
     
@@ -29,8 +39,8 @@ def radar_stochastic_actions_before_time(o, m):
         messages = list()
         peers = list()
         for d in o.dispositions:
-            for item in d.identify_peers(o):
-                if item not in peers:
+            for item in d.identify_peers():
+                if item not in peers and item != o:
                     peers.append(item)
         for peer in peers:
             if peer.__class__.__name__ == 'BZero':
@@ -71,7 +81,7 @@ def radar_stochastic_actions_before_time(o, m):
     
 class RedRadar(RomancerObject):
 
-    def __init__(self, environment, time, location, on=False, resolution=.01):
+    def __init__(self, environment, time, location, on=False, resolution=0.01):
         super().__init__(environment, time) # set up standard object slots
         self.children = list() # screen and red agent can be added here
         self.location = location
@@ -142,7 +152,45 @@ class RedRadar(RomancerObject):
             new_logpoint = RedRadarLogpoint(time = self.time, on = self.on)
             self.loglist.append(new_logpoint)
 
+    def plot(self, ax):
+        n_points = 1000
+        lon = rad2deg(self.location.longitude)
+        lat = rad2deg(self.location.latitude)
+        outer_radius=250
+        inner_radius=50
+        ax.plot(lon, lat, marker='o', color='red', linestyle='')
+        if self.on:
+            outer_facecolor='orange'
+            outer_edgecolor=None
+            inner_facecolor='red'
+            inner_edgecolor=None
+            alpha=0.4
+            linewidth=0
+            linestyle=''
+            leg_elms=[Line2D([0], [0], color=(0, 0, 0, 0), marker='o', markerfacecolor='red', markeredgecolor='red', label='radar'),
+                        Patch(facecolor='red', edgecolor='r', alpha=0.4, label='detection radius with ECMs'),
+                        Patch(facecolor='orange', edgecolor='r', alpha=0.4, label='detection radius w/o ECMs')]
             
+        else:
+            outer_facecolor='none' # None != 'none' in this context!
+            outer_edgecolor='orange'
+            inner_facecolor='none'
+            inner_edgecolor='red'
+            alpha=1.0
+            linewidth=2.0
+            linestyle='--'
+            leg_elms=[Line2D([0], [0], color=(0, 0, 0, 0), marker='o', markerfacecolor='red', markeredgecolor='red', label='radar'),
+                      Line2D([0], [0], color='red', linestyle='--', linewidth=2, label='radar (inactive) detection \nradius with ECMs'),
+                      Line2D([0], [0], color='orange', linestyle='--', linewidth=2, label='radar (inactive) detection \nradius w/o ECMs')]
+        circle_points = cgeodesic.Geodesic().circle(lon=lon, lat=lat, radius=outer_radius * 1000, n_samples=n_points, endpoint=False)
+        geom = shapely.geometry.Polygon(circle_points)
+        ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor=outer_facecolor, alpha=alpha, edgecolor=outer_edgecolor, linewidth=linewidth, linestyle=linestyle)
+        circle_points = cgeodesic.Geodesic().circle(lon=lon, lat=lat, radius=inner_radius * 1000, n_samples=n_points, endpoint=False)
+        geom = shapely.geometry.Polygon(circle_points)
+        ax.add_geometries((geom,), crs=ccrs.PlateCarree(), facecolor=inner_facecolor, alpha=alpha, edgecolor=inner_edgecolor, linewidth=linewidth, linestyle=linestyle)
+
+        return leg_elms
+              
 class RadarScreenLogpoint(Logpoint):
     def __init__(self, time, blip_to_display):
         self.time = time

@@ -105,7 +105,7 @@ bomber, radar = sup.environment.contents
 screen = radar.children[0]
 stump = sup.environment.disposition_tree
 
-stump.bounds = deg2rad(21), deg2rad(27.5), deg2rad(115), deg2rad(122.5)
+# stump.bounds = deg2rad(21), deg2rad(27.5), deg2rad(115), deg2rad(122.5)
 
 def maplogger(s):
     print('Processed watchlist item: ', s)

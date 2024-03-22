@@ -204,7 +204,7 @@ class BZero(RomancerObject):
             self.ecm = latest.ecm # set plane ecm to logpoint ecm
             self.forward_simulation(time)
             # self.update_disposition() # reset plane disposition, if necessary
-            self.dispositions[0]= self.dispositions[0].adjust_disposition(self, self.location, self.resolution) # don't add superfluous logpoint
+            self.dispositions[0], peer_difference= self.dispositions[0].adjust_disposition(self, self.location, self.resolution) # don't add superfluous logpoint
 
 
     def activate_ecm(self):
@@ -249,7 +249,7 @@ def red_light_stochastic_actions_before_time(o, m):
     messages = list()
     peers = list()
     for d in o.dispositions:
-        for item in d.identify_peers(o):
+        for item in d.identify_peers():
             if item not in peers and item != o:
                 peers.append(item)
     delta_t = 5.0 # 5 second detection interval

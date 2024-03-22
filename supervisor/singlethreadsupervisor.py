@@ -1,5 +1,5 @@
-from supervisor import Supervisor
-from watchlist import WatchlistItem
+from supervisor.supervisor import Supervisor
+from supervisor.watchlist import WatchlistItem
 
 
 # define WatchlistItems
