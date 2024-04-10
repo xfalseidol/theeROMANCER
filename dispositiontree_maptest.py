@@ -9,9 +9,9 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.geodesic as cgeodesic
 import shapely
-from dispositiontree import GeographicDispositionTree, generate_centers, compute_bounds
-from location import GeographicLocation
-from object import PlottableObject, RomancerObject
+from environment.dispositiontree import GeographicDispositionTree, generate_centers, compute_bounds
+from environment.location import GeographicLocation
+from environment.object import PlottableObject, RomancerObject
 from numpy import pi, rad2deg, deg2rad
 import unittest
 import matplotlib.patheffects as pe

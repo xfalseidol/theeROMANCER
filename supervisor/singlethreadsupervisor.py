@@ -44,24 +44,24 @@ class AnticipatedDispositionChange(WatchlistItem):
 
     While it is unnecessary for this simple demo, an imporant application for this kind of watchlist item is to reconfigure agents' perception engines to reflect altered dispositions. For example, if an object moves into an agent's possible visible field, the AnticipatedDispositionChange could alter that agent's perception engine accordingly.'''
 
-    def __init__(self, time, object_uid, resolution=None):
+    def __init__(self, time, object_uid, granularity=None):
         super().__init__(time)
         self.object_uid = object_uid
-        self.resolution = resolution
+        self.granularity = granularity
 
 
     def process(self, supervisor):
         obj = supervisor.environment.message_dispatch_table[self.object_uid]
-        if not self.resolution:
-            self.resolution = obj.resolution
+        if not self.granularity:
+            self.granularity = obj.granularity
         for disposition in obj.dispositions:
-            disposition.adjust_disposition(obj, obj.location, self.resolution)
+            disposition.adjust_disposition(obj, obj.location, self.granularity)
         supervisor.check_for_percepts = True # disposition changes are assumed to possibly generate percepts
 
 
     def __repr__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
-        return '{}(time={}, object_uid={}, resolution={})'.format(self.__class__.__name__, self.time, self.object_uid, self.resolution)
+        return '{}(time={}, object_uid={}, granularity={})'.format(self.__class__.__name__, self.time, self.object_uid, self.granularity)
 
 
 class RedLightOn(WatchlistItem):
@@ -290,7 +290,7 @@ def attempt_contact_superior(sup, message):
 
 def attempt_anticipated_disposition_change(sup, message):
     '''This function is used to act on messages sent by the blue agent that reflect attempts to activate the bomber's ECM's.'''
-    item = AnticipatedDispositionChange(time = message.time, object_uid =sup.environment.message_dispatch_table[message.sender[1]].uid, resolution = None)
+    item = AnticipatedDispositionChange(time = message.time, object_uid =sup.environment.message_dispatch_table[message.sender[1]].uid, granularity = None)
     return item
 
 
