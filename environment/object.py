@@ -1,5 +1,5 @@
 from typing import NamedTuple
-from loglist import Loglist
+from environment.loglist import Loglist
 from numpy import rad2deg
 from matplotlib.path import Path
 from matplotlib.markers import MarkerStyle

@@ -1,4 +1,4 @@
-from object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+from environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 
 # class MOPSlot(ImprovedRomancerObject):
 #     '''A structure to contain role, filler information. The reason that MOPs are not implemented with ordinary Python slots is that they can be dynamically updated and their slots have associated filler MOPs.'''
@@ -45,26 +45,26 @@ class MOP(ImprovedRomancerObject):
 
     This implementation is based on chapter three of Christopher Riesbeck and Roger Schank, _Inside Case-Based Reasoning_ (Lawrence Erlbaum, 1989).'''
 
-    def __init__(self, environment, time, parent, mop_name, absts, slots, specs={}, mop_type='instance'):
+    def __init__(self, environment, time, parent, mop_name, absts= set(), specs=set(), slots={}, mop_type='instance'):
         super().__init__(environment, time)
         self.unlogged_attrs.append('parent')
         self.parent = parent # parent is case-based reasoner containing collection of associated MOPs
         self.unlogged_attrs.append('mop_name')
         self.mop_name = mop_name # string giving name of MOP
-        self.absts = LoggedSet(absts) # the immediate abstractions of this MOP--those that are exactly one abstraction link above it
-        self.specs =  LoggedSet(specs) # the immediate specializations of this MOP--those that are exactly one abstraction link below it
-        self.slots = LoggedDict(slots) # dict associating roles (names) with filler structures (MOPs)
+        self.absts = LoggedSet(absts, self, "absts") # the immediate abstractions of this MOP--those that are exactly one abstraction link above it
+        self.specs =  LoggedSet(specs, self, "specs") # the immediate specializations of this MOP--those that are exactly one abstraction link below it
+        self.slots = LoggedDict(slots, self, "slots") # dict associating roles (names) with filler structures (MOPs)
         self.unlogged_attrs.append('mop_type')
         self.mop_type = mop_type # 'instance' or 'mop'
 
 
-    def abst_mopp(self):
+    def is_abst_mop(self):
         '''Returns True if this MOP is an abstraction MOP.'''
         return self.mop_type == 'mop'
 
 
     def is_instance_mop(self):
-        '''Returns True if this MOP is an abstraction MOP.'''
+        '''Returns True if this MOP is an instance MOP.'''
         return self.mop_type == 'instance'
 
 
@@ -76,7 +76,7 @@ class MOP(ImprovedRomancerObject):
     @property
     def mop_all_absts(self):
         '''Returns all the abstractions of this MOP, not limited to immediate abstractions.'''
-        return self.calc_all_abstrs()
+        return self.calc_all_absts()
 
 
     def calc_all_absts(self):
@@ -114,7 +114,7 @@ class MOP(ImprovedRomancerObject):
 
 
     def link_abst(self, abst):
-        assert abst.is_abst() # equivilent of "insist" macro in Schank/Riesbeck code
+        # assert abst.is_abst() # equivilent of "insist" macro in Schank/Riesbeck code
         assert not abst.is_abst(self) # don't create circular reference
         if not self.is_abst(abst): # abst is not currently abstract of self
             self.absts.add(abst) # make abst abstraction of self
@@ -147,7 +147,7 @@ class MOP(ImprovedRomancerObject):
         if filler:
             return filler
         else:
-            inheritance = self.inherit_filler(role):
+            inheritance = self.inherit_filler(role)
             if inheritance and inheritance.is_instance_mop():
                 return inheritance
             elif inheritance.is_abst(self.parent.name_mop('M-FUNCTION')):
@@ -232,8 +232,8 @@ class MOP(ImprovedRomancerObject):
         '''Returns True if abst is a legal place to put self, i.e., abst is not slotless and does not have abstractions below it.'''
         if len(self.slots) > 0:
             for spec in self.specs:
-                if not spec.is_instance_mop()
-                return False
+                if not spec.is_instance_mop():
+                    return False
             return True
         else:
             return False
