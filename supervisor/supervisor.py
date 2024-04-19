@@ -1,31 +1,31 @@
-from watchlist import Watchlist
+from supervisor.watchlist import Watchlist
 import numpy as np
 
 class Supervisor():
     '''This base class defines the interface that implementations of the supervisor should follow.'''
 
-    def __init__(self, environment, random_seed=12345):
+    def __init__(self, environment=None, random_seed=12345):
         self.rng = np.random.default_rng(random_seed) # random number generator permits reproducible model runs
         self.environment = environment
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
-        self.id = 1 # supervisor always has id of 1
+        self.uid = 1 # supervisor always has id of 1
         self.time = 0 # supervisor initializes to simulation time of 0
         self.watchlist = Watchlist()
         self.message_index = 1 # increments with each message to assign unique ids
-        self.logger = lambda s, i: None # function used to write logfile, if desired
+        self.logger = lambda s: None # function used to write logfile, if desired
 
 
     def bring_watchlist_up_to_date(self):
         '''This method ensures that the lead item on the watchlist is in fact the next one that should be executed. It should work by checking the simulated time of the lead item on the watchlist and then asking relevant objects in the environment (agents, etc.) whether they will or might cause an event of interest in that timeframe.'''
         next_time = self.watchlist.peek.time
-        if self.environment.time = next_time: # no opportunity for next event not to be correct
+        if self.environment.time == next_time: # no opportunity for next event not to be correct
             return None 
         # STEP 1
         self.outbox.append('message deterministic event between self.time and next_time:') # send message to environment telling it to identify soonest deterministic event (if any) between self.time and next_time
         # deterministic events are, for example, disposition changes based on current trajectories
-        self.
-        self.environment.process_inbox() # envioronment generates events
+        self.send_messages()
+        self.environment.process_inbox() # environment generates events
         self.environment.send_messages() # environments sends resulting events back to supervisor
         # Check messages received from children of environment and set next_time to that of the next deterministic event, if it is eceived
         # STEP 2
@@ -40,7 +40,7 @@ class Supervisor():
 
 
     def process_next_watchlist_item(self):
-        '''This method processes the next item on the watchlist. It assumes that the watchlist is up to date and that time enviornment state is synchronized to the same time as that event.'''
+        '''This method processes the next item on the watchlist. It assumes that the watchlist is up to date and that enviornment state is synchronized to the same time as that event.'''
         item = self.watchlist.peek()
         item.process(self) # run code associated with WatchlistItem; this can cause arbitrary changes to environment and supervisor state
         self.logger(self.watchlist.pop()) # pop the just-processed item off of the watchlist and log it if desired
@@ -48,7 +48,7 @@ class Supervisor():
         self.process_inbox() # calls methods that clean up watchlist to remove items depending on dispositions that no longer exist, and possibly to add some that are now possible
         # check for contradictions in environment, if necessary, and fix them if possible--hopefully not necessary when using single thread?
         # PERHAPS BREAK THIS INTO DISTINCT METHOD?
-        new_percepts = self.environment.perception_engine() # check to see if processing the event resulted in percept generation
+        new_percepts = self.environment.perception_engine.run() # check to see if processing the event resulted in percept generation
         # Percepts can be arbitarily complex objects that stay in the environment--not immuntable or hashable
         if new_percepts: # if there are new percepts, these  may result in cogitation leading to future actions
             for percept in new_percepts:
@@ -71,13 +71,14 @@ class Supervisor():
             self.inbox.append(message)
 
 
-    def send_messages(self, messages):
-        '''Send the messages in the supervisor's inbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
+    def send_messages(self):
+        '''Send the messages in the supervisor's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
             if recipient[0] == 1: # self-addressed
                 self.inbox.append(message)
             else:
-                self.environment.append(message) # send message to environment for forwarding
+                self.environment.inbox.append(message) # send message to environment for forwarding
+                # Tell environment to send messages?
 
 
     def new_message_index(self):

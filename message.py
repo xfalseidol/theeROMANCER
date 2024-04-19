@@ -95,7 +95,7 @@ my_dispatch_table = {'type1' = lambda obj, message: my_state_modifying_func(obj,
                      'types' = lambda obj, message: pass}
 
 def alternative_sample_dispatcher(obj, message):
-    f = my_dispatch_table.get_key(message.messagetype) # returns None if key not in table
+    f = my_dispatch_table.get(message.messagetype, None) # returns None if key not in table
     if f:
         f(obj, message)
     else:

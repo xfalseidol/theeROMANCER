@@ -46,7 +46,7 @@ class Watchlist(UserList):
 class WatchlistItem():
     '''Unlike ROMANCERMessages, which are intended to handle events with respect to CPU time, WatchlistItems are intended to address simulated time. WatchlistItems are only intended to be used within the supervisor, so they need not be passed between processes and can be mutable.
 
-    Messages can tell the supervisor to add WatchlistItems, but decisions about how the simulated state evolves should be made by code associated with or triggered by WatchlistItems. This code is permitted, in principle, to modify state existing anywhere, in the environment or the simulator itself.
+    Messages can tell the supervisor to add WatchlistItems, but decisions about how the simulated state evolves should be made by code associated with or triggered by WatchlistItems. This code is permitted, in principle, to modify state existing anywhere, in the environment or the supervisor itself.
 
     WatchlistItems are supposed to be subclassed in order to reuse code where possible. Much simulator code should be encapsulated within WatchlistItem subclasses. WatchlistItem subclasses can have an arbitrary number of attributes and methods, but they should always implement those given below.'''
     
@@ -57,6 +57,16 @@ class WatchlistItem():
     def __repr__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         return 'WatchlistItem(time={})'.format(self.time)
+
+
+    def __gt__(self, item):
+        '''This is necessary for resolving ties in priority queue insertions.'''
+        return False
+
+
+    def __lt__(self, item):
+        '''This is necessary for resolving ties in priority queue insertions.'''
+        return False
 
 
     def process(self, supervisor):
