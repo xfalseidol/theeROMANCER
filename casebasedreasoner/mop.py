@@ -52,6 +52,7 @@ class MOP(ImprovedRomancerObject):
         self.unlogged_attrs.append('mop_name')
         self.mop_name = mop_name # string giving name of MOP
         self.absts = LoggedSet(absts, self, "absts") # the immediate abstractions of this MOP--those that are exactly one abstraction link above it
+        # self, data, parent, varname
         self.specs =  LoggedSet(specs, self, "specs") # the immediate specializations of this MOP--those that are exactly one abstraction link below it
         self.slots = LoggedDict(slots, self, "slots") # dict associating roles (names) with filler structures (MOPs)
         self.unlogged_attrs.append('mop_type')
@@ -76,15 +77,15 @@ class MOP(ImprovedRomancerObject):
     @property
     def mop_all_absts(self):
         '''Returns all the abstractions of this MOP, not limited to immediate abstractions.'''
-        return self.calc_all_absts()
+        all_absts = set()
+        for abst in self.absts:
+            all_absts.update(abst.mop_all_absts)
+        return all_absts
 
 
     def calc_all_absts(self):
         '''Calculates all the abstractions of this MOP, not limited to immediate abstractions.'''
-        all_absts = set()
-        for abst in self.absts:
-            all_absts.add(abst.mop_all_absts)
-        return all_absts
+        pass
     
 
     def is_pattern(self):

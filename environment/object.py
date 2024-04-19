@@ -520,11 +520,9 @@ class LoggedDict(UserDict):
             self.data.update(other)
 
     def clear(self):
-        raise NotImplementedError("LoggedDict.clear() not implemented.")
+        for key, value in self.data:
+            self.pop(key)
 
-        # logpoint = UniversalLogpoint(time = self.parent.time, difs = tuple([AttrSetLog(attr_name = self.varname, oldval = self.data.copy(), newval = dict())]))
-        # self.parent.loglist.append(logpoint)
-        # self.data = dict()
 
     def __repr__(self):
         return f"LoggedDict({self.data})"

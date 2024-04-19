@@ -1,5 +1,5 @@
-from object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
-from mop import MOP, is_satisfied
+from environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+from casebasedreasoner.mop import MOP, is_satisfied
 
 
 def constraint_fn(constraint, filler, slots):
@@ -13,9 +13,12 @@ def not_constraint(constraint, filler, slots):
     return not is_satisfied(constraint.get_filler('object'), filler, slots)
 
 
-def get_sibling(patter, mop):
+def get_sibling(pattern, mop):
     '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
-    
+    for abst in mop.absts:
+        for spec in abst.specs:
+            if spec.is_instance_mop() and spec != mop and not spec.is_absts('m_failed_solution'):
+                return spec
     
     
 class CaseBasedReasoner(ImprovedRomancerObject):
@@ -25,28 +28,32 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         super().__init__(environment, time)
         self.unlogged_attrs.append('mops')
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
-        self.clear_memory(self, install_foundation_mops=True) # install basic MOPs
+        self.clear_memory(True) # install basic MOPs
 
 
     def calc_type(self, absts, slots):
         '''Determine whether a new MOP with absts and slots will be of type 'mop' (for an abstraction) or 'instance'. Returns value as a string.'''
         pass
 
+    def get_mop(self, name):
+        for mop_name, mop in self.mops.data.items():
+            if mop_name == name:
+                return mop
 
     def add_mop(self, mop_name, absts={'M-ROOT'}, mop_type=None, slot_forms=[]):
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
         if mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
-        absts = {self.get_mop(n) for n in absts if isinstance(n, str) else n} # this should accept string names *or* MOP objects 
+        absts = {self.get_mop(n) for n in absts} # if isinstance(n, str) or isinstance(n, MOP)}
         slots = self.forms_to_slots(slot_forms)
-        if mop_type = None:
+        if mop_type == None:
             mop_type = self.calc_type(absts, slots)
-        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=name, absts=absts, slots=slots, mop_type=mop_type)
+        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts, slots=slots, mop_type=mop_type)
         for abst in absts:
             new_mop.link_abst(abst) # link absts
         if mop_type == 'mop':
             self.install_abstraction(new_mop)
-        elif mop_type = 'instance':
+        elif mop_type == 'instance':
             self.install_instance(new_mop)
         return new_mop
 
@@ -74,7 +81,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def slots_to_mop(self, slots, absts, must_work=True):
         '''Equivilent to SLOTS->MOP is Schank/Riesbeck.'''
         # Ensure absts contains one or more MOPs and no non-MOPs
-
+        pass
 
     def install_foundation_mops(self):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
@@ -107,7 +114,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def clear_memory(self, install_foundation_mops=True):
         '''This method clears all current MOPs from memory and installs a new M-ROOT MOP. If install_foundation_mops is True, then it also installs the basic MOPs as well.'''
         self.mops.clear()
-        root = MOP(environment=self.environment, time=self.time, parent=self, mop_name='M-ROOT', absts={}, specs={}, slots=dict(), mop_type='mop')
+        root = MOP(environment=self.environment, time=self.time, parent=self, mop_name='M-ROOT', absts=set(), specs=set(), slots=dict(), mop_type='mop')
         self.mops['M-ROOT'] = root
         if install_foundation_mops:
             self.install_foundation_mops()
@@ -118,5 +125,5 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         '''This method finds a MOP associated with name in the CBR's case library and returns the associated MOP object.'''
         mop = self.mops[name]
         if mop.name != name:
-            raise ValueError('mop.name and key do not match'))
+            raise ValueError('mop.name and key do not match')
         return mop
