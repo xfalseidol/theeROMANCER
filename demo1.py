@@ -1,10 +1,10 @@
-from supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
-from environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.dispositiontree import GeographicDispositionStump, GeographicDispositionTree, compute_bounds, compute_radius_for_resolution
-from environment.location import GeographicLocation, StationaryGeographicLocation
-from environment.perceptionengine import PerceptionEngine, make_change_observer
-from environment.percept import Percept
-from environment.plane import BZero, RedLight
+from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
+from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
+from romancer.environment.dispositiontree import GeographicDispositionStump, GeographicDispositionTree, compute_bounds, compute_radius_for_resolution
+from romancer.environment.location import GeographicLocation, StationaryGeographicLocation
+from romancer.environment.perceptionengine import PerceptionEngine, make_change_observer
+from romancer.environment.percept import Percept
+from romancer.environment.plane import BZero, RedLight
 from radar import RedRadar, RadarScreen
 from blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
 from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen

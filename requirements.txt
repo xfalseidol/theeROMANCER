@@ -12,6 +12,5 @@ scipy
 pathlib
 setuptools
 pytest
--e environment
--e supervisor
+-e romancer
 
