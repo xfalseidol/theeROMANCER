@@ -19,7 +19,7 @@ def get_sibling(pattern, mop):
         for spec in abst.specs:
             if spec.is_instance_mop() and spec != mop and not spec.is_absts('m_failed_solution'):
                 return spec
-    
+
     
 class CaseBasedReasoner(ImprovedRomancerObject):
     ''''''
@@ -28,7 +28,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         super().__init__(environment, time)
         self.unlogged_attrs.append('mops')
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
-        self.clear_memory(True) # install basic MOPs
+        self.clear_memory(self, install_foundation_mops=True) # install basic MOPs
 
 
     def calc_type(self, absts, slots):
@@ -81,7 +81,6 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def slots_to_mop(self, slots, absts, must_work=True):
         '''Equivilent to SLOTS->MOP is Schank/Riesbeck.'''
         # Ensure absts contains one or more MOPs and no non-MOPs
-        pass
 
     def install_foundation_mops(self):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
