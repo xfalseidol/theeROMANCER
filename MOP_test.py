@@ -1,8 +1,8 @@
-from environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP
-from supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
-from environment.location import GeographicLocation
-from environment.singlethreadenvironment import SingleThreadEnvironment
+from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
+from romancer.environment.location import GeographicLocation
+from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 import casebasedreasoner.cbr
 
 sup = SingleThreadSupervisor()

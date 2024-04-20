@@ -28,7 +28,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         super().__init__(environment, time)
         self.unlogged_attrs.append('mops')
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
-        self.clear_memory(self, install_foundation_mops=True) # install basic MOPs
+        self.clear_memory(True) # install basic MOPs
 
 
     def calc_type(self, absts, slots):
