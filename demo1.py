@@ -5,9 +5,9 @@ from romancer.environment.location import GeographicLocation, StationaryGeograph
 from romancer.environment.perceptionengine import PerceptionEngine, make_change_observer
 from romancer.environment.percept import Percept
 from romancer.environment.plane import BZero, RedLight
-from radar import RedRadar, RadarScreen
-from blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
-from redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen
+from romancer.radar import RedRadar, RadarScreen
+from romancer.agent.blueagent import BlueAgent, BlueAgentPerceptionFilter, PerceiveRedLightOn
+from romancer.agent.redagent import RedAgent, RedAgentPerceptionFilter, BlipOnRadarScreen
 from dill import dump, load
 from pathlib import Path
 from numpy import deg2rad

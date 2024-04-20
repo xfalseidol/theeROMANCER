@@ -1,4 +1,4 @@
-from agent import Agent, PerceptionFilter, ActionROMANCERMessage
+from romancer.agent.agent import Agent, PerceptionFilter, ActionROMANCERMessage
 from environment.percept import Percept
 from environment.loglist import Logpoint
 

@@ -1,7 +1,7 @@
-from agent import Agent, PerceptionFilter, ActionROMANCERMessage
+from romancer.agent.agent import Agent, PerceptionFilter, ActionROMANCERMessage
 from environment.percept import Percept
 from environment.loglist import Logpoint
-from radar import ProbabilisticROMANCERMessage
+from romancer.radar import ProbabilisticROMANCERMessage
 
 # The purpose of this file is to define the Red Agent, the percepts that it can receive, and the actions that it can take
 
