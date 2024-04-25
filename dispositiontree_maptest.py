@@ -9,9 +9,8 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import cartopy.geodesic as cgeodesic
 import shapely
-from environment.dispositiontree import GeographicDispositionTree, generate_centers, compute_bounds
-from environment.location import GeographicLocation
-from environment.object import PlottableObject, RomancerObject
+from romancer.environment.dispositiontree import GeographicDispositionTree, generate_centers, compute_bounds
+from romancer.environment.location import GeographicLocation
 from numpy import pi, rad2deg, deg2rad
 import unittest
 import matplotlib.patheffects as pe
@@ -68,24 +67,24 @@ def plot_scenario(map_bounds, disp_tree):
 	plot_line_to(ax, obj_of_interest.location, future_location)
 
 	## test 2
-	obj_of_interest = disp_tree.children[0].contents[0]
-	disp_change_t = obj_of_interest.next_anticipated_disposition_change()
+	# obj_of_interest = disp_tree.children[0].contents[0]
+	# disp_change_t = obj_of_interest.next_anticipated_disposition_change()
 	# plot the next anticipated disposition change
-	delta_t = disp_change_t - obj_of_interest.time
-	distance_traveled = obj_of_interest.speed / 3600 * delta_t
-	future_location = obj_of_interest.location.destination_point(distance_traveled)
-	plot_point(ax, future_location, 'black')
-	plot_line_to(ax, obj_of_interest.location, future_location)
+	# delta_t = disp_change_t - obj_of_interest.time
+	# distance_traveled = obj_of_interest.speed / 3600 * delta_t
+	# future_location = obj_of_interest.location.destination_point(distance_traveled)
+	# plot_point(ax, future_location, 'black')
+	# plot_line_to(ax, obj_of_interest.location, future_location)
 
-	## test 3
-	obj_of_interest = disp_tree.children[0].children[7].contents[0]
-	disp_change_t = obj_of_interest.next_anticipated_disposition_change()
-	# plot the next anticipated disposition change
-	delta_t = disp_change_t - obj_of_interest.time
-	distance_traveled = obj_of_interest.speed / 3600 * delta_t
-	future_location = obj_of_interest.location.destination_point(distance_traveled)
-	plot_point(ax, future_location, 'black')
-	plot_line_to(ax, obj_of_interest.location, future_location)
+	# # test 3
+	# obj_of_interest = disp_tree.children[0].children[7].contents[0]
+	# disp_change_t = obj_of_interest.next_anticipated_disposition_change()
+	# # plot the next anticipated disposition change
+	# delta_t = disp_change_t - obj_of_interest.time
+	# distance_traveled = obj_of_interest.speed / 3600 * delta_t
+	# future_location = obj_of_interest.location.destination_point(distance_traveled)
+	# plot_point(ax, future_location, 'black')
+	# plot_line_to(ax, obj_of_interest.location, future_location)
 	
 	gl.top_labels = False
 	gl.left_labels = False

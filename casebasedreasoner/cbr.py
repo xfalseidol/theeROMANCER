@@ -15,12 +15,11 @@ def not_constraint(constraint, filler, slots):
 
 def get_sibling(pattern, mop):
     '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
-    for abst in mop.absts:
-        for spec in abst.specs:
-            if spec.is_instance_mop() and spec != mop and not spec.is_absts('m_failed_solution'):
+    for abst in mop.absts: # goes up one layer in abstraction
+        for spec in abst.specs: # looks at all specializations
+            if spec.is_instance_mop() and spec != mop and not spec.is_abst('M-FAILED-SOLUTION'):
                 return spec
 
-    
 class CaseBasedReasoner(ImprovedRomancerObject):
     ''''''
 
@@ -35,21 +34,18 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         '''Determine whether a new MOP with absts and slots will be of type 'mop' (for an abstraction) or 'instance'. Returns value as a string.'''
         pass
 
-    def get_mop(self, name):
-        for mop_name, mop in self.mops.data.items():
-            if mop_name == name:
-                return mop
 
     def add_mop(self, mop_name, absts={'M-ROOT'}, mop_type=None, slot_forms=[]):
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
         if mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
-        absts = {self.get_mop(n) for n in absts} # if isinstance(n, str) or isinstance(n, MOP)}
+        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects
         slots = self.forms_to_slots(slot_forms)
         if mop_type == None:
             mop_type = self.calc_type(absts, slots)
-        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts, slots=slots, mop_type=mop_type)
-        for abst in absts:
+        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type)
+        self.mops[mop_name] = new_mop
+        for abst in absts_as_mops:
             new_mop.link_abst(abst) # link absts
         if mop_type == 'mop':
             self.install_abstraction(new_mop)
@@ -81,7 +77,8 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def slots_to_mop(self, slots, absts, must_work=True):
         '''Equivilent to SLOTS->MOP is Schank/Riesbeck.'''
         # Ensure absts contains one or more MOPs and no non-MOPs
-
+        pass
+    
     def install_foundation_mops(self):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
         self.add_mop(mop_name='M-EVENT')
@@ -96,7 +93,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.add_mop(mop_name='M-FUNCTION')
         self.add_mop(mop_name='CONSTRAINT-FN', absts={'M-FUNCTION'})
 
-        m_pattern = self.add_mop(mop_name='M-PATTERN', slot_forms=[['abst_fn', constraint_function]])
+        m_pattern = self.add_mop(mop_name='M-PATTERN', slot_forms=[['abst_fn', constraint_fn]])
 
         g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'})
 
@@ -104,8 +101,8 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         self.add_mop(mop_name='M-ROLE')
 
-        self.add_mop(mop_name='NOT-CONSTRAINT', absts={c_fn})
-        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slot_forms=[[abst_fn, not_constraint]])
+        self.add_mop(mop_name='NOT-CONSTRAINT', absts={'CONSTRAINT-FN'})
+        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slot_forms=[['abst_fn', not_constraint]])
 
         self.add_mop(mop_name='M-FAILED-SOLUTION')
         
@@ -123,6 +120,6 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def name_mop(self, name):
         '''This method finds a MOP associated with name in the CBR's case library and returns the associated MOP object.'''
         mop = self.mops[name]
-        if mop.name != name:
+        if mop.mop_name != name:
             raise ValueError('mop.name and key do not match')
         return mop

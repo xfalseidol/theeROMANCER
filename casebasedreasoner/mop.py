@@ -45,8 +45,15 @@ class MOP(ImprovedRomancerObject):
 
     This implementation is based on chapter three of Christopher Riesbeck and Roger Schank, _Inside Case-Based Reasoning_ (Lawrence Erlbaum, 1989).'''
 
-    def __init__(self, environment, time, parent, mop_name, absts= set(), specs=set(), slots={}, mop_type='instance'):
+    def __init__(self, environment, time, parent, mop_name, absts=None, specs=None, slots=None, mop_type='instance'):
         super().__init__(environment, time)
+        if not absts:
+            absts = set()   
+        if not specs:
+            specs = set()
+        if not slots:
+            slots = {} 
+            
         self.unlogged_attrs.append('parent')
         self.parent = parent # parent is case-based reasoner containing collection of associated MOPs
         self.unlogged_attrs.append('mop_name')
@@ -268,11 +275,11 @@ class MOP(ImprovedRomancerObject):
         
 
     def __repr__(self):
-        pass
+        return self.mop_name
 
 
     def __str__(self):
-        pass
+        return self.mop_name
 
 
     

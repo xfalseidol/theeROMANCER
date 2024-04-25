@@ -5,6 +5,7 @@ from romancer.environment.location import GeographicLocation
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 import casebasedreasoner.cbr
 
+#set up simulation environment
 sup = SingleThreadSupervisor()
 env = SingleThreadEnvironment(supervisor=sup, disposition_tree=None, perception_engine=None) # env is only needed to initialize TestImprovedRomancerObject
 
@@ -12,10 +13,23 @@ env = SingleThreadEnvironment(supervisor=sup, disposition_tree=None, perception_
 cbr_agent = casebasedreasoner.cbr.CaseBasedReasoner(env, env.time) # this tests initialization
 
 # test add_mop
+enemy_detected = cbr_agent.add_mop(mop_name='M-ENEMY-DETECTED', absts={'M-EVENT'})
+enemy1_detected = cbr_agent.add_mop(mop_name='I-M-E1-DETECTED', absts={'M-ENEMY-DETECTED'}, mop_type='instance')
+enemy2_detected = cbr_agent.add_mop(mop_name='I-M-E2-DETECTED', absts={'M-ENEMY-DETECTED'}, mop_type='instance')
+
+cbr_agent.add_mop(mop_name='M-FRIENDLY-DETECTED', absts={'M-EVENT'})
 
 # test get_sibling
+pattern = ''
+sibling = casebasedreasoner.cbr.get_sibling(pattern, enemy1_detected)
+print(sibling)
 
-# advance time, test move the mop we added up/down
+# advance time, test adding a new MOPs, which should be a sibling of the last MOP
+cbr_agent.forward_simulation(5.0)
+friendly1_detected = cbr_agent.add_mop(mop_name="I-M-F1-DETECTED", absts={'M-FRIENDLY-DETECTED'}, mop_type='instance')
+friendly2_detected = cbr_agent.add_mop(mop_name="I-M-F2-DETECTED", absts={'M-FRIENDLY-DETECTED'}, mop_type='instance')
+sibling = casebasedreasoner.cbr.get_sibling(pattern, friendly1_detected)
+print(sibling)
 
 # test get_sibling
 
