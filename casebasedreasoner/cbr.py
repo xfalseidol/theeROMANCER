@@ -1,6 +1,6 @@
 from environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP, is_satisfied
-
+import networkx as nx
 
 def constraint_fn(constraint, filler, slots):
     return True
@@ -56,7 +56,21 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
     def remove_mop(self, name):
         '''Unlink MOP with name from any MOPs referring to it and delete it from the CBR's case library.'''
-        pass
+        if name in self.mops:
+            mop = self.mops[name]
+
+            # remove the MOP from all of its abstractions
+            for abst in mop.absts:
+                abst.specs.remove(mop)
+            # remove the MOP from all of its specializations
+            for spec in mop.specs:
+                spec.absts.remove(mop)
+
+            # delete the MOP from our lsit of MOPs
+            self.mops.pop(name)
+        else:
+            raise ValueError(f"MOP {name} does not exist.")
+
 
 
     def install_instance(self, instance):
@@ -123,3 +137,12 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         if mop.mop_name != name:
             raise ValueError('mop.name and key do not match')
         return mop
+
+    def get_graph(self):
+        '''This method returns a graph representation of the CBR's case library.'''
+        G = nx.Graph() # make an empty graph, defined by its nodes and edges
+        # ask the root node to make the graph
+        root_mop = self.mops['M-ROOT']
+        G = nx.union(G, root_mop.get_graph())
+
+        return G

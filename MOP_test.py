@@ -4,6 +4,8 @@ from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, S
 from romancer.environment.location import GeographicLocation
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 import casebasedreasoner.cbr
+import networkx as nx
+import matplotlib.pyplot as plt
 
 #set up simulation environment
 sup = SingleThreadSupervisor()
@@ -11,6 +13,7 @@ env = SingleThreadEnvironment(supervisor=sup, disposition_tree=None, perception_
 
 # create case-based reasoner
 cbr_agent = casebasedreasoner.cbr.CaseBasedReasoner(env, env.time) # this tests initialization
+cbr_agent.forward_simulation(2.0)
 
 # test add_mop
 enemy_detected = cbr_agent.add_mop(mop_name='M-ENEMY-DETECTED', absts={'M-EVENT'})
@@ -31,9 +34,43 @@ friendly2_detected = cbr_agent.add_mop(mop_name="I-M-F2-DETECTED", absts={'M-FRI
 sibling = casebasedreasoner.cbr.get_sibling(pattern, friendly1_detected)
 print(sibling)
 
-# test get_sibling
 
-# test rewind
+G = cbr_agent.get_graph()
+nx.draw_networkx(G)
+# plt.show()
+
+cbr_agent.forward_simulation(6.0)
+plt.clf
+cbr_agent.remove_mop('M-ENEMY-DETECTED')
+G = cbr_agent.get_graph()
+nx.draw_networkx(G)
+# plt.show() 
+
+cbr_agent.forward_simulation(7.0)
+cbr_agent.add_mop("test_mop")
+plt.clf
+cbr_agent.remove_mop('M-EVENT')
+G = cbr_agent.get_graph()
+nx.draw_networkx(G)
+plt.show()
+
+cbr_agent.rewind(5.0)
+plt.clf
+G = cbr_agent.get_graph()
+nx.draw_networkx(G)
+plt.show()
+
+cbr_agent.rewind(5.0)
+plt.clf
+G = cbr_agent.get_graph()
+nx.draw_networkx(G)
+plt.show()
+
+cbr_agent.rewind(1.0)
+plt.clf
+G = cbr_agent.get_graph()
+nx.draw_networkx(G)
+plt.show()
 
 
 

@@ -1,4 +1,5 @@
 from environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+import networkx as nx
 
 # class MOPSlot(ImprovedRomancerObject):
 #     '''A structure to contain role, filler information. The reason that MOPs are not implemented with ordinary Python slots is that they can be dynamically updated and their slots have associated filler MOPs.'''
@@ -39,6 +40,16 @@ def mop_equal(mop1, mop2):
     if mop1.includes(mop2) and mop2.includes(mop1):
         return mop1
     
+
+def unlink_abstraction(mop1, mop2):
+    if mop1.is_abst(mop2):
+        mop1.absts.remove(mop2)
+        mop2.specs.remove(mop1)
+
+    if mop2.is_abst(mop1):
+        mop2.absts.remove(mop1)
+        mop1.specs.remove(mop2)
+
 
 class MOP(ImprovedRomancerObject):
     '''An implementation of Roger Schank's concept of Memory Organization Packages (MOPs) designed to work with ROMANCER's simulation paradigm.
@@ -130,10 +141,10 @@ class MOP(ImprovedRomancerObject):
             return self
 
 
-    def unlink_abst(self, abst):
-        if self.is_abst(abst): # abst is currently an abstraction of self
-            self.absts.remove(abst) # remove abst as abstraction of self
-            abst.specs.remove(self) # remove self as specialization of abstract
+    def unlink_abst(self, mop):
+        if mop.is_abst(self): # mop is currently an abstraction of self
+            self.absts.remove(mop) # remove abst as abstraction of self
+            mop.specs.remove(self) # remove self as specialization of abstract
             return self
         
 
@@ -273,6 +284,15 @@ class MOP(ImprovedRomancerObject):
             l.append(self.get_filler(i))
         return l
         
+    def get_graph(self):
+        '''Returns a networkx graph representing the MOP and its abstractions and specializations.'''
+        G = nx.Graph()
+        G.add_node(self.mop_name)
+
+        for spec in self.specs:
+            G = nx.union(G, spec.get_graph())
+            G.add_edge(self.mop_name, spec.mop_name)
+        return G      
 
     def __repr__(self):
         return self.mop_name
