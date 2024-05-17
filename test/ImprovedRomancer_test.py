@@ -2,10 +2,8 @@ from romancer.environment.object import ImprovedRomancerObject, LoggedList, Logg
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.location import GeographicLocation
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
-import unittest
 
-class TestImprovedRomancerObject(ImprovedRomancerObject):
-
+class CustomImprovedRomancerObject(ImprovedRomancerObject):
     def __init__(self, environment, time): # any new object can have any number of attributes, which could be any type of data, including sets/lists/dictionaries
         super().__init__(environment, time)
         self.unlogged_attrs.append('unlogged')
@@ -20,19 +18,38 @@ class TestImprovedRomancerObject(ImprovedRomancerObject):
         self.repr_list += ["locations_visited", "actions_available", "objects_encountered_by_location"]
 
 
-class DoubleDerivedTestObject(TestImprovedRomancerObject):
+class DoubleDerivedTestObject(CustomImprovedRomancerObject):
     def __init__(self, environment, time):
         super().__init__(environment, time)
 
+class TestRomancerObject:
+    # make "fixtures" that all tests might use
+    sup = SingleThreadSupervisor()
+    env = SingleThreadEnvironment(supervisor=sup, disposition_tree=None, perception_engine=None) # env is only needed to initialize TestImprovedRomancerObject
+    test_object = DoubleDerivedTestObject(env, env.time)
+
+    def test_add_attribute(self):
+        self.test_object.unlogged = 'bacon'
+        assert self.test_object.unlogged == 'bacon'
+
+    def test_rewind_time(self):
+        self.test_object.forward_simulation(5)
+        # self.test_object.logged_1 = "nothing"
+        self.test_object.forward_simulation(6)
+        self.test_object.forward_simulation(7)
+        self.test_object.rewind(5)
+        self.test_object.rewind(4)
+        self.test_object.rewind(3)
+        assert self.test_object.time == 3, "ROMANCER Object did not rewind time correctly."
+
 # STEP 1: Make supervisor
 # Note that the supervisor as initialized here does not have its environment set; need to set it once environment is created
-sup = SingleThreadSupervisor()
 
-env = SingleThreadEnvironment(supervisor=sup, disposition_tree=None, perception_engine=None) # env is only needed to initialize TestImprovedRomancerObject
-
-test_object = DoubleDerivedTestObject(env, env.time)
 
 # print or save test_object?
+sup = SingleThreadSupervisor()
+env = SingleThreadEnvironment(supervisor=sup, disposition_tree=None, perception_engine=None) # env is only needed to initialize TestImprovedRomancerObject
+test_object = DoubleDerivedTestObject(env, env.time)
 
 test_object.forward_simulation(2.0) # advance object time to 2.0 seconds
 
@@ -126,7 +143,7 @@ print()
 
 test_object.rewind(5.5)
 # test_object.actions_available.clear()
-test_object.locations_visited.clear()
+# test_object.locations_visited.clear()
 # test_object.objects_encountered_by_location.clear()
 
 print('Sim Time: 5.5')

@@ -1,6 +1,9 @@
-from environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP, is_satisfied
 import networkx as nx
+
+class MOPError(Exception):
+    pass
 
 def constraint_fn(constraint, filler, slots):
     return True
@@ -12,13 +15,6 @@ def not_constraint(constraint, filler, slots):
         raise ValueError('Filler in not_constraint must be non-null.')
     return not is_satisfied(constraint.get_filler('object'), filler, slots)
 
-
-def get_sibling(pattern, mop):
-    '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
-    for abst in mop.absts: # goes up one layer in abstraction
-        for spec in abst.specs: # looks at all specializations
-            if spec.is_instance_mop() and spec != mop and not spec.is_abst('M-FAILED-SOLUTION'):
-                return spec
 
 class CaseBasedReasoner(ImprovedRomancerObject):
     ''''''
@@ -32,17 +28,25 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
     def calc_type(self, absts, slots):
         '''Determine whether a new MOP with absts and slots will be of type 'mop' (for an abstraction) or 'instance'. Returns value as a string.'''
-        pass
+        for abst in absts:
+            if self.mops[abst].is_pattern():
+                return 'mop'
+        if not slots:
+            return 'mop'
+        for role, filler in slots: # slots is a listof tuples(role, filler)
+            if not filler.is_instance_mop():
+                return 'mop'
+        return 'instance'
 
 
-    def add_mop(self, mop_name, absts={'M-ROOT'}, mop_type=None, slot_forms=[]):
+    def add_mop(self, mop_name, absts={'M-ROOT'}, mop_type=None, slots={}):
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
         if mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
         absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects
-        slots = self.forms_to_slots(slot_forms)
         if mop_type == None:
-            mop_type = self.calc_type(absts, slots)
+            raise MOPError("Do not add MOPs with mop_type=None.")
+            # mop_type = self.calc_type(absts, slots)
         new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type)
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
@@ -58,67 +62,116 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         '''Unlink MOP with name from any MOPs referring to it and delete it from the CBR's case library.'''
         if name in self.mops:
             mop = self.mops[name]
-
             # remove the MOP from all of its abstractions
             for abst in mop.absts:
                 abst.specs.remove(mop)
             # remove the MOP from all of its specializations
             for spec in mop.specs:
                 spec.absts.remove(mop)
-
+            # remove the MOP specializations from this CBR
+            for spec in mop.specs:
+                self.remove_mop(spec.mop_name)
             # delete the MOP from our lsit of MOPs
             self.mops.pop(name)
         else:
             raise ValueError(f"MOP {name} does not exist.")
 
 
+    def forward_simulation(self, time):
+        for mop in self.mops.values():
+            mop.forward_simulation(time)
+        super().forward_simulation(time)
 
+
+    def rewind(self, time):
+        for mop in self.mops.values():
+            mop.rewind(time)
+        super().rewind(time)
+
+    
     def install_instance(self, instance):
-        ''''''
-        pass
-
+        instance.refine_instance()
+        twin = instance.get_twin()
+        if twin:
+            # self.remove_mop(instance)
+            return twin
+        elif instance.has_legal_absts():
+            return instance
+        else:
+            self.remove_mop(instance)
+            return None
+        
 
     def install_abstraction(self, mop):
         ''''''
-        pass
+        twin = mop.get_twin()
+        if twin:
+            # self.remove_mop(mop)
+            return twin
+        else:
+            return mop.reindex_siblings()
+        
 
-
+   
     def forms_to_slots(self, slot_forms):
-        '''Equivilent to FORMS->SLOTS in Schank/Riesbeck. This method accepts an interable of slot forms analagous to the tuples returned by the .items() method on Python dicts. If one of these slot forms already has the form [role, filler_mop], then it is already a slot. However, it can also have one or more additional slot forms following filler_mop. In this case, the slot forms are converted into slots recursively and the result is turned into a specialization of filler_mop, using slots_to_mop.'''
-        pass
+        '''Equivilent to FORMS->SLOTS in Schank/Riesbeck. This method accepts an iterable of slot forms analagous to the tuples returned by the .items() method on Python dicts. If one of these slot forms already has the form [role, filler_mop], then it is already a slot. However, it can also have one or more additional slot forms following filler_mop. In this case, the slot forms are converted into slots recursively and the result is turned into a specialization of filler_mop, using slots_to_mop.'''
+        slots = []
+        for slot_form in slot_forms:
+            if isinstance(slot_form, str): # first slot form is a string -> it determines the mop type
+                mop_type = slot_form
+                slots.append(mop_type)
+            else:
+                role = slot_form[0]
+                filler = slot_form[1]
+                if len(slot_form) > 2: # there is a slot form defined by the rest of the slot form
+                    mop = self.slots_to_mop(self.forms_to_slots(slot_form[2:]), [filler])
+                    slots.append([role, mop])
+                else: # complete slot
+                    slots.append([role, filler])
+        return slots
 
 
-    def slots_to_mop(self, slots, absts, must_work=True):
+    def slots_to_mop(self, slots, mops, mop_type, must_work=True):
         '''Equivilent to SLOTS->MOP is Schank/Riesbeck.'''
-        # Ensure absts contains one or more MOPs and no non-MOPs
-        pass
+        if len(slots) == 0 and len(mops) == 1:
+            return mops[0]
+
+        mop = MOP(environment=self.environment, time=self.time, mop_name=None, parent=self, absts=mops, slots=slots, mop_type=mop_type)
+        if mop_type == 'instance':
+            return self.install_instance(mop)
+        elif mop_type == 'mop':
+            return self.install_abstraction(mop)
+        if must_work:
+            raise MOPError("Failed to convert slots to MOP.")
     
+
     def install_foundation_mops(self):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
-        self.add_mop(mop_name='M-EVENT')
-        self.add_mop(mop_name='M-STATE')
-        self.add_mop(mop_name='M-ACT')
-        self.add_mop(mop_name='M-ACTOR')
 
-        self.add_mop(mop_name='M-GROUP')
-        self.add_mop(mop_name='M-EMPTY-GROUP', )
+        self.add_mop(mop_name='M-EVENT', mop_type='mop')
+        self.add_mop(mop_name='M-STATE', mop_type='mop')
+        self.add_mop(mop_name='M-ACT', mop_type='mop')
+        self.add_mop(mop_name='M-ACTOR', mop_type='mop')
+
+        self.add_mop(mop_name='M-GROUP', mop_type='mop')
+        self.add_mop(mop_name='M-EMPTY-GROUP', mop_type='mop')
         self.add_mop(mop_name='I-M-EMPTY-GROUP', absts={'M-EMPTY-GROUP'}, mop_type='instance')
 
-        self.add_mop(mop_name='M-FUNCTION')
-        self.add_mop(mop_name='CONSTRAINT-FN', absts={'M-FUNCTION'})
+        self.add_mop(mop_name='M-FUNCTION', mop_type='mop')
+        self.add_mop(mop_name='CONSTRAINT-FN', absts={'M-FUNCTION'}, mop_type='mop')
 
-        m_pattern = self.add_mop(mop_name='M-PATTERN', slot_forms=[['abst_fn', constraint_fn]])
+        m_pattern = self.add_mop(mop_name='M-PATTERN', slots={'abst_fn': constraint_fn}, mop_type='mop')
 
-        g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'})
+        g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop')
 
-        self.add_mop(mop_name='M-CASE', slot_forms=[['old', m_pattern, ['calc_fn', g_sibling]]])
+        self.add_mop(mop_name='M-CASE', slots={'old': m_pattern, 'calc_fn': g_sibling}, mop_type='mop')
 
-        self.add_mop(mop_name='M-ROLE')
+        self.add_mop(mop_name='M-ROLE', mop_type='mop')
 
-        self.add_mop(mop_name='NOT-CONSTRAINT', absts={'CONSTRAINT-FN'})
-        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slot_forms=[['abst_fn', not_constraint]])
+        self.add_mop(mop_name='NOT-CONSTRAINT', absts={'CONSTRAINT-FN'}, mop_type='mop')
+        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slots={'abst_fn', not_constraint}, mop_type='mop')
 
-        self.add_mop(mop_name='M-FAILED-SOLUTION')
+        self.add_mop(mop_name='M-FAILED-SOLUTION', mop_type='mop')
         
 
     def clear_memory(self, install_foundation_mops=True):
@@ -146,3 +199,10 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         G = nx.union(G, root_mop.get_graph())
 
         return G
+
+    def get_sibling(self, pattern, mop):
+        '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
+        for abst in mop.absts: # goes up one layer in abstraction
+            for spec in abst.specs: # looks at all specializations
+                if spec.is_instance_mop() and spec != mop and not spec.is_abstractionraction('M-FAILED-SOLUTION'):
+                    return spec
