@@ -10,6 +10,8 @@ import networkx as nx
 #         self.role = role # e.g., 'actor', 'object'
 #         self.filler = filler # can be any MOP
 
+class MOPError(Exception):
+    pass
 
 def is_satisfied(constraint, filler, slots):
     '''Returns True if filler satisfies the conditions specified by constraint. A constraint is satisfied if:
@@ -27,7 +29,7 @@ def is_satisfied(constraint, filler, slots):
     elif constraint.is_pattern():
         fn = constraint.inherit_filler('abst_fn')
         return fn(constraint, filler, slots)
-    elif filler.is_abstractionraction(constraint):
+    elif isinstance(filler, MOP) and filler.is_abstractionraction(constraint):
         return True
     elif constraint.is_instance_mop() and not filler:
         return True # not right, should be equivilent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
@@ -64,6 +66,8 @@ class MOP(ImprovedRomancerObject):
             specs = set()
         if not slots:
             slots = {} 
+        if not mop_name:
+            mop_name = self.make_name(list(absts), mop_type)
             
         self.unlogged_attrs.append('parent')
         self.parent = parent # parent is case-based reasoner containing collection of associated MOPs
@@ -125,6 +129,7 @@ class MOP(ImprovedRomancerObject):
         if not isinstance(filler, MOP):
             raise TypeError('Filler is not MOP')
         self.slots[role] = filler
+        print(f"{self}:{role} <= {filler}")
         return filler
 
 
@@ -138,10 +143,10 @@ class MOP(ImprovedRomancerObject):
     def link_abst(self, other):
         # assert abst.is_abstraction() # equivilent of "insist" macro in Schank/Riesbeck code
         assert not other.is_abstraction(self) # don't create circular reference
-        if not self.is_abstraction(other): # abst is not currently abstract of self
-            self.absts.add(other) # make abst abstraction of self
-            other.specs.add(self) # make self specialization of abst
-            return self
+        # if not self.is_abstraction(other): # abst is not currently abstract of self
+        self.absts.add(other) # make abst abstraction of self
+        other.specs.add(self) # make self specialization of abst
+        return self
 
 
     def unlink_abst(self, mop):
@@ -152,9 +157,10 @@ class MOP(ImprovedRomancerObject):
         
 
     def inherit_filler(self, role):
-        for abst in self.calc_all_abstractions():
+        all_absts = self.calc_all_abstractions()
+        for abst in all_absts:
             try:
-                filler = abst.get_filler(role)
+                filler = abst.role_filler(role)
             except KeyError:
                 filler = None
             if filler:
@@ -170,14 +176,16 @@ class MOP(ImprovedRomancerObject):
             return filler
         else:
             inheritance = self.inherit_filler(role)
-            if inheritance and inheritance.is_instance_mop():
+            if inheritance and isinstance(inheritance, MOP) and inheritance.is_instance_mop():
                 return inheritance
-            elif inheritance and inheritance.is_abstraction(self.parent.name_mop('M-FUNCTION')):
-                fn = inheritance.get_filler('calc_fn')
-                if fn:
-                    new_filler = fn(inheritance, self)
+            elif inheritance and callable(inheritance):
+                # fn = inheritance.get_filler('calc_fn')
+                # if fn:
+                    new_filler = inheritance(self)
                     if new_filler:
                         self.add_role_filler(role, new_filler)
+                        return new_filler
+                    # raise MOPError(f"No filler for role {role} in mop {self}")
 
 
     def path_filler(self, path):
@@ -289,7 +297,10 @@ class MOP(ImprovedRomancerObject):
         for i in self.slots.keys():
             l.append(self.get_filler(i))
         return l
-        
+
+    def list_to_group(self, I):
+        self.slots_to_mop()
+
     def get_graph(self):
         '''Returns a networkx graph representing the MOP and its abstractions and specializations.'''
         G = nx.Graph()
@@ -305,7 +316,16 @@ class MOP(ImprovedRomancerObject):
 
 
     def __str__(self):
-        return self.mop_name
+        if self.mop_name:
+            return self.mop_name
+        return "None"
 
+
+    def make_name(self, absts, mop_type):
+        '''Returns a name for a new MOP based on its abstractions and mop_type.'''
+        name = str(absts[0])
+        if mop_type == 'instance':
+            name = 'I-' + str(absts[0]) + '.' + str(self.uid)
+        return name
 
     

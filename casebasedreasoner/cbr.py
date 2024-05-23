@@ -33,20 +33,20 @@ class CaseBasedReasoner(ImprovedRomancerObject):
                 return 'mop'
         if not slots:
             return 'mop'
-        for role, filler in slots: # slots is a listof tuples(role, filler)
+        for role, filler in slots.items(): # slots is a listof tuples(role, filler)
             if not filler.is_instance_mop():
                 return 'mop'
         return 'instance'
 
 
-    def add_mop(self, mop_name, absts={'M-ROOT'}, mop_type=None, slots={}):
+    def add_mop(self, mop_name=None, absts={'M-ROOT'}, mop_type=None, slots={}):
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
-        if mop_name in self.mops.keys():
+        if mop_name and mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
         absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects
         if mop_type == None:
-            raise MOPError("Do not add MOPs with mop_type=None.")
-            # mop_type = self.calc_type(absts, slots)
+            # raise MOPError("Do not add MOPs with mop_type=None.")
+            mop_type = self.calc_type(absts, slots)
         new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type)
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
@@ -131,12 +131,13 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         return slots
 
 
-    def slots_to_mop(self, slots, mops, mop_type, must_work=True):
+    def slots_to_mop(self, slots, absts, mop_type=None, must_work=True):
         '''Equivilent to SLOTS->MOP is Schank/Riesbeck.'''
-        if len(slots) == 0 and len(mops) == 1:
-            return mops[0]
+        if len(slots) == 0 and len(absts) == 1:
+            return absts[0]
 
-        mop = MOP(environment=self.environment, time=self.time, mop_name=None, parent=self, absts=mops, slots=slots, mop_type=mop_type)
+        mop = self.add_mop(mop_name=None, absts=absts, slots=slots, mop_type=mop_type)
+        mop_type = mop.mop_type
         if mop_type == 'instance':
             return self.install_instance(mop)
         elif mop_type == 'mop':
@@ -164,12 +165,12 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop')
 
-        self.add_mop(mop_name='M-CASE', slots={'old': m_pattern, 'calc_fn': g_sibling}, mop_type='mop')
+        self.add_mop(mop_name='M-CASE', slots={'old': self.get_sibling, 'calc_fn': self.get_sibling}, mop_type='mop')
 
         self.add_mop(mop_name='M-ROLE', mop_type='mop')
 
         self.add_mop(mop_name='NOT-CONSTRAINT', absts={'CONSTRAINT-FN'}, mop_type='mop')
-        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slots={'abst_fn', not_constraint}, mop_type='mop')
+        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slots={'abst_fn': not_constraint}, mop_type='mop')
 
         self.add_mop(mop_name='M-FAILED-SOLUTION', mop_type='mop')
         
@@ -200,9 +201,9 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         return G
 
-    def get_sibling(self, pattern, mop):
+    def get_sibling(self, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
         for abst in mop.absts: # goes up one layer in abstraction
             for spec in abst.specs: # looks at all specializations
-                if spec.is_instance_mop() and spec != mop and not spec.is_abstractionraction('M-FAILED-SOLUTION'):
+                if spec.is_instance_mop() and spec != mop and not spec.is_abstraction('M-FAILED-SOLUTION'):
                     return spec
