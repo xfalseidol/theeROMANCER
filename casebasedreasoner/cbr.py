@@ -34,7 +34,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         if not slots:
             return 'mop'
         for role, filler in slots.items(): # slots is a listof tuples(role, filler)
-            if not filler.is_instance_mop():
+            if filler and not filler.is_instance_mop():
                 return 'mop'
         return 'instance'
 

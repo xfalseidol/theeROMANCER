@@ -42,9 +42,10 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         prev_motive = 0
         motives = []
         for escalation in mop.get_filler('escalations').group_to_list():
-            prev_motive = self.mop_calc({'role': 'motive', 'escalation': escalation, 'prev_motive': prev_motive})
+            prev_motive = self.mop_calc({'role': motive, 'escalation': escalation, 'prev_motive': prev_motive})
             motives.append(prev_motive)
-        return motives
+        motives_mop = self.slots_to_mop(slots=motives, absts={'M-GROUP'}, mop_type='instance')
+        return motives_mop
 
 
     def adapt_sentence(self, mop):
@@ -69,9 +70,9 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
     
 
     def mop_calc(self, slots):
-        instance = self.slots_to_mop(slots=slots, absts={'M-CALC'})
+        instance = self.slots_to_mop(slots=slots, absts={'M-CALC'}, mop_type='instance')
         if instance:
-            return self.get_filler('value', instance)
+            return instance.get_filler('value')
         return None
 
     def crime_compare_slots(self, mop, n, roles):
@@ -130,7 +131,7 @@ several_times = judge.add_mop(mop_name='I-M-SEVERAL-TIMES', absts={'M-FREQUENCY'
 repeatedly = judge.add_mop(mop_name='I-M-REPEATEDLY', absts={'M-FREQUENCY'}, mop_type='instance', slots={'severity': 2})
 
 # (DEFMOP M-MOTIVE (M-ROOT))
-motive = judge.add_mop(mop_name='M-MOTIVE', absts={'M-ROOT'}, mop_type='mop')
+judge.add_mop(mop_name='M-MOTIVE', absts={'M-ROOT'}, mop_type='mop')
 # (DEFMOP M-JUSTIFIED (M-MOTIVE))
 justified = judge.add_mop(mop_name='M-JUSTIFIED', absts={'M-MOTIVE'}, mop_type='mop')
 # (DEFMOP M-UNJUSTIFIED (M-MOTIVE))
@@ -169,8 +170,6 @@ stab = judge.add_mop(mop_name='I-M-STAB', absts={'M-WOUND-ACT'}, mop_type='insta
 shoot = judge.add_mop(mop_name='I-M-SHOOT', absts={'M-WOUND-ACT'}, mop_type='instance', slots={'severity': 5})
 # (DEFMOP I-M-BREAK-SKULL (M-WOUND-ACT) (SEVERITY 5))
 break_skull = judge.add_mop(mop_name='I-M-BREAK-SKULL', absts={'M-WOUND-ACT'}, mop_type='instance', slots={'severity': 5})
-# (DEFMOP M-STATE (M-ROOT))
-# state = judge.add_mop(mop_name='M-STATE', absts={'M-ROOT'}, mop_type='mop')
 # (DEFMOP M-PHYS-STATE (M-STATE) (SEVERITY NIL))
 phys_state = judge.add_mop(mop_name='M-PHYS-STATE', absts={'M-STATE'}, mop_type='mop', slots={'severity': None})
 # (DEFMOP I-M-BRUISED (M-PHYS-STATE) (SEVERITY 1)) 
@@ -189,7 +188,9 @@ fight_outcome = judge.add_mop(mop_name='M-FIGHT-OUTCOME', absts={'M-OUTCOME'}, m
 fight_event = judge.add_mop(mop_name='M-FIGHT-EVENT', absts={'M-EVENT'}, mop_type='mop', slots={'action': fight_act})
 
 # (DEFMOP M-EVENT-GROUP (M-GROUP) (1 M-EVENT))
-# (DEFMOP M-OUTCOME-GROUP (M-GROUP) (1 M-OUTCOME)) (DEFMOP M-ESCALATION-GROUP (M-GROUP) (1 M-RANGE)) (DEFMOP M-MOTIVE-GROUP (M-GROUP) (1 M-MOTIVE))
+# (DEFMOP M-OUTCOME-GROUP (M-GROUP) (1 M-OUTCOME)) 
+# (DEFMOP M-EXCALATION-GROUP (M-GROUP) (1 M-RANGE))
+# (DEFMOP M-MOTIVE-GROUP (M-GROUP) (1 M-MOTIVE))
 # (DEFMOP CALC-ESCALATIONS (M-FUNCTION))
 calc_escalations = judge.add_mop(mop_name='CALC-ESCALATIONS', absts={'M-FUNCTION'}, mop_type='mop')
 # (DEFMOP CALC-MOTIVES (M-FUNCTION))
@@ -221,25 +222,27 @@ crime = judge.add_mop(mop_name="M-CRIME",
     # (SENTENCE M-PATTERN (CALC-FN ADAPT-SENTENCE)))
 
 # (DEFMOP MOTIVE (M-ROLE) INSTANCE)
+motive = judge.add_mop(mop_name='MOTIVE', absts={'M-ROLE'}, mop_type='instance')
 # (DEFMOP M-CALC (M-ROOT))
+judge.add_mop(mop_name='M-CALC', mop_type='mop')
 # (DEFMOP M-CALC-MOTIVE (M-CALC)
     # (ROLE MOTIVE) (VALUE NIL))
+judge.add_mop(mop_name='M-CALC-MOTIVE', absts={'M-CALC'}, slots={'role': motive, 'value': None}, mop_type='mop')
 # (DEFMOP M-CALC-ESCALATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (ABOVE 0))
     # (VALUE I-M-RETALIATION))
+judge.add_mop(mop_name='M-CALC-ESCALATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': m_range, 'value': retaliation}, mop_type='mop')
 # (DEFMOP M-CALC-SELF-DEFENSE-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
     # (PREV-MOTIVE M-UNJUSTIFIED)
     # (VALUE I-M-SELF-DEFENSE))
+judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': m_range, 'prev_motive': unjustified, 'value': self_defense}, mop_type='mop')
 # (DEFMOP M-CALC-RETALIATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
     # (PREV-MOTIVE M-JUSTIFIED)
     # (VALUE I-M-RETALIATION))
+judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': m_range, 'prev_motive': justified, 'value': retaliation}, mop_type='mop')
 
 
-# assuming these are  parentless MOPs
 
-# let's assume cases are parentless MOPs
-# G = judge.get_graph()
-# nx.draw_networkx(G)
-# plt.show()
+
 event_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': ted, 'object': al, 'freq': once})
 event_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': al, 'object': ted, 'freq': once})
 event_3 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': stab, 'actor': ted, 'object': al, 'freq': repeatedly})
@@ -282,17 +285,17 @@ case_2 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_2_slot
 judge.judge_case(case_2)
 
 # Define the events
-event_1 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_event_1', absts={'M-FIGHT-EVENT'}, slots={'action': slap, 'actor': david, 'object': tim, 'freq': several_times})
-event_2 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_event_2', absts={'M-FIGHT-EVENT'}, slots={'action': strike, 'actor': tim, 'object': david, 'freq': several_times})
-event_3 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_event_3', absts={'M-FIGHT-EVENT'}, slots={'action': knock_down, 'actor': david, 'object': tim, 'freq': once})
-event_4 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_event_4', absts={'M-FIGHT-EVENT'}, slots={'action': stab, 'actor': tim, 'object': david, 'freq': several_times})
+event_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slap, 'actor': david, 'object': tim, 'freq': several_times})
+event_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': strike, 'actor': tim, 'object': david, 'freq': several_times})
+event_3 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': knock_down, 'actor': david, 'object': tim, 'freq': once})
+event_4 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': stab, 'actor': tim, 'object': david, 'freq': several_times})
 # Combine the events into a list
 case_3_events = [event_1, event_2, event_3, event_4]
 # Define the outcomes
-outcome_1 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_outcome_1', absts={'M-FIGHT-OUTCOME'}, slots={'state': bruised, 'actor': tim})
-outcome_2 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_outcome_2', absts={'M-FIGHT-OUTCOME'}, slots={'state': bruised, 'actor': david})
-outcome_3 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_outcome_3', absts={'M-FIGHT-OUTCOME'}, slots={'state': knocked_down, 'actor': tim})
-outcome_4 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'c3_outcome_4', absts={'M-FIGHT-OUTCOME'}, slots={'state': dead, 'actor': david})
+outcome_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots={'state': bruised, 'actor': tim})
+outcome_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots={'state': bruised, 'actor': david})
+outcome_3 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots={'state': knocked_down, 'actor': tim})
+outcome_4 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots={'state': dead, 'actor': david})
 # Combine the outcomes into a list
 case_3_outcomes = [outcome_1, outcome_2, outcome_3, outcome_4]
 # Define the slots for the case
@@ -304,6 +307,6 @@ case_3_slots = {
     'outcomes': case_3_outcomes,
 }
 # Create the case MOP instance
-case_3 = romancer.MOP(environment=env, time=env.time, parent=None, mop_name = 'case_3', absts={'M-CRIME'}, slots=case_3_slots, mop_type='instance')
+case_3 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_3_slots, mop_type='instance')
 # Judge the case
 judge.judge_case(case_3)
