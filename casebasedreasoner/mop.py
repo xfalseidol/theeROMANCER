@@ -29,7 +29,7 @@ def is_satisfied(constraint, filler, slots):
     elif constraint.is_pattern():
         fn = constraint.inherit_filler('abst_fn')
         return fn(constraint, filler, slots)
-    elif isinstance(filler, MOP) and filler.is_abstractionraction(constraint):
+    elif isinstance(filler, MOP) and filler.is_abstraction(constraint):
         return True
     elif constraint.is_instance_mop() and not filler:
         return True # not right, should be equivilent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
@@ -92,7 +92,8 @@ class MOP(ImprovedRomancerObject):
 
 
     def is_abstraction(self, other):
-        '''Returns True if mop is an abtraction, not necessarily immediate, of self (specialization).'''
+        '''Returns True if other is an abtraction, not necessarily immediate, of self (specialization).'''
+        '''Returns True when self is a is a specialization of other / other is a specializtion of slef (not necessarily immediate).'''
         # the other mop is in the mops abstractions
         return other in self.calc_all_abstractions()
 
@@ -126,8 +127,8 @@ class MOP(ImprovedRomancerObject):
 
 
     def add_role_filler(self, role, filler):
-        if not isinstance(filler, MOP):
-            raise TypeError('Filler is not MOP')
+        # if not isinstance(filler, MOP):
+        #     raise TypeError(f'Filler {filler} is not MOP')
         self.slots[role] = filler
         print(f"{self}:{role} <= {filler}")
         return filler
@@ -287,6 +288,8 @@ class MOP(ImprovedRomancerObject):
         '''If self is a group MOP, return the number of slots it contains. Returns None otherwise.'''
         if self.is_group():
             return len(self.slots)
+        else:
+            raise MOPError(f"Cannot give group size for non-group MOP {self}")
 
 
     def group_to_list(self):

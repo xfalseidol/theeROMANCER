@@ -2,7 +2,7 @@ from romancer.environment.object import ImprovedRomancerObject, LoggedList, Logg
 from casebasedreasoner.mop import MOP, is_satisfied
 import networkx as nx
 
-class MOPError(Exception):
+class CBRError(Exception):
     pass
 
 def constraint_fn(constraint, filler, slots):
@@ -48,6 +48,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             # raise MOPError("Do not add MOPs with mop_type=None.")
             mop_type = self.calc_type(absts, slots)
         new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type)
+        mop_name = new_mop.mop_name
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
             new_mop.link_abst(abst) # link absts
@@ -73,8 +74,8 @@ class CaseBasedReasoner(ImprovedRomancerObject):
                 self.remove_mop(spec.mop_name)
             # delete the MOP from our lsit of MOPs
             self.mops.pop(name)
-        else:
-            raise ValueError(f"MOP {name} does not exist.")
+        # else:
+        #     raise ValueError(f"MOP {name} does not exist.")
 
 
     def forward_simulation(self, time):
@@ -93,7 +94,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         instance.refine_instance()
         twin = instance.get_twin()
         if twin:
-            # self.remove_mop(instance)
+            self.remove_mop(instance)
             return twin
         elif instance.has_legal_absts():
             return instance
@@ -106,7 +107,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         ''''''
         twin = mop.get_twin()
         if twin:
-            # self.remove_mop(mop)
+            self.remove_mop(mop)
             return twin
         else:
             return mop.reindex_siblings()
@@ -143,7 +144,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         elif mop_type == 'mop':
             return self.install_abstraction(mop)
         if must_work:
-            raise MOPError("Failed to convert slots to MOP.")
+            raise CBRError(f"Failed to convert {slots} to MOP of type {mop_type} with absts {absts}.")
     
 
     def install_foundation_mops(self):
