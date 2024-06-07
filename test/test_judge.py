@@ -1,4 +1,5 @@
 from context import *
+from casebasedreasoner.util import make_graphviz_graph
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -320,3 +321,10 @@ case_3_slots = {
 # case_3 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_3_slots)
 # Judge the case
 judge.judge_case(case_3_slots)
+
+
+dot = make_graphviz_graph(judge)
+with open("judge.dot", "w") as out_dot:
+    out_dot.write(dot)
+fmt = "png"
+os.system(f"dot -Kdot -T{fmt} -ojudge.{fmt} judge.dot && xdg-open judge.{fmt}")
