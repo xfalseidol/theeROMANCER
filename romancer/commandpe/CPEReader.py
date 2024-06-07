@@ -1,5 +1,6 @@
 from datetime import datetime
 import csv
+from collections import namedtuple
 
 
 class CPEWeaponFiredReader:
@@ -69,12 +70,12 @@ class CPEWeaponFiredReader:
         return self.scenario_complete
 
     def read_next_weapons_fired(self, timeframe_s=(15*60)):
-        ''' Get a map of { weaponscale => n_weapons_fired } during the next timeframe_s seconds from last time this returned '''
+        ''' Get a namedtuple of weapon/tgt/count 3-tuples during the next timeframe_s seconds from last time this returned '''
         if self.scenario_complete:
             return {}
 
         t_end = self.curr_time_s + timeframe_s
-        retval = {}
+        total_counts = {}  # A map of weaponcategory => { target category => n_fired }
         time_last_weapon_fired_s = self.get_time_s(self.last_weapon_fired_record['Time'])
 
         while time_last_weapon_fired_s < t_end:
@@ -95,7 +96,10 @@ class CPEWeaponFiredReader:
                 elif this_wpn_scale is None:
                     print(f"Couldn't find a weapon scaling lookup for class '{wpn_class}'")
                 else:
-                    retval[this_wpn_scale] = retval.get(this_wpn_scale, 0) + 1
+                    if this_wpn_scale not in total_counts:
+                        total_counts[this_wpn_scale] = {}
+                    tgt_map = total_counts[this_wpn_scale]
+                    tgt_map[this_target_scale] = tgt_map.get(this_target_scale, 0) + 1
 
             time_last_weapon_fired_str = self.last_weapon_fired_record['Time']
             try:
@@ -106,7 +110,15 @@ class CPEWeaponFiredReader:
                 break
 
         self.curr_time_s = t_end
-        return retval
+
+        # Convert the created map into a list of namedTuples
+        result = []
+        WeaponTargetCount = namedtuple('WeaponTargetCount', ['weapon', 'target', 'count'])
+        for weapon, targets in total_counts.items():
+            for target, count in targets.items():
+                result.append(WeaponTargetCount(weapon, target, count))
+
+        return result
 
 
 if __name__ == "__main__":
