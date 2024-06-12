@@ -100,3 +100,38 @@ class TestMOPandCBR:
         G = self.cbr_agent.get_graph()
         nx.draw_networkx(G)
         # plt.show()
+
+
+def range_constraint(constraint, filler, slots):
+        '''Assume filler is a number that can be compared against the constraint'''
+        below = constraint.role_filler('below')
+        above = constraint.role_filler('above')
+        try:
+            if below:
+                return filler < below
+            if above:
+                return filler > above
+        except:
+            pass
+        return False
+
+
+if __name__ == "__main__":
+    env, sup, cbr_agent = setup()
+
+    m_range = cbr_agent.add_mop(mop_name='M-RANGE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': range_constraint})
+    
+    veg = cbr_agent.add_mop(mop_name='M-VEGETABLE', absts={'M-ROOT'}, mop_type='mop', slots={'calories': cbr_agent.add_mop(absts={"M-RANGE"}, slots={'above': 5})})
+    root_veg = cbr_agent.add_mop(mop_name='M-ROOT-VEGETABLE', absts={'M-VEGETABLE'}, mop_type='mop', slots={'depth': cbr_agent.add_mop(absts={"M-RANGE"}, slots={'below': 5})})
+    leafy_veg = cbr_agent.add_mop(mop_name='M-LEAFY-VEGETABLE', absts={'M-VEGETABLE'}, mop_type='mop', slots={'height': cbr_agent.add_mop(absts={"M-RANGE"}, slots={'below': 5})})
+    potato = cbr_agent.add_mop(mop_name='I-M-POTATO', absts={'M-ROOT-VEGETABLE'}, mop_type='instance', slots={'calories': 100, 'depth': 1})
+    carrot = cbr_agent.add_mop(mop_name='I-M-CARROT', absts={'M-ROOT-VEGETABLE', 'M-LEAFY-VEGETABLE'}, mop_type='instance', slots={'calories': 50, 'depth': 2, 'height': 1})
+    lettuce = cbr_agent.add_mop(mop_name='I-M-LETTUCE', absts={'M-LEAFY-VEGETABLE'}, mop_type='instance', slots={'calories': 10, 'height': 2})
+    
+    print(leafy_veg.slots_satisfied_by(carrot)) # True
+    print(root_veg.slots_satisfied_by(carrot)) # True
+    print(root_veg.slots_satisfied_by(lettuce)) # False
+
+    # what are other good tests that will determine whether slots_satisfied_by works correctly?
+    # does lettuce satisfy the requirements of a root vegetable?
+    #

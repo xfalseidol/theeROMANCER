@@ -24,17 +24,19 @@ def is_satisfied(constraint, filler, slots):
 
     Slotless abstractions are treated specially, because they have no slots to constrain what can go under them.'''
     
-    if not constraint:
-        return True
+    if not constraint: # if constraint is None, this condition is satisfied
+        return False # should return None or False in this case? -- the condition is True, but there is no return clause in the Lisp
     elif constraint.is_pattern():
         fn = constraint.inherit_filler('abst_fn')
-        return fn(constraint, filler, slots)
-    elif isinstance(filler, MOP) and filler.is_abstraction(constraint):
-        return True
-    elif constraint.is_instance_mop() and not filler:
-        return True # not right, should be equivilent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
+        return fn(constraint, filler, slots) # I think this is correct
+    elif isinstance(filler, MOP) and constraint.is_abstraction(filler): # flipped the order of constraint and filer
+        return False # should return None or False? -- the condition is True, but there is no return clause in the Lisp
+    elif constraint.is_instance_mop():
+        return filler == None # removed "and not filler" from the condition, changed return value
+    elif filler:
+        return constraint.slots_satisfied_by(filler) # this is new, equivalent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
     else:
-        return False
+        return False # default: return None or False
 
 
 def mop_equal(mop1, mop2):
@@ -136,7 +138,8 @@ class MOP(ImprovedRomancerObject):
 
     def role_filler(self, role):
         if role not in self.slots:
-            raise KeyError('MOP lacks slot: ', role)
+            # raise KeyError('MOP lacks slot: ', role)
+            return None
         else:
             return self.slots[role]
 
@@ -332,3 +335,8 @@ class MOP(ImprovedRomancerObject):
         return name
 
     
+    def equals(a,b):
+        return a == b
+    
+    def less_than(a,b):
+        return a < b

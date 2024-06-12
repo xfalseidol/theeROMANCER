@@ -28,7 +28,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         counter = 1
         escalations = {}
         for event in mop.get_filler('events').group_to_list():
-            severity = event.path_filler(['action', 'severity'])
+            severity = event.path_filler(('action', 'severity'))
             escalation = severity - previous_severity
             previous_severity = severity
             escalations[counter] = escalation
@@ -68,7 +68,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
             result = judge.mop_calc(slots)
             if result is not None:
                 return result
-        print("-")
+        print("---------------------------")
         print("No major difference found")
         print("Using old sentence")
         return old_sentence
@@ -89,7 +89,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         return slots
 
 
-    def adjust_sentence(self, pattern, mop):
+    def adjust_sentence(self, mop):
         print("~---------------------------~")
         print(f"{mop} applied, {mop.get_filler('index')} events from the end")
         self.adjust_function(
@@ -108,13 +108,20 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         filler = mop.get_filler(role)
         return filler.get_filler(slots)
 
-    def adjust_function(self, role, mop, slots):
-        return self.get_filler(slots, self.get_filler(role, mop))
+    def adjust_function(self, sentence, weight, index, direction):
+        closeness = 0.25 if index <= 1 else 0
+        return sentence + (sentence * (weight + closeness) * direction)
+
     
     def range_constraint(self, constraint, filler, slots):
         '''Assume filler is number that can be compared against the constraint.'''
-        print("This is a range constraint call")
-        return True
+        below = constraint.role_filler('below')
+        above = constraint.role_filler('above')
+        if below:
+            return filler < below
+        if above:
+            return filler > above
+        return False
 
 sup = romancer.supervisor.singlethreadsupervisor.SingleThreadSupervisor()
 env = romancer.environment.singlethreadenvironment.SingleThreadEnvironment(sup, None, None)
@@ -144,7 +151,7 @@ justified = judge.add_mop(mop_name='M-JUSTIFIED', absts={'M-MOTIVE'}, mop_type='
 # (DEFMOP M-UNJUSTIFIED (M-MOTIVE))
 unjustified = judge.add_mop(mop_name='M-UNJUSTIFIED', absts={'M-MOTIVE'}, mop_type='mop')
 # (DEFMOP I-M-SELF-DEFENSE (M-JUSTIFIED) INSTANCE) 
-self_defense = judge.add_mop(mop_name='M-SELF-DEFENSE', absts={'M-MOTIVE'}, mop_type='mop')
+self_defense = judge.add_mop(mop_name='I-M-SELF-DEFENSE', absts={'M-JUSTIFIED'}, mop_type='instance')
 # (DEFMOP I-M-RETALIATION (M-UNJUSTIFIED) INSTANCE) 
 retaliation = judge.add_mop(mop_name='I-M-RETALIATION', absts={'M-UNJUSTIFIED'}, mop_type='instance')
 # (DEFMOP I-M-UNPROVOKED (M-UNJUSTIFIED) INSTANCE)
@@ -158,7 +165,7 @@ homicide = judge.add_mop(mop_name='I-M-HOMICIDE', absts={'M-CRIME-TYPE'}, mop_ty
 fight_act = judge.add_mop(mop_name='M-FIGHT-ACT', absts={'M-ACT'}, mop_type='mop', slots={'severity': None})
 # (DEFMOP M-HURT-ACT (M-FIGHT-ACT) (SEVERITY M-RANGE (BELOW 5)))
 m_range = judge.add_mop(mop_name='M-RANGE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn':judge.range_constraint})
-hurt_act = judge.add_mop(mop_name='M-HURT-ACT', absts={'M-FIGHT-ACT'}, mop_type='mop', slots={'severity': m_range}) 
+hurt_act = judge.add_mop(mop_name='M-HURT-ACT', absts={'M-FIGHT-ACT'}, mop_type='mop', slots={'severity': judge.add_mop(absts={'M-RANGE'}, slots={'below': 5})}) 
 # (DEFMOP I-M-SLAP (M-HURT-ACT) (SEVERITY 1))
 slap = judge.add_mop(mop_name='I-M-SLAP', absts={'M-HURT-ACT'}, mop_type='instance', slots={'severity': 1})
 # (DEFMOP I-M-HIT (M-HURT-ACT) (SEVERITY 1))
@@ -170,7 +177,7 @@ knock_down = judge.add_mop(mop_name='I-M-KNOCK-DOWN', absts={'M-HURT-ACT'}, mop_
 # (DEFMOP I-M-SLASH (M-HURT-ACT) (SEVERITY 4))
 slash = judge.add_mop(mop_name='I-M-SLASH', absts={'M-HURT-ACT'}, mop_type='instance', slots={'severity': 4})
 # (DEFMOP M-WOUND-ACT (M-FIGHT-ACT) (SEVERITY M-RANGE (ABOVE 4)))
-wound_act = judge.add_mop(mop_name='M-WOUND-ACT', absts={'M-FIGHT-ACT'}, mop_type='mop', slots={'severity': judge.name_mop('M-RANGE')})
+wound_act = judge.add_mop(mop_name='M-WOUND-ACT', absts={'M-FIGHT-ACT'}, mop_type='mop', slots={'severity': judge.add_mop(absts={'M-RANGE'}, slots={'above': 4})})
 # (DEFMOP I-M-STAB (M-WOUND-ACT) (SEVERITY 5))
 stab = judge.add_mop(mop_name='I-M-STAB', absts={'M-WOUND-ACT'}, mop_type='instance', slots={'severity': 5})
 # (DEFMOP I-M-SHOOT (M-WOUND-ACT) (SEVERITY 5))
@@ -241,17 +248,25 @@ judge.add_mop(mop_name='M-CALC', mop_type='mop')
 judge.add_mop(mop_name='M-CALC-MOTIVE', absts={'M-CALC'}, slots={'role': motive, 'value': None}, mop_type='mop')
 # (DEFMOP M-CALC-ESCALATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (ABOVE 0))
     # (VALUE I-M-RETALIATION))
-judge.add_mop(mop_name='M-CALC-ESCALATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': m_range, 'value': retaliation}, mop_type='mop')
+judge.add_mop(mop_name='M-CALC-ESCALATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}) , 'value': retaliation}, mop_type='mop')
 # (DEFMOP M-CALC-SELF-DEFENSE-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
     # (PREV-MOTIVE M-UNJUSTIFIED)
     # (VALUE I-M-SELF-DEFENSE))
-judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': m_range, 'prev_motive': unjustified, 'value': self_defense}, mop_type='mop')
+judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'below': 1}), 'prev_motive': unjustified, 'value': self_defense}, mop_type='mop')
 # (DEFMOP M-CALC-RETALIATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
     # (PREV-MOTIVE M-JUSTIFIED)
     # (VALUE I-M-RETALIATION))
-judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': m_range, 'prev_motive': justified, 'value': retaliation}, mop_type='mop')
+judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}), 'prev_motive': justified, 'value': retaliation}, mop_type='mop')
 
-
+judge.add_mop(mop_name='M-COMPARE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': judge.compare_constraint, 'to': judge.name_mop('M-ROLE'), 'compare_fn': judge.name_mop('M-FUNCTION')})
+judge.add_mop(mop_name='M-EQUAL', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.equals})
+judge.add_mop(mop_name='M-LESS-THAN', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.less_than})
+sentence = judge.add_mop(mop_name='SENTENCE', absts={'M-ROLE'}, mop_type='instance')
+judge.add_mop(mop_name='OLD-SEVERITY', absts={'M-ROLE'}, mop_type='instance')
+# (DEFMOP M-ADAPT-SENTENCE (M-CALC)
+    # (ROLE SENTENCE)
+    # (VALUE M-PATTERN (CALC-FN ADJUST-SENTENCE)))
+judge.add_mop(mop_name='M-ADAPT-SENTENCE', absts={'M-CALC'}, mop_type='mop', slots={'role': sentence, 'value': judge.adjust_sentence})
 
 
 event_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': ted, 'object': al, 'freq': once})
@@ -320,7 +335,7 @@ case_3_slots = {
 # Create the case MOP instance
 # case_3 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_3_slots)
 # Judge the case
-judge.judge_case(case_3_slots)
+judge.judge_case(case_3_slots) 
 
 
 dot = make_graphviz_graph(judge)
@@ -328,3 +343,4 @@ with open("judge.dot", "w") as out_dot:
     out_dot.write(dot)
 fmt = "png"
 os.system(f"dot -Kdot -T{fmt} -ojudge.{fmt} judge.dot && xdg-open judge.{fmt}")
+ #the aggressor is the one that is killed so sentence is less bad and 30 years
