@@ -14,7 +14,7 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
     slot_edges = []
 
     for mopname in cbrinst.mops:
-        print("Nodes for " + str(mopname))
+        # print("Nodes for " + str(mopname))
         this_mop = cbrinst.mops[mopname]
         curr_nodename = mopname_to_nodename[mopname]
 
@@ -36,20 +36,20 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
 
     if include_inheritance_edges:
         for mopname in cbrinst.mops:
-            print("Edges for " + str(mopname))
+            # print("Edges for " + str(mopname))
             this_mop = cbrinst.mops[mopname]
             nodename = mopname_to_nodename[mopname]
             for abst in this_mop.absts:
                 if abst.mop_name not in mopname_to_nodename:
                     print("Weird. No node named " + abst.mop_name)
                     continue
-                print(f"    abst {abst}")
+                # print(f"    abst {abst}")
                 g.append(f" {nodename}:n -> {mopname_to_nodename[abst.mop_name]}:n [color=\"orange\"]")
             for spec in this_mop.specs:
                 if spec.mop_name not in mopname_to_nodename:
                     print("Weird. No node named " + spec.mop_name)
                     continue
-                print(f"    spec {spec}")
+                # print(f"    spec {spec}")
                 g.append(f" {nodename}:n -> {mopname_to_nodename[spec.mop_name]}:n [color=\"blue\"]")
 
     if include_slot_edges:
