@@ -208,3 +208,94 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             for spec in abst.specs: # looks at all specializations
                 if spec.is_instance_mop() and spec != mop and not spec.is_abstraction('M-FAILED-SOLUTION'):
                     return spec
+
+    def get_mop_slots_r(self, mop_name, curr_dict={}, depth=0):
+        ''' For a given mop, return a map of all slot->slot_value.
+         Do this recursively [ie, if a slot references another mop, go down into that]
+          A higher-level dict value should not be overwritten by a lower level one '''
+        if mop_name not in self.mops:
+            return curr_dict
+        if depth > 200:
+            raise CBRError("Recursively getting slots went too deep (cycle in graph?)")
+
+        this_mop = self.mops[mop_name]
+        for slot in this_mop.slots:
+            # Already have a key
+            if slot in curr_dict:
+                continue
+
+            slot_val = this_mop.slots[slot]
+            if slot_val in self.mops:
+                curr_dict[slot] = slot_val
+                self.get_mop_slots_r(slot_val, curr_dict, depth=depth+1)
+            elif isinstance(slot_val, MOP):
+                mop_name = slot_val.mop_name
+                curr_dict[slot] = slot_val.mop_name
+                self.get_mop_slots_r(mop_name, curr_dict, depth=depth + 1)
+            elif isinstance(slot_val, (str, int, float)):
+                curr_dict[slot] = slot_val
+            elif callable(slot_val):
+                # print(f"Slot {slot} on mop {mop_name} is a callable. Fix plz")
+                pass
+            elif slot_val is None:
+                pass
+            else:
+                print(f"Slot {slot} on mop {mop_name} has unknown slot type {type(slot_val)}")
+
+        return curr_dict
+
+    def compare_two_mop_dicts(self, mop_1, mop_2):
+        ''' Provide two dictionaries, representing two mops. get_mop_slots_r(mop_name) creates those dicts '''
+        # Function is not required to be symmetric; it's reasonable to only calculate based on keys in mop_1
+        # Function should return float >0, where 0 = "nothing in common", and higher numbers = "lots in common"
+        # For now, naively calculate cosine distance. If values are strings, then they either match, or do not match.
+        retval = 0.0
+        for k1 in mop_1:
+            if k1 not in mop_2:
+                # No comparison to be done
+                continue
+
+            v1 = mop_1[k1]
+            v2 = mop_2[k1]
+            if not isinstance(v1, type(v2)):
+                # Don't know how to compare this
+                print(f"Don't know how to compare a {type(v1)} and a {type(v2)}")
+                continue
+            if isinstance(v1, str):
+                if v1 == v2:
+                    retval += 1
+            elif isinstance(v1, (int, float)):
+                retval += v1 * v2
+            else:
+                print(f"Don't know how to compare two {type(v1)}")
+
+        return retval
+
+
+    def compare_to_all_other_mops(self, mop_name):
+        ''' Return a map of mop_name => similarity_score, showing how similar
+        every other mop in this CBR is, to the mop requested '''
+        this_mop_dict = self.get_mop_slots_r(mop_name)
+        comparisons = {}
+        other_dicts = {}
+        for other_mop in self.mops:
+            if other_mop == mop_name:
+                pass
+            other_mop_dict = self.get_mop_slots_r(other_mop)
+            other_dicts[other_mop] = other_mop_dict
+            comparisons[other_mop] = self.compare_two_mop_dicts(this_mop_dict, other_mop_dict)
+
+        sorted_items = sorted(comparisons.items(), key=lambda x: x[1], reverse=True)
+        sorted_mops = [item[0] for item in sorted_items]
+        return sorted_mops
+
+    def choose_stochastic(self, mop_name, decision_making_ability, rng):
+        ''' for a given mop, and a given decision_making_ability , find a comparable mop. Pass a Random Number Generator '''
+        # decision_making_ability should be in the range 0 [= no ability to make good decisions] to 1 [= will make best decision possible]
+        sorted_mops = self.compare_to_all_other_mops(mop_name)
+        # Choose uniformly, one from the top n mops, where n is derived from current decision making ability
+        select_from_cnt = int(min(len(sorted_mops), max(1, (1.0-decision_making_ability) * len(sorted_mops))))
+        print(f"Decision Making {decision_making_ability}, Selected range: {select_from_cnt}")
+        selected_idx = rng.randrange(select_from_cnt)
+        return sorted_mops[selected_idx]
+
