@@ -46,10 +46,12 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
 
     g.append("subgraph clusterDefault {")
     g.append("label=\"Default MOPs\"")
+    g.append("penwidth=3")
     g.extend(default_mop_nodes)
 
     g.append("  subgraph clusterCore {")
     g.append("  label=\"Core MOPs\"")
+    g.append("  penwidth=3")
     g.extend(core_mop_nodes)
     g.append("  }")
 
