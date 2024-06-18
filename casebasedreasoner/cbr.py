@@ -39,15 +39,17 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         return 'instance'
 
 
-    def add_mop(self, mop_name=None, absts={'M-ROOT'}, mop_type=None, slots={}, is_default_mop=False):
+    def add_mop(self, mop_name=None, absts={'M-ROOT'}, mop_type=None, slots={}, is_default_mop=False, is_core_cbr_mop=False):
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
+        # is_core_cbr_mop is the set of mops that are set up by default in all CBRs, per the book [implied to be a default]
+        # is_default_mop are the rest of the mops that are populated by default for a given use case
         if mop_name and mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
         absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects
         if mop_type == None:
             # raise MOPError("Do not add MOPs with mop_type=None.")
             mop_type = self.calc_type(absts, slots)
-        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type, is_default_mop=is_default_mop)
+        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type, is_default_mop=is_default_mop, is_core_cbr_mop=is_core_cbr_mop)
         mop_name = new_mop.mop_name
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
@@ -150,36 +152,36 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def install_foundation_mops(self):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
 
-        self.add_mop(mop_name='M-EVENT', mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='M-STATE', mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='M-ACT', mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='M-ACTOR', mop_type='mop', is_default_mop=True)
+        self.add_mop(mop_name='M-EVENT', mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-STATE', mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-ACT', mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-ACTOR', mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-GROUP', mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='M-EMPTY-GROUP', mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='I-M-EMPTY-GROUP', absts={'M-EMPTY-GROUP'}, mop_type='instance', is_default_mop=True)
+        self.add_mop(mop_name='M-GROUP', mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-EMPTY-GROUP', mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='I-M-EMPTY-GROUP', absts={'M-EMPTY-GROUP'}, mop_type='instance', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-FUNCTION', mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='CONSTRAINT-FN', absts={'M-FUNCTION'}, mop_type='mop', is_default_mop=True)
+        self.add_mop(mop_name='M-FUNCTION', mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='CONSTRAINT-FN', absts={'M-FUNCTION'}, mop_type='mop', is_core_cbr_mop=True)
 
-        m_pattern = self.add_mop(mop_name='M-PATTERN', slots={'abst_fn': constraint_fn}, mop_type='mop', is_default_mop=True)
+        m_pattern = self.add_mop(mop_name='M-PATTERN', slots={'abst_fn': constraint_fn}, mop_type='mop', is_core_cbr_mop=True)
 
-        g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop', is_default_mop=True)
+        g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-CASE', slots={'old': self.get_sibling, 'calc_fn': self.get_sibling}, mop_type='mop', is_default_mop=True)
+        self.add_mop(mop_name='M-CASE', slots={'old': self.get_sibling, 'calc_fn': self.get_sibling}, mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-ROLE', mop_type='mop', is_default_mop=True)
+        self.add_mop(mop_name='M-ROLE', mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='NOT-CONSTRAINT', absts={'CONSTRAINT-FN'}, mop_type='mop', is_default_mop=True)
-        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slots={'abst_fn': not_constraint}, mop_type='mop', is_default_mop=True)
+        self.add_mop(mop_name='NOT-CONSTRAINT', absts={'CONSTRAINT-FN'}, mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-NOT', absts={m_pattern}, slots={'abst_fn': not_constraint}, mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-FAILED-SOLUTION', mop_type='mop', is_default_mop=True)
+        self.add_mop(mop_name='M-FAILED-SOLUTION', mop_type='mop', is_core_cbr_mop=True)
         
 
     def clear_memory(self, install_foundation_mops=True):
         '''This method clears all current MOPs from memory and installs a new M-ROOT MOP. If install_foundation_mops is True, then it also installs the basic MOPs as well.'''
         self.mops.clear()
-        root = MOP(environment=self.environment, time=self.time, parent=self, mop_name='M-ROOT', absts=set(), specs=set(), slots=dict(), mop_type='mop', is_default_mop=True)
+        root = MOP(environment=self.environment, time=self.time, parent=self, mop_name='M-ROOT', absts=set(), specs=set(), slots=dict(), mop_type='mop', is_core_cbr_mop=True)
         self.mops['M-ROOT'] = root
         if install_foundation_mops:
             self.install_foundation_mops()

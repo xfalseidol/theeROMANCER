@@ -60,7 +60,7 @@ class MOP(ImprovedRomancerObject):
 
     This implementation is based on chapter three of Christopher Riesbeck and Roger Schank, _Inside Case-Based Reasoning_ (Lawrence Erlbaum, 1989).'''
 
-    def __init__(self, environment, time, parent, mop_name, absts=None, specs=None, slots=None, mop_type='instance', is_default_mop=False):
+    def __init__(self, environment, time, parent, mop_name, absts=None, specs=None, slots=None, mop_type='instance', is_default_mop=False, is_core_cbr_mop=False):
         super().__init__(environment, time)
         if not absts:
             absts = set()   
@@ -82,6 +82,7 @@ class MOP(ImprovedRomancerObject):
         self.unlogged_attrs.append('mop_type')
         self.mop_type = mop_type # 'instance' or 'mop'
         self.is_default = is_default_mop
+        self.is_core_cbr = is_core_cbr_mop
 
 
     def is_abstract_mop(self):
@@ -89,7 +90,11 @@ class MOP(ImprovedRomancerObject):
         return self.mop_type == 'mop'
 
     def is_default_mop(self):
-        return self.is_default
+        # Core mops are automatically default, no matter what the caller said
+        return (self.is_default or self.is_core_cbr)
+
+    def is_core_cbr_mop(self):
+        return self.is_core_cbr
 
     def is_instance_mop(self):
         '''Returns True if this MOP is an instance MOP.'''
