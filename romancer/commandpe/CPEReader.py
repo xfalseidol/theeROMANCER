@@ -6,7 +6,6 @@ from collections import namedtuple
 class CPEWeaponFiredReader:
     ''' A class for reading outputs from CommandPE '''
 
-    # Returns target_category => { weapon_category => count }
     def __init__(self, weapon_class_csv, target_class_csv, target_unit_csv, weapon_fired_csv, shooter_side='BLUE'):
         self.shooterSide = shooter_side
         ''' Weapon Class is a configuration file mapping Weapon Class [from Command PE] to a Consideration-Level'''
@@ -75,7 +74,7 @@ class CPEWeaponFiredReader:
             return {}
 
         t_end = self.curr_time_s + timeframe_s
-        total_counts = {}  # A map of weaponcategory => { target category => n_fired }
+        total_counts = {}  # A map of weaponcategory => { target category => [event list] }
         time_last_weapon_fired_s = self.get_time_s(self.last_weapon_fired_record['Time'])
 
         while time_last_weapon_fired_s < t_end:
@@ -99,7 +98,10 @@ class CPEWeaponFiredReader:
                     if this_wpn_scale not in total_counts:
                         total_counts[this_wpn_scale] = {}
                     tgt_map = total_counts[this_wpn_scale]
-                    tgt_map[this_target_scale] = tgt_map.get(this_target_scale, 0) + 1
+                    event_list = tgt_map.get(this_target_scale, [])
+                    event_list.append(self.last_weapon_fired_record)
+                    tgt_map[this_target_scale] = event_list
+
 
             time_last_weapon_fired_str = self.last_weapon_fired_record['Time']
             try:
@@ -113,10 +115,10 @@ class CPEWeaponFiredReader:
 
         # Convert the created map into a list of namedTuples
         result = []
-        WeaponTargetCount = namedtuple('WeaponTargetCount', ['weapon', 'target', 'count'])
+        WeaponTargetCount = namedtuple('WeaponTargetCount', ['event_type', 'weapon', 'target', 'count', 'all_events'])
         for weapon, targets in total_counts.items():
-            for target, count in targets.items():
-                result.append(WeaponTargetCount(weapon, target, count))
+            for target, event_list in targets.items():
+                result.append(WeaponTargetCount('fired', weapon, target, len(event_list), event_list))
 
         return result
 
