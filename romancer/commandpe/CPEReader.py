@@ -6,7 +6,7 @@ from collections import namedtuple
 class CPEWeaponFiredReader:
     ''' A class for reading outputs from CommandPE '''
 
-    def __init__(self, weapon_class_csv, target_class_csv, target_unit_csv, weapon_fired_csv, shooter_side='BLUE'):
+    def __init__(self, weapon_class_csv, target_class_csv, target_unit_csv, weapon_fired_csv, weapon_endgame_csv, shooter_side='BLUE'):
         self.shooterSide = shooter_side
         ''' Weapon Class is a configuration file mapping Weapon Class [from Command PE] to a Consideration-Level'''
         self.weapon_scale = self.load_weapon_scale(weapon_class_csv)
@@ -18,12 +18,24 @@ class CPEWeaponFiredReader:
         print("Loaded Scaling Maps for Weapons and Targets:")
         print(f"Weapon Category: {len(self.weapon_scale)} items, Target Category: {len(self.target_scale)} items, Target Unit Category: {len(self.target_unit_scale)} items")
 
+        # Weapon Fired is one category of thing
         weaponfired_f = open(weapon_fired_csv, "r")
         self.weaponfired_reader = csv.DictReader(weaponfired_f)
         # First row is comments. Ignore it
         next(self.weaponfired_reader)
         # Because this is a stateful API, we'll start off with the first one
         self.last_weapon_fired_record = next(self.weaponfired_reader)
+
+        # Weapon Endgame is a different thing
+        weaponendgame_f = open(weapon_endgame_csv, "r")
+        self.weaponendgame_reader = csv.DictReader(weaponendgame_f)
+        # First row is comments. Ignore it
+        next(self.weaponendgame_reader)
+        # Because this is a stateful API, we'll start off with the first one
+        self.last_weapon_endgame_record = next(self.weaponendgame_reader)
+        # Weapon class is not stored in the endgame csv - capture it
+        self.weapon_name_to_class = {}
+
         self.curr_time_s = 0
 
         self.scenario_complete = False
@@ -68,7 +80,7 @@ class CPEWeaponFiredReader:
         ''' Return true if the scenario is "complete" [ie, ran out of inputs] '''
         return self.scenario_complete
 
-    def read_next_weapons_fired(self, timeframe_s=(15*60)):
+    def _read_next_weapons_fired(self, timeframe_s):
         ''' Get a namedtuple of weapon/tgt/count 3-tuples during the next timeframe_s seconds from last time this returned '''
         if self.scenario_complete:
             return {}
@@ -82,6 +94,7 @@ class CPEWeaponFiredReader:
 
             wpn_class = self.last_weapon_fired_record['WeaponClass']
             this_wpn_scale = self.weapon_scale.get(wpn_class)
+            self.weapon_name_to_class[self.last_weapon_fired_record['WeaponName']] = wpn_class
 
             firing_side = self.last_weapon_fired_record['FiringUnitSide']
 
@@ -122,14 +135,31 @@ class CPEWeaponFiredReader:
 
         return result
 
+    def _read_next_weapons_endgame(self):
+        ## Very dangerously stateful indeed. MUST BE CALLED *AFTER* READ NEXT WEAPONS FIRED
+        ## Timestep is "until the end of the last event from NEXT WEAPONS FIRED"
+        return []
+
+    def read_next_weapons_events(self, timeframe_s=(15*60)):
+        retval = self._read_next_weapons_fired(timeframe_s)
+        retval.extend(self._read_next_weapons_endgame())
+        return retval
 
 if __name__ == "__main__":
     cpeoutputfolder = "data/commandpe_output"
     cpeinputfolder = "data/commandpe_input"
     cper = CPEWeaponFiredReader(f"{cpeinputfolder}/weaponClass.csv", f"{cpeinputfolder}/targetClass.csv",
                                 f"{cpeinputfolder}/targetUnitClass.csv",
-                                f"{cpeoutputfolder}/WeaponFired.csv", 'BLUE')
+                                f"{cpeoutputfolder}/WeaponFired.csv", f"{cpeoutputfolder}/WeaponEndgame.csv",
+                                'BLUE')
     while not cper.is_scenario_complete():
-        print(cper.read_next_weapons_fired(5 * 60))
+        event_list = cper.read_next_weapons_events(5 * 60)
+        # Full event list isn't helpful to print
+        to_print = []
+        for e in event_list:
+            e_dict = e._asdict()
+            e_dict.pop('all_events')
+            to_print.append(e_dict)
+        print(to_print)
         print(f"Time is: {cper.get_current_time_s()}, total wpns fired = {cper.get_records_read()}")
 
