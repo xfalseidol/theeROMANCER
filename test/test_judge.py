@@ -43,9 +43,11 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         prev_motive = 0
         motives = {}
         counter = 1
-        for escalation in mop.get_filler('escalations').group_to_list():
+        escalations = mop.get_filler('escalations').group_to_list()
+        for escalation in escalations:
             prev_motive = self.mop_calc({'role': motive, 'escalation': escalation, 'prev_motive': prev_motive})
             motives[counter] = prev_motive
+            counter += 1
         motives_mop = self.slots_to_mop(slots=motives, absts={'M-MOTIVE-GROUP'}, mop_type='instance')
         return motives_mop
 
@@ -60,9 +62,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         print(f"Adapting sentence in {old_mop}")
 
         for old_pos, pos in zip(range(1, old_size + 1), range(1, size + 1)):
-            # old_slots = judge.crime_compare_slots(old_mop, old_pos, ['OLD-ACTION', 'OLD-MOTIVE', 'OLD-SEVERITY'])
-            # new_slots = judge.crime_compare_slots(mop, pos, ['THIS-ACTION', 'THIS-MOTIVE', 'THIS-SEVERITY'])
-            slots = {'role': 'sentence', 'index': size - pos, 'old_sentence': old_sentence}
+            slots = {'role': sentence, 'index': size - pos, 'old_sentence': old_sentence}
             slots.update(judge.crime_compare_slots(old_mop, old_pos, ['OLD-ACTION', 'OLD-MOTIVE', 'OLD-SEVERITY']))
             slots.update(judge.crime_compare_slots(mop, pos, ['THIS-ACTION', 'THIS-MOTIVE', 'THIS-SEVERITY']))
             result = judge.mop_calc(slots)
@@ -117,9 +117,9 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         '''Assume filler is number that can be compared against the constraint.'''
         below = constraint.role_filler('below')
         above = constraint.role_filler('above')
-        if below:
+        if below is not None:
             return filler < below
-        if above:
+        if above is not None:
             return filler > above
         return False
 
@@ -268,6 +268,21 @@ judge.add_mop(mop_name='OLD-SEVERITY', absts={'M-ROLE'}, mop_type='instance')
     # (VALUE M-PATTERN (CALC-FN ADJUST-SENTENCE)))
 judge.add_mop(mop_name='M-ADAPT-SENTENCE', absts={'M-CALC'}, mop_type='mop', slots={'role': sentence, 'value': judge.adjust_sentence})
 
+### need to finish these ADAPT MOPS that should look very similar to this
+# (DEFMOP M-CALC-RETALIATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
+    # (PREV-MOTIVE M-JUSTIFIED)
+    # (VALUE I-M-RETALIATION))
+# judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'below': 1}), 'prev_motive': justified, 'value': retaliation}, mop_type='mop')
+
+# (DEFMOP M-ADAPT-EXTREME-FORCE-OLD (M-ADAPT-SENTENCE) (OLD-ACTION M-WOUND-ACT)
+    # (THIS-ACTION M-NOT (OBJECT M-WOUND-ACT)) 
+    # (OLD-MOTIVE M-UNJUSTIFIED)
+    # (THIS-MOTIVE M-UNJUSTIFIED)
+    # (WEIGHT 0.50) (DIRECTION -l))
+# still need to fill in the THIS-ACTION slot and all the other slots
+judge.add_mop(mop_name='M-ADAPT-EXTREME-FORCE-OLD', absts={'M-ADAPT-SENTENCE'}, slots={'old_action': wound_act, 'this_action': judge.add_mop()})
+###
+
 
 event_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': ted, 'object': al, 'freq': once})
 event_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': al, 'object': ted, 'freq': once})
@@ -278,7 +293,6 @@ outcome_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots=
 outcome_3 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots={'state': dead, 'actor': al})
 case_1_outcomes = judge.add_mop(absts={'M-OUTCOME-GROUP'}, mop_type='instance', slots={1: outcome_1, 2: outcome_2, 3: outcome_3})
 case_1_slots = {'crime_type': homicide, 'defendant': ted, 'victim': al, 'events': case_1_events, 'outcomes': case_1_outcomes, 'sentence': 40}
-# case_1 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_1_slots)
 judge.judge_case(case_1_slots)
 
 # Define the events
@@ -306,7 +320,6 @@ case_2_slots = {
     'outcomes': case_2_outcomes,
 }
 # Create the case MOP instance
-# case_2 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_2_slots)
 # Judge the case
 judge.judge_case(case_2_slots)
 
@@ -333,7 +346,6 @@ case_3_slots = {
     'outcomes': case_3_outcomes,
 }
 # Create the case MOP instance
-# case_3 = judge.add_mop(mop_type='instance', absts={'M-CRIME'}, slots=case_3_slots)
 # Judge the case
 judge.judge_case(case_3_slots) 
 

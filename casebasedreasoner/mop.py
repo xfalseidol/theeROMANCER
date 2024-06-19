@@ -13,30 +13,35 @@ import networkx as nx
 class MOPError(Exception):
     pass
 
+
 def is_satisfied(constraint, filler, slots):
     '''Returns True if filler satisfies the conditions specified by constraint. A constraint is satisfied if:
-
+ 
     1. The contraint is False or None.
     2. The constraint is a Pattern MOP whose abstraction function returns True when called with constraint, filler, and slots.
     3. The constraint is an abstraction of the filler.
     4. The constraint is an instance MOP and the filler is empty. The slot source can inherit the instance when needed.
     5. The constraint has at least one slot, the filler is not empty, and all of the slots are satisfied by the slots of the filler.
-
+ 
     Slotless abstractions are treated specially, because they have no slots to constrain what can go under them.'''
-    
-    if not constraint: # if constraint is None, this condition is satisfied
-        return False # should return None or False in this case? -- the condition is True, but there is no return clause in the Lisp
-    elif constraint.is_pattern():
+ 
+    g = constraint == None
+    if g: # if constraint is None, this condition is satisfied
+        return g 
+    if isinstance(constraint, MOP) and constraint.is_pattern():
         fn = constraint.inherit_filler('abst_fn')
-        return fn(constraint, filler, slots) # I think this is correct
-    elif isinstance(filler, MOP) and constraint.is_abstraction(filler): # flipped the order of constraint and filer
-        return False # should return None or False? -- the condition is True, but there is no return clause in the Lisp
-    elif constraint.is_instance_mop():
-        return filler == None # removed "and not filler" from the condition, changed return value
-    elif filler:
-        return constraint.slots_satisfied_by(filler) # this is new, equivalent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
+        return fn(constraint, filler, slots)
+    a = isinstance(constraint, MOP) and isinstance(filler, MOP) and constraint.is_abstraction(filler)
+    if a:
+        return a
+    if isinstance(constraint, MOP) and constraint.is_instance_mop() and filler is None: # now this condition matches more closelt the description
+        return True # should return True? 
+    if isinstance(constraint, MOP) and len(constraint.slots) > 0 and filler is not None:
+        if constraint.slots_satisfied_by(filler):
+            return True # this is new, equivalent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
     else:
         return False # default: return None or False
+
 
 
 def mop_equal(mop1, mop2):
@@ -93,40 +98,42 @@ class MOP(ImprovedRomancerObject):
         return self.mop_type == 'instance'
 
 
-    def is_abstraction(self, other):
+    def is_abstraction(self, spec): # abst.is_abstraction(spec)
         '''Returns True if other is an abtraction, not necessarily immediate, of self (specialization).'''
         '''Returns True when self is a is a specialization of other / other is a specializtion of slef (not necessarily immediate).'''
         # the other mop is in the mops abstractions
-        return other in self.calc_all_abstractions()
+        return self == spec or self in self.calc_all_abstractions()
 
 
     def calc_all_abstractions(self):
         '''Calculates all the abstractions of this MOP, not limited to immediate abstractions.'''
         # create a set of all MOPs "upstream" of self:
-        all_absts = set()
-    
-        # loop over self's absts: 
-        for abst in self.absts:
-            # call calc_all_abstractions on each abstraction
-            all_absts.update(abst.calc_all_abstractions())
-            # add the abst to your set
-            all_absts.add(abst)
-    
-        # return the set of abstractions
-        return all_absts
+        # GOAL: lowest-level abstractions appear first in the list
+        all_absts = []
 
-    
-    def is_pattern(self):
-        '''Returns True if MOP is specialization of 'M-PATTERN'. Pattern matching MOPs are used to hold pattern matching and role filling information.'''
-        m_pattern = self.parent.name_mop('M-PATTERN')
-        return self.is_abstraction(m_pattern) # Perhaps M-PATTERN should be distinct Python subclasses of MOP
+        # loop over self's absts:
+        for abst in self.absts:
+            all_absts.append(abst) # add the immediate abst
+            all_absts += abst.calc_all_abstractions() # add the absts of that abst
+
+            # # call calc_all_absts on each abstraction
+            # all_absts.update(abst.calc_all_abstractions())
+            # # add the abst to your set
+            # all_absts.add(abst)
+
+        # return the list of abstractions
+        return all_absts
 
 
     def is_group(self):
         '''Returns True if MOP is specialization of 'M-GROUP'. Group MOPs are used to hold groups of MOPs, e.g., the group of steps in a recipe or the group of events in a fight.'''
         m_pattern = self.parent.name_mop('M-GROUP')
-        return self.is_abstraction(m_pattern) # Perhaps M-GROUP should be distinct Python subclasses of MOP
+        return m_pattern.is_abstraction(self) # Perhaps M-GROUP should be distinct Python subclasses of MOP
 
+    def is_pattern(self):
+        '''Returns True if MOP is specialization of 'M-PATTERN'. Pattern matching MOPs are used to hold pattern matching and role filling information.'''
+        m_pattern = self.parent.name_mop('M-PATTERN')
+        return m_pattern.is_abstraction(self) # Perhaps M-PATTERN should be distinct Python subclasses of MOP
 
     def add_role_filler(self, role, filler):
         # if not isinstance(filler, MOP):
@@ -144,20 +151,24 @@ class MOP(ImprovedRomancerObject):
             return self.slots[role]
 
 
-    def link_abst(self, other):
-        # assert abst.is_abstraction() # equivilent of "insist" macro in Schank/Riesbeck code
-        assert not other.is_abstraction(self) # don't create circular reference
+    def link_abst(self, abst): # self.link_abst(other)
+        assert abst.is_abstract_mop() # equivilent of "insist" macro in Schank/Riesbeck code
+        assert not self.is_abstraction(abst), f"Circular reference with abst:{abst}, spec:{self}" # don't create circular reference
         # if not self.is_abstraction(other): # abst is not currently abstract of self
-        self.absts.add(other) # make abst abstraction of self
-        other.specs.add(self) # make self specialization of abst
+        self.absts.add(abst) # make abst abstraction of self
+        abst.specs.add(self) # make self specialization of abst
         return self
 
 
-    def unlink_abst(self, mop):
-        if mop.is_abstraction(self): # mop is currently an abstraction of self
-            self.absts.remove(mop) # remove abst as abstraction of self
-            mop.specs.remove(self) # remove self as specialization of abstract
+    def unlink_abst(self, abst): # self.unlink_abst(abst)
+        if abst.is_abstraction(self): # abst is currently an abstraction of self
+            self.absts.remove(abst) # remove abst as abstraction of self
+            abst.specs.remove(self) # remove self as specialization of abstract
             return self
+        # if self.is_abstraction(mop):
+        #     mop.absts.remove(self)
+        #     self.specs.remove(mop)
+        #     return mop
         
 
     def inherit_filler(self, role):
@@ -176,7 +187,7 @@ class MOP(ImprovedRomancerObject):
             filler = self.role_filler(role)
         except KeyError:
             filler = None
-        if filler:
+        if filler is not None:
             return filler
         else:
             inheritance = self.inherit_filler(role)
@@ -206,13 +217,16 @@ class MOP(ImprovedRomancerObject):
         if self.is_abstract_mop() and len(self.slots) > 0:
             for role, filler in self.slots.items():
                 if isinstance(slot_source, MOP):
-                    s = is_satisfied(filler, slot_source.get_filler(role), slot_source)
+                    # eg, is ROOT-VEG's 'calories' satisfied by CARROT's calories?
+                    # eg, is M-CALC-ESCALATION-MOTIVE's 'escalation' satisfied by I-M-CALC's 'escalation'?
+                    comparison_filler = slot_source.get_filler(role)
+                    s = is_satisfied(filler, comparison_filler, slot_source)
                 else:
-                    s = is_satisfied(filler, slot_source[role], slot_source) # slot_source is dict
+                    s = is_satisfied(filler, slot_source[role], slot_source) # if slot_source is dictionary
                 if not s:
                     return False
             return True
-
+            # I think this is correct
 
     def includes(self, mop2):
         '''Returns self if it is of the same mop_type and includes every slot in mop2. Self can have slots not in mop2.'''
@@ -259,14 +273,15 @@ class MOP(ImprovedRomancerObject):
     
     def has_legal_absts(self):
         '''This method is used to support the install_instance method on the case-based reasoner class. It unlnks every immediate abstraction of instance that is not a legal place to put instance, and returns whatever immediate abstractions are left.'''
-        for abst in self.absts:
+        abst_list = self.absts.data.copy()
+        for abst in abst_list:
             if not abst.is_legal_abst(self):
                 self.unlink_abst(abst)
         return self.absts
 
 
-    def is_legal_abst(self, abst):
-        '''Returns True if abst is a legal place to put self, i.e., abst is not slotless and does not have abstractions below it.'''
+    def is_legal_abst(self, instance): # abst.is_legal_abst(instance)
+        '''Returns True if self is a legal place to put instance, i.e., self is not slotless and does not have abstractions below it.'''
         if len(self.slots) > 0:
             for spec in self.specs:
                 if not spec.is_instance_mop():
