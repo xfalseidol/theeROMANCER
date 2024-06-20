@@ -1,0 +1,145 @@
+WeaponClass,WeaponCategory
+AGM-158B JASSM-ER,2
+AS-23A Kodiak [Kh-101],3
+"AS-23B Kodiak [Kh-102, 200kT Nuclear]",5
+KAB-1500L-Pr LGB [Penetrator],3
+ASMP [300kT Nuclear],5
+AGM-130F CWW [BLU-118/B],2
+AGM-130C CWW [BLU-109/B],2
+GBU-27/B Paveway III LGB [BLU-109/B],1
+GBU-32(V)2/B JDAM [Mk83],1
+GBU-24B/B Paveway III LGB [BLU-109A/B],1
+GBU-24D/B Paveway III LGB [BLU-116/B],1
+GBU-31(V)4/B JDAM [BLU-109A/B],1
+GBU-31(V)2/B JDAM [Mk84],1
+GBU-24E/B Paveway III GPS/LGB [BLU-109A/B],1
+GBU-38(V)1/B JDAM [Mk82],1
+GBU-15(V)2C/B CWW GPS/IIR [Mk84],1
+GBU-15(V)1C/B CWW GPS/EO [Mk84],1
+GBU-15(V)31A/B CWW GPS/EO [BLU-109/B],1
+GBU-15(V)32/B CWW IIR [BLU-109/B],1
+GBU-15(V)31/B CWW EO [BLU-109/B],1
+AGM-142G Popeye CCD [Penetrator],2
+AGM-142B Raptor IIR [Unitary],2
+AGM-142A Raptor EO [Unitary],2
+GBU-15(V)1/B CWW EO [Mk84],1
+AS-13 Kingbolt [Kh-59],3
+SPICE 1000 GPS/EO [Mk83],3
+SCALP EG,3
+AGM-86C Blk IA CALCM,2
+Black Shahine [Storm Shadow],3
+AGM-84K SLAMER-ATA,2
+SPICE 2000 GPS/EO [Mk84],3
+"GBU-24/B Paveway III LGB [BPG-2000 PGM, CPE-800 Penetrator]",1
+"SBU-38 AASM/D [Hammer, Mk82, GPS-Only]",3
+GBU-39/B SDB,1
+Taurus KEPD 350P,3
+Paveway IV [Mk82],3
+PGM-2B Hakim 2000lb [PGM-2000],3
+GBU-32(V)1/B JDAM [Mk83],1
+GBU-31(V)1/B JDAM [Mk84],1
+AGM-84H SLAMER,2
+KAB-1500L-F LGB,3
+ASMP-A [300kT Nuclear],5
+GBU-24/B Paveway III LGB [Mk84],1
+AGM-129A ACM [150kT Nuclear],5
+AGM-142F Popeye IIR [Unitary],2
+"CBU-103 WCMD [CBU-87/B CEM, 202 x BLU-97/B Dual-Purpose Bomblets]",3
+GBU-37/B GAM Deep Throat [BLU-113/B],1
+GBU-36/B GAM [Mk84],1
+GBU-15(V)32A/B CWW GPS/IIR [BLU-109/B],1
+"CBU-105 WCMD [CBU-97/B SFW, 10 x BLU-108/B Anti-Tank Bomblets]",3
+GBU-27B/B Paveway III GPS/LGB [BLU-116/B],1
+GBU-22/B Paveway III LGB [Mk82],1
+AGM-154C JSOW [BROACH],2
+AGM-154A JSOW [145 x BLU-97/B Dual Purpose],2
+GBU-31(V)3/B JDAM [BLU-109/B],1
+GBU-24A/B Paveway III LGB [BLU-109/B],1
+AGM-158A JASSM [Penetrator],2
+AS-22 Kluge [Kh-555],3
+Storm Shadow,3
+AGM-86D Blk II CALCM [1200lb Penetator],2
+"AS-15 Kent B [Kh-55SM, 200kT Nuclear]",5
+AS-20 Kayak [Kh-35U Star],3
+AS-18 Kazoo A [Kh-59M],3
+AGM-69A SRAM [200kT Nuclear],5
+AGM-86C Blk I CALCM [3000lb Blast/Frag],2
+AGM-86C Blk 0 CALCM [2000lb Blast/Frag],2
+GBU-27A/B Paveway III GPS/LGB [BLU-109/B],1
+GBU-15(V)2/B CWW IIR [Mk84],1
+AGM-62A Walleye I ER/DL,2
+"AS-4 Kitchen B Mod 2 [Kh-22MA INS+TERCOM, 350kT Nuclear]",5
+"AS-16 Kickback [Kh-15, 350kT Nuclear]",5
+BK 90 Mjolner Mk2 [24 x MJ2 Anti-Tank],3
+BK 90 Mjolner Mk1 [72 x MJ1 Anti-Personnel],3
+"AS-15 Kent A [Kh-55, 200kT Nuclear]",5
+AGM-88E AARGM,2
+AGM-142E Popeye IIR [Penetrator],2
+AGM-86B ALCM [200kT Nuclear],5
+AS-4 Kitchen B Mod 2 [Kh-22MA INS+TERCOM],3
+"SBU-54 AASM/M [Hammer, Mk82, GPS + IIR]",3
+GBU-38(V)2/B JDAM [Mk82],1
+AJ.168 Martel,3
+AGM-62B Walleye II ER/DL,2
+AGM-84E SLAM,2
+AGM-123A Skipper II,2
+KD-20 [CJ-10A] ALCM,3
+KD-63 [YJ-63],3
+"AS-4 Kitchen B Mod 3 [Kh-22NA INS+TERCOM, 350kT Nuclear]",5
+AS-4 Kitchen B Mod 3 [Kh-22NA INS+TERCOM],3
+H-2 SOW [Raptor 1],3
+Brimstone Dual-Mode,3
+GBU-54(V)2/B LJDAM [Mk82],1
+AGM-158C LRASM,2
+"SBU-64 AASM/M [Hammer, Mk82, GPS + SALH]",3
+AGM-176A Griffin A,2
+GBU-53/B StormBreaker,1
+"LS-6-500 Extended-Range Bomb, GPS/INS [500kg HE]",3
+KD-88 LACM,3
+Joint Strike Missile (JSM),4
+Wan Chien [Anti-Runway Cruise Missile],4
+AGM-154C-1 JSOW [BROACH],2
+AS-4 Kitchen D [Kh-32],4
+SOM-A,4
+SOM-B1,4
+HGK INS/GPS [NEB 2000lb Penetrator],4
+HGK INS/GPS [Mk84],4
+B61-12 LEP GPS [50kT Nuclear],5
+LS-6-500 GPS/INS [500kg HE],4
+AGM-84N Harpoon II+,2
+AGM-158B JASSM-ER [D-EMP],2
+AGM-158B JASSM-ER [O-EMP],2
+GBU-31(V)X JDAM [D-EMP],1
+GBU-31(V)X JDAM [O-EMP],1
+LS-6-50 GPS/INS [50kg HE],4
+"FT-7 Flying Strides SDB [GPS, 135kg HE Penetrator]",4
+Nimrod 1,4
+Nimrod 2,4
+"AS-24 Killjoy [Kh-47M2 Kinzhal, 700kg HE Penetrator]",4
+"AS-24 Killjoy [Kh-47M2 Kinzhal, 200kT Nuclear]",5
+Brimstone 2 Dual-Mode,4
+Balaban [45kg HE],4
+AS-22 [Kh-38MKE],4
+AS-20 Kayak [Kh-35UE],4
+GBU-69/B SGM,1
+"AS-16 Kickback [Kh-15, Conventional]",4
+KGGB,4
+GBU-TEBER [Mk82],1
+GBU-TEBER [Mk81],1
+SOM-B2,4
+SOM-C1,4
+AGM-158D JASSM-XR,2
+KAB-20S GLONASS,4
+"QUICKSINK [GBU-31(V)1/B JDAM, Mk84]",1
+SMKB-82,4
+SMKB-83,4
+Yasin [500lb HE],4
+Bina [Mod. AGM-65 Maverick],2
+Shafaq-4 [LST],4
+Heidar-1,4
+Tolun SDB,4
+GBU-31/B JDAM [BLU-137/B],1
+AGM-181A LRSO [150kT Nuclear],5
+Spike NLOS,4
+Sea Venom [FASGW(H) / ANL],4
+Marte ER,4

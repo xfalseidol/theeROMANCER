@@ -40,7 +40,7 @@ class TestMOPandCBR:
         # make changes to the agent
         self.cbr_agent.remove_mop('I-M-F2-DETECTED')
         friendly3_detected = self.cbr_agent.add_mop(mop_name="I-M-F3-DETECTED", absts={'M-FRIENDLY-DETECTED'}, mop_type='instance')
-        assert not 'I-M-F2-DETECTED' in self.cbr_agent.mops, f"I-M-F2-DETECTED in CBR MOPs but shouldn't be."
+        assert 'I-M-F2-DETECTED' not in self.cbr_agent.mops, f"I-M-F2-DETECTED in CBR MOPs but shouldn't be."
         assert 'I-M-F3-DETECTED' in self.cbr_agent.mops, f"I-M-F3-DETECTED not in CBR MOPs but should be."
         # revert time
         self.cbr_agent.rewind(4.0)
@@ -102,14 +102,47 @@ class TestMOPandCBR:
         # plt.show()
 
 
+    def test_slots_satisfied_by(self):
+        m_range = self.cbr_agent.add_mop(mop_name='M-RANGE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': range_constraint})
+
+        veg = self.cbr_agent.add_mop(mop_name='M-VEGETABLE', absts={'M-ROOT'}, mop_type='mop', slots={'color': None, 'calories': self.cbr_agent.add_mop(mop_type='instance', absts={"M-RANGE"}, slots={'above': 0})})
+        root_veg = self.cbr_agent.add_mop(mop_name='M-ROOT-VEGETABLE', absts={'M-VEGETABLE'}, mop_type='mop', slots={'depth': self.cbr_agent.add_mop(absts={"M-RANGE"}, slots={'below': 5}, mop_type='instance')})
+        leafy_veg = self.cbr_agent.add_mop(mop_name='M-LEAFY-VEGETABLE', absts={'M-VEGETABLE'}, mop_type='mop', slots={'height': self.cbr_agent.add_mop(absts={"M-RANGE"}, slots={'below': 5}, mop_type='instance')})
+        potato = self.cbr_agent.add_mop(mop_name='I-M-POTATO', absts={'M-ROOT-VEGETABLE'}, mop_type='instance', slots={'calories': 100, 'depth': 1})
+        carrot = self.cbr_agent.add_mop(mop_name='I-M-CARROT', absts={'M-ROOT-VEGETABLE', 'M-LEAFY-VEGETABLE'}, mop_type='instance', slots={'calories': 50, 'depth': 2, 'height': 1})
+        lettuce = self.cbr_agent.add_mop(mop_name='I-M-LETTUCE', absts={'M-LEAFY-VEGETABLE'}, mop_type='instance', slots={'calories': 10, 'height': 2})
+        new_veg = self.cbr_agent.add_mop(absts={'M-VEGETABLE'}, mop_type='instance', slots={'calories': 200})
+        new_veg2 = self.cbr_agent.add_mop(absts={'M-VEGETABLE'}, mop_type='instance', slots={'calories': 200, 'color': 'blue'})
+
+        # print(leafy_veg.slots_satisfied_by(carrot)) # True
+        # print(root_veg.slots_satisfied_by(carrot)) # True
+        # print(root_veg.slots_satisfied_by(lettuce)) # False
+
+        # what are other good tests that will determine whether slots_satisfied_by works correctly?
+        # does lettuce satisfy the requirements of a root vegetable?
+
+        # need tests for:
+        # 1) No Constraint
+        # color has no constraint, both new_veg and new_veg2 should satisfy veg:
+        assert veg.slots_satisfied_by(new_veg), f"{new_veg} does not satisfy {veg}, but should."
+        assert veg.slots_satisfied_by(new_veg2), f"{new_veg2} does not satisfy {veg}, but should."
+        # 2) Pattern Constraint with abst_fn
+        # veg with wrong value for calories
+        veg_no_calories = self.cbr_agent.add_mop(mop_type='instance', absts={'M-VEGETABLE'}, slots={'calories': -10})
+        assert not veg.slots_satisfied_by(veg_no_calories), f"{veg_no_calories} satisfies {veg}, but shouldn't."
+        print("test over")
+        # 3) Constraint is abstraction of Filler
+        # 4) Constraint is Instance, Filler is None (?)
+        # 5) Filler exists and Constraint is Satisfied by it (?)
+
 def range_constraint(constraint, filler, slots):
         '''Assume filler is a number that can be compared against the constraint'''
         below = constraint.role_filler('below')
         above = constraint.role_filler('above')
         try:
-            if below:
+            if below is not None:
                 return filler < below
-            if above:
+            if above is not None:
                 return filler > above
         except:
             pass
@@ -117,21 +150,5 @@ def range_constraint(constraint, filler, slots):
 
 
 if __name__ == "__main__":
-    env, sup, cbr_agent = setup()
-
-    m_range = cbr_agent.add_mop(mop_name='M-RANGE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': range_constraint})
-    
-    veg = cbr_agent.add_mop(mop_name='M-VEGETABLE', absts={'M-ROOT'}, mop_type='mop', slots={'calories': cbr_agent.add_mop(absts={"M-RANGE"}, slots={'above': 5})})
-    root_veg = cbr_agent.add_mop(mop_name='M-ROOT-VEGETABLE', absts={'M-VEGETABLE'}, mop_type='mop', slots={'depth': cbr_agent.add_mop(absts={"M-RANGE"}, slots={'below': 5})})
-    leafy_veg = cbr_agent.add_mop(mop_name='M-LEAFY-VEGETABLE', absts={'M-VEGETABLE'}, mop_type='mop', slots={'height': cbr_agent.add_mop(absts={"M-RANGE"}, slots={'below': 5})})
-    potato = cbr_agent.add_mop(mop_name='I-M-POTATO', absts={'M-ROOT-VEGETABLE'}, mop_type='instance', slots={'calories': 100, 'depth': 1})
-    carrot = cbr_agent.add_mop(mop_name='I-M-CARROT', absts={'M-ROOT-VEGETABLE', 'M-LEAFY-VEGETABLE'}, mop_type='instance', slots={'calories': 50, 'depth': 2, 'height': 1})
-    lettuce = cbr_agent.add_mop(mop_name='I-M-LETTUCE', absts={'M-LEAFY-VEGETABLE'}, mop_type='instance', slots={'calories': 10, 'height': 2})
-    
-    print(leafy_veg.slots_satisfied_by(carrot)) # True
-    print(root_veg.slots_satisfied_by(carrot)) # True
-    print(root_veg.slots_satisfied_by(lettuce)) # False
-
-    # what are other good tests that will determine whether slots_satisfied_by works correctly?
-    # does lettuce satisfy the requirements of a root vegetable?
-    #
+    test_obj = TestMOPandCBR()
+    test_obj.test_slots_satisfied_by()

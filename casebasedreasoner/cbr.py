@@ -34,7 +34,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         if not slots:
             return 'mop'
         for role, filler in slots.items(): # slots is a listof tuples(role, filler)
-            if filler and not filler.is_instance_mop():
+            if isinstance(filler, MOP) and not filler.is_instance_mop():
                 return 'mop'
         return 'instance'
 
@@ -45,7 +45,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         # is_default_mop are the rest of the mops that are populated by default for a given use case
         if mop_name and mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
-        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects
+        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts}#if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects 
         if mop_type == None:
             # raise MOPError("Do not add MOPs with mop_type=None.")
             mop_type = self.calc_type(absts, slots)
@@ -54,10 +54,12 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
             new_mop.link_abst(abst) # link absts
+        ## this ought not happen and may be redundant, it results in abstractless mops
         if mop_type == 'mop':
             self.install_abstraction(new_mop)
         elif mop_type == 'instance':
-            self.install_instance(new_mop)
+            self.install_instance(new_mop, check_legal=False)
+        ##
         return new_mop
 
 
@@ -92,13 +94,13 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         super().rewind(time)
 
     
-    def install_instance(self, instance):
+    def install_instance(self, instance, check_legal=True):
         instance.refine_instance()
         twin = instance.get_twin()
         if twin:
             self.remove_mop(instance)
             return twin
-        elif instance.has_legal_absts():
+        elif check_legal and instance.has_legal_absts():
             return instance
         else:
             self.remove_mop(instance)
@@ -140,13 +142,16 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             return absts[0]
 
         mop = self.add_mop(mop_name=None, absts=absts, slots=slots, mop_type=mop_type)
+
+        #this code block may be redundant (gets called in add_mop)
         mop_type = mop.mop_type
         if mop_type == 'instance':
             return self.install_instance(mop)
         elif mop_type == 'mop':
             return self.install_abstraction(mop)
+        ##
         if must_work:
-            raise CBRError(f"Failed to convert {slots} to MOP of type {mop_type} with absts {absts}.")
+            raise CBRError(f"Failed to convert slots {slots} to MOP of type {mop_type} with absts {absts}.")
     
 
     def install_foundation_mops(self):
@@ -168,7 +173,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-CASE', slots={'old': self.get_sibling, 'calc_fn': self.get_sibling}, mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-CASE', slots={'old': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.get_sibling}, is_core_cbr_mop=True)}, mop_type='mop', is_core_cbr_mop=True)
 
         self.add_mop(mop_name='M-ROLE', mop_type='mop', is_core_cbr_mop=True)
 
@@ -204,12 +209,15 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         return G
 
-    def get_sibling(self, mop):
+    def get_sibling(self, pattern, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
+        sibling = None
         for abst in mop.absts: # goes up one layer in abstraction
             for spec in abst.specs: # looks at all specializations
-                if spec.is_instance_mop() and spec != mop and not spec.is_abstraction('M-FAILED-SOLUTION'):
-                    return spec
+                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
+                        self.name_mop('M-FAILED-SOLUTION')):
+                    sibling = spec
+        return sibling
 
     def get_mop_slots_r(self, mop_name, curr_dict={}, depth=0):
         ''' For a given mop, return a map of all slot->slot_value.
@@ -303,4 +311,3 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         print(f"Decision Making {decision_making_ability}, Selected range: {select_from_cnt}")
         selected_idx = rng.randrange(select_from_cnt)
         return sorted_mops[selected_idx]
-
