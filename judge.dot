@@ -1,0 +1,577 @@
+digraph G {
+rankdir=LR
+splines=true
+overlap=false
+layout=dot
+n0 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-ROOT</td></tr></table>>];
+n1 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-EVENT</td></tr></table>>];
+n2 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-STATE</td></tr></table>>];
+n3 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-ACT</td></tr></table>>];
+n4 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-ACTOR</td></tr></table>>];
+n5 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-GROUP</td></tr></table>>];
+n6 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-EMPTY-GROUP</td></tr></table>>];
+n7 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-EMPTY-GROUP</td></tr></table>>];
+n8 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-FUNCTION</td></tr></table>>];
+n9 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">CONSTRAINT-FN</td></tr></table>>];
+n10 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-PATTERN</td></tr><tr><td>abst_fn</td><td id="s1">lambda</td></tr></table>>];
+n11 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">GET-SIBLING</td></tr></table>>];
+n12 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CASE</td></tr><tr><td>old</td><td id="s1">lambda</td></tr><tr><td>calc_fn</td><td id="s2">lambda</td></tr></table>>];
+n13 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-ROLE</td></tr></table>>];
+n14 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">NOT-CONSTRAINT</td></tr></table>>];
+n15 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-NOT</td></tr><tr><td>abst_fn</td><td id="s1">lambda</td></tr></table>>];
+n16 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-FAILED-SOLUTION</td></tr></table>>];
+n17 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-AL</td></tr></table>>];
+n18 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CHUCK</td></tr></table>>];
+n19 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-DAVID</td></tr></table>>];
+n20 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-RANDY</td></tr></table>>];
+n21 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-TED</td></tr></table>>];
+n22 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-TIM</td></tr></table>>];
+n23 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-FREQUENCY</td></tr><tr><td>severity</td><td id="s1">None</td></tr></table>>];
+n24 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-ONCE</td></tr><tr><td>severity</td><td id="s1">0</td></tr></table>>];
+n25 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-SEVERAL-TIMES</td></tr><tr><td>severity</td><td id="s1">1</td></tr></table>>];
+n26 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-REPEATEDLY</td></tr><tr><td>severity</td><td id="s1">2</td></tr></table>>];
+n27 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-MOTIVE</td></tr></table>>];
+n28 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-JUSTIFIED</td></tr></table>>];
+n29 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-UNJUSTIFIED</td></tr></table>>];
+n30 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-SELF-DEFENSE</td></tr></table>>];
+n31 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-RETALIATION</td></tr></table>>];
+n32 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-UNPROVOKED</td></tr></table>>];
+n33 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CRIME-TYPE</td></tr></table>>];
+n34 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-HOMICIDE</td></tr></table>>];
+n35 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-FIGHT-ACT</td></tr><tr><td>severity</td><td id="s1">None</td></tr></table>>];
+n36 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-RANGE</td></tr><tr><td>abst_fn</td><td id="s1">lambda</td></tr></table>>];
+n37 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-HURT-ACT</td></tr><tr><td>severity</td><td id="s1">M-RANGE</td></tr></table>>];
+n38 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-SLAP</td></tr><tr><td>severity</td><td id="s1">1</td></tr></table>>];
+n39 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-HIT</td></tr><tr><td>severity</td><td id="s1">1</td></tr></table>>];
+n40 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-STRIKE</td></tr><tr><td>severity</td><td id="s1">2</td></tr></table>>];
+n41 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-KNOCK-DOWN</td></tr><tr><td>severity</td><td id="s1">3</td></tr></table>>];
+n42 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-SLASH</td></tr><tr><td>severity</td><td id="s1">4</td></tr></table>>];
+n43 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-WOUND-ACT</td></tr><tr><td>severity</td><td id="s1">M-RANGE</td></tr></table>>];
+n44 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-STAB</td></tr><tr><td>severity</td><td id="s1">5</td></tr></table>>];
+n45 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-SHOOT</td></tr><tr><td>severity</td><td id="s1">5</td></tr></table>>];
+n46 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-BREAK-SKULL</td></tr><tr><td>severity</td><td id="s1">5</td></tr></table>>];
+n47 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-PHYS-STATE</td></tr><tr><td>severity</td><td id="s1">None</td></tr></table>>];
+n48 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-BRUISED</td></tr><tr><td>severity</td><td id="s1">1</td></tr></table>>];
+n49 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-KNOCKED-DOWN</td></tr><tr><td>severity</td><td id="s1">2</td></tr></table>>];
+n50 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CUT</td></tr><tr><td>severity</td><td id="s1">3</td></tr></table>>];
+n51 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-DEAD</td></tr><tr><td>severity</td><td id="s1">5</td></tr></table>>];
+n52 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-OUTCOME</td></tr></table>>];
+n53 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-FIGHT-OUTCOME</td></tr><tr><td>state</td><td id="s1">M-PHYS-STATE</td></tr><tr><td>actor</td><td id="s2">M-ACTOR</td></tr></table>>];
+n54 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-FIGHT-EVENT</td></tr><tr><td>action</td><td id="s1">M-FIGHT-ACT</td></tr></table>>];
+n55 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-EVENT-GROUP</td></tr><tr><td>1</td><td id="s1">M-EVENT</td></tr></table>>];
+n56 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-OUTCOME-GROUP</td></tr><tr><td>1</td><td id="s1">M-OUTCOME</td></tr></table>>];
+n57 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-ESCALATION-GROUP</td></tr><tr><td>1</td><td id="s1">M-RANGE</td></tr></table>>];
+n58 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-MOTIVE-GROUP</td></tr><tr><td>1</td><td id="s1">M-MOTIVE</td></tr></table>>];
+n59 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">CALC-ESCALATIONS</td></tr></table>>];
+n60 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">CALC-MOTIVES</td></tr></table>>];
+n61 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">ADAPT-SENTENCE</td></tr></table>>];
+n62 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">CALC-SENTENCE</td></tr></table>>];
+n63 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CRIME</td></tr><tr><td>crime_type</td><td id="s1">M-CRIME-TYPE</td></tr><tr><td>defendant</td><td id="s2">M-ACTOR</td></tr><tr><td>victim</td><td id="s3">M-ACTOR</td></tr><tr><td>events</td><td id="s4">M-EVENT-GROUP</td></tr><tr><td>outcomes</td><td id="s5">M-OUTCOME-GROUP</td></tr><tr><td>escalations</td><td id="s6">lambda</td></tr><tr><td>motives</td><td id="s7">lambda</td></tr><tr><td>sentence</td><td id="s8">lambda</td></tr></table>>];
+n64 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">MOTIVE</td></tr></table>>];
+n65 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CALC</td></tr></table>>];
+n66 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CALC-MOTIVE</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>value</td><td id="s2">None</td></tr></table>>];
+n67 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CALC-ESCALATION-MOTIVE</td></tr><tr><td>escalation</td><td id="s1">M-RANGE</td></tr><tr><td>value</td><td id="s2">I-M-RETALIATION</td></tr></table>>];
+n68 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CALC-SELF-DEFENSE-MOTIVE</td></tr><tr><td>escalation</td><td id="s1">M-RANGE</td></tr><tr><td>prev_motive</td><td id="s2">M-UNJUSTIFIED</td></tr><tr><td>value</td><td id="s3">M-SELF-DEFENSE</td></tr></table>>];
+n69 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-CALC-RETALIATION-MOTIVE</td></tr><tr><td>escalation</td><td id="s1">M-RANGE</td></tr><tr><td>prev_motive</td><td id="s2">M-JUSTIFIED</td></tr><tr><td>value</td><td id="s3">I-M-RETALIATION</td></tr></table>>];
+n70 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-COMPARE</td></tr><tr><td>abst_fn</td><td id="s1">lambda</td></tr><tr><td>to</td><td id="s2">M-ROLE</td></tr><tr><td>compare_fn</td><td id="s3">M-FUNCTION</td></tr></table>>];
+n71 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-EQUAL</td></tr><tr><td>compare_fn</td><td id="s1">lambda</td></tr></table>>];
+n72 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-LESS-THAN</td></tr><tr><td>compare_fn</td><td id="s1">lambda</td></tr></table>>];
+n73 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">SENTENCE</td></tr></table>>];
+n74 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">OLD-SEVERITY</td></tr></table>>];
+n75 [shape=none label=<<table cellspacing="0" bgcolor="red"><tr><td colspan="2" id="n">M-ADAPT-SENTENCE</td></tr><tr><td>role</td><td id="s1">SENTENCE</td></tr><tr><td>value</td><td id="s2">lambda</td></tr></table>>];
+n76 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.80</td></tr><tr><td>action</td><td id="s1">I-M-SLASH</td></tr><tr><td>actor</td><td id="s2">I-M-TED</td></tr><tr><td>object</td><td id="s3">I-M-AL</td></tr><tr><td>freq</td><td id="s4">I-M-ONCE</td></tr></table>>];
+n77 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.81</td></tr><tr><td>action</td><td id="s1">I-M-SLASH</td></tr><tr><td>actor</td><td id="s2">I-M-AL</td></tr><tr><td>object</td><td id="s3">I-M-TED</td></tr><tr><td>freq</td><td id="s4">I-M-ONCE</td></tr></table>>];
+n78 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.82</td></tr><tr><td>action</td><td id="s1">I-M-STAB</td></tr><tr><td>actor</td><td id="s2">I-M-TED</td></tr><tr><td>object</td><td id="s3">I-M-AL</td></tr><tr><td>freq</td><td id="s4">I-M-REPEATEDLY</td></tr></table>>];
+n79 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-EVENT-GROUP.83</td></tr><tr><td>1</td><td id="s1">I-M-FIGHT-EVENT.80</td></tr><tr><td>2</td><td id="s2">I-M-FIGHT-EVENT.81</td></tr><tr><td>3</td><td id="s3">I-M-FIGHT-EVENT.82</td></tr></table>>];
+n80 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.84</td></tr><tr><td>state</td><td id="s1">I-M-CUT</td></tr><tr><td>actor</td><td id="s2">I-M-AL</td></tr></table>>];
+n81 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.85</td></tr><tr><td>state</td><td id="s1">I-M-CUT</td></tr><tr><td>actor</td><td id="s2">I-M-TED</td></tr></table>>];
+n82 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.86</td></tr><tr><td>state</td><td id="s1">I-M-DEAD</td></tr><tr><td>actor</td><td id="s2">I-M-AL</td></tr></table>>];
+n83 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-OUTCOME-GROUP.87</td></tr><tr><td>1</td><td id="s1">I-M-FIGHT-OUTCOME.84</td></tr><tr><td>2</td><td id="s2">I-M-FIGHT-OUTCOME.85</td></tr><tr><td>3</td><td id="s3">I-M-FIGHT-OUTCOME.86</td></tr></table>>];
+n84 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CRIME.88</td></tr><tr><td>crime_type</td><td id="s1">I-M-HOMICIDE</td></tr><tr><td>defendant</td><td id="s2">I-M-TED</td></tr><tr><td>victim</td><td id="s3">I-M-AL</td></tr><tr><td>events</td><td id="s4">I-M-EVENT-GROUP.83</td></tr><tr><td>outcomes</td><td id="s5">I-M-OUTCOME-GROUP.87</td></tr><tr><td>sentence</td><td id="s6">40</td></tr><tr><td>escalations</td><td id="s7">I-M-ESCALATION-GROUP.102</td></tr><tr><td>motives</td><td id="s8">I-M-MOTIVE-GROUP.106</td></tr></table>>];
+n85 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.89</td></tr><tr><td>action</td><td id="s1">I-M-STRIKE</td></tr><tr><td>actor</td><td id="s2">I-M-RANDY</td></tr><tr><td>object</td><td id="s3">I-M-CHUCK</td></tr><tr><td>freq</td><td id="s4">I-M-REPEATEDLY</td></tr></table>>];
+n86 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.90</td></tr><tr><td>action</td><td id="s1">I-M-STRIKE</td></tr><tr><td>actor</td><td id="s2">I-M-CHUCK</td></tr><tr><td>object</td><td id="s3">I-M-RANDY</td></tr><tr><td>freq</td><td id="s4">I-M-REPEATEDLY</td></tr></table>>];
+n87 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.91</td></tr><tr><td>action</td><td id="s1">I-M-SLASH</td></tr><tr><td>actor</td><td id="s2">I-M-RANDY</td></tr><tr><td>object</td><td id="s3">I-M-CHUCK</td></tr><tr><td>freq</td><td id="s4">I-M-ONCE</td></tr></table>>];
+n88 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.92</td></tr><tr><td>action</td><td id="s1">I-M-SLASH</td></tr><tr><td>actor</td><td id="s2">I-M-CHUCK</td></tr><tr><td>object</td><td id="s3">I-M-RANDY</td></tr><tr><td>freq</td><td id="s4">I-M-ONCE</td></tr></table>>];
+n89 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.93</td></tr><tr><td>action</td><td id="s1">I-M-STAB</td></tr><tr><td>actor</td><td id="s2">I-M-RANDY</td></tr><tr><td>object</td><td id="s3">I-M-CHUCK</td></tr><tr><td>freq</td><td id="s4">I-M-REPEATEDLY</td></tr></table>>];
+n90 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-EVENT-GROUP.94</td></tr><tr><td>1</td><td id="s1">I-M-FIGHT-EVENT.89</td></tr><tr><td>2</td><td id="s2">I-M-FIGHT-EVENT.90</td></tr><tr><td>3</td><td id="s3">I-M-FIGHT-EVENT.91</td></tr><tr><td>4</td><td id="s4">I-M-FIGHT-EVENT.92</td></tr><tr><td>5</td><td id="s5">I-M-FIGHT-EVENT.93</td></tr></table>>];
+n91 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.95</td></tr><tr><td>state</td><td id="s1">I-M-BRUISED</td></tr><tr><td>actor</td><td id="s2">I-M-CHUCK</td></tr></table>>];
+n92 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.96</td></tr><tr><td>state</td><td id="s1">I-M-BRUISED</td></tr><tr><td>actor</td><td id="s2">I-M-RANDY</td></tr></table>>];
+n93 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.97</td></tr><tr><td>state</td><td id="s1">I-M-CUT</td></tr><tr><td>actor</td><td id="s2">I-M-CHUCK</td></tr></table>>];
+n94 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.98</td></tr><tr><td>state</td><td id="s1">I-M-CUT</td></tr><tr><td>actor</td><td id="s2">I-M-RANDY</td></tr></table>>];
+n95 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.99</td></tr><tr><td>state</td><td id="s1">I-M-DEAD</td></tr><tr><td>actor</td><td id="s2">I-M-CHUCK</td></tr></table>>];
+n96 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-OUTCOME-GROUP.100</td></tr><tr><td>1</td><td id="s1">I-M-FIGHT-OUTCOME.95</td></tr><tr><td>2</td><td id="s2">I-M-FIGHT-OUTCOME.96</td></tr><tr><td>3</td><td id="s3">I-M-FIGHT-OUTCOME.97</td></tr><tr><td>4</td><td id="s4">I-M-FIGHT-OUTCOME.98</td></tr><tr><td>5</td><td id="s5">I-M-FIGHT-OUTCOME.99</td></tr></table>>];
+n97 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CRIME.101</td></tr><tr><td>crime_type</td><td id="s1">I-M-HOMICIDE</td></tr><tr><td>defendant</td><td id="s2">I-M-RANDY</td></tr><tr><td>victim</td><td id="s3">I-M-CHUCK</td></tr><tr><td>events</td><td id="s4">I-M-EVENT-GROUP.94</td></tr><tr><td>outcomes</td><td id="s5">I-M-OUTCOME-GROUP.100</td></tr><tr><td>old</td><td id="s6">I-M-CRIME.88</td></tr><tr><td>escalations</td><td id="s7">I-M-ESCALATION-GROUP.107</td></tr><tr><td>motives</td><td id="s8">I-M-MOTIVE-GROUP.106</td></tr><tr><td>sentence</td><td id="s9">40</td></tr></table>>];
+n98 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-ESCALATION-GROUP.102</td></tr><tr><td>1</td><td id="s1">4</td></tr><tr><td>2</td><td id="s2">0</td></tr><tr><td>3</td><td id="s3">1</td></tr></table>>];
+n99 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.103</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">4</td></tr><tr><td>prev_motive</td><td id="s3">0</td></tr></table>>];
+n100 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.104</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">None</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n101 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.105</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">1</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n102 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-MOTIVE-GROUP.106</td></tr><tr><td>1</td><td id="s1">None</td></tr></table>>];
+n103 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-ESCALATION-GROUP.107</td></tr><tr><td>1</td><td id="s1">2</td></tr><tr><td>2</td><td id="s2">0</td></tr><tr><td>3</td><td id="s3">2</td></tr><tr><td>4</td><td id="s4">0</td></tr><tr><td>5</td><td id="s5">1</td></tr></table>>];
+n104 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.108</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">2</td></tr><tr><td>prev_motive</td><td id="s3">0</td></tr></table>>];
+n105 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.109</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">None</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n106 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.110</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">2</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n107 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.111</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">None</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n108 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.112</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">1</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n109 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-MOTIVE-GROUP.113</td></tr><tr><td>1</td><td id="s1">None</td></tr></table>>];
+n110 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.114</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">4</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-SLASH</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">3</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-STRIKE</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">1</td></tr></table>>];
+n111 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.115</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">3</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-SLASH</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">3</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-STRIKE</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">1</td></tr></table>>];
+n112 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.116</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">2</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-STAB</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">5</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-SLASH</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">3</td></tr></table>>];
+n113 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.117</td></tr><tr><td>action</td><td id="s1">I-M-SLAP</td></tr><tr><td>actor</td><td id="s2">I-M-DAVID</td></tr><tr><td>object</td><td id="s3">I-M-TIM</td></tr><tr><td>freq</td><td id="s4">I-M-SEVERAL-TIMES</td></tr></table>>];
+n114 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.118</td></tr><tr><td>action</td><td id="s1">I-M-STRIKE</td></tr><tr><td>actor</td><td id="s2">I-M-TIM</td></tr><tr><td>object</td><td id="s3">I-M-DAVID</td></tr><tr><td>freq</td><td id="s4">I-M-SEVERAL-TIMES</td></tr></table>>];
+n115 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.119</td></tr><tr><td>action</td><td id="s1">I-M-KNOCK-DOWN</td></tr><tr><td>actor</td><td id="s2">I-M-DAVID</td></tr><tr><td>object</td><td id="s3">I-M-TIM</td></tr><tr><td>freq</td><td id="s4">I-M-ONCE</td></tr></table>>];
+n116 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-EVENT.120</td></tr><tr><td>action</td><td id="s1">I-M-STAB</td></tr><tr><td>actor</td><td id="s2">I-M-TIM</td></tr><tr><td>object</td><td id="s3">I-M-DAVID</td></tr><tr><td>freq</td><td id="s4">I-M-SEVERAL-TIMES</td></tr></table>>];
+n117 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-EVENT-GROUP.121</td></tr><tr><td>1</td><td id="s1">I-M-FIGHT-EVENT.117</td></tr><tr><td>2</td><td id="s2">I-M-FIGHT-EVENT.118</td></tr><tr><td>3</td><td id="s3">I-M-FIGHT-EVENT.119</td></tr><tr><td>4</td><td id="s4">I-M-FIGHT-EVENT.120</td></tr></table>>];
+n118 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.122</td></tr><tr><td>state</td><td id="s1">I-M-BRUISED</td></tr><tr><td>actor</td><td id="s2">I-M-TIM</td></tr></table>>];
+n119 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.123</td></tr><tr><td>state</td><td id="s1">I-M-BRUISED</td></tr><tr><td>actor</td><td id="s2">I-M-DAVID</td></tr></table>>];
+n120 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.124</td></tr><tr><td>state</td><td id="s1">I-M-KNOCKED-DOWN</td></tr><tr><td>actor</td><td id="s2">I-M-TIM</td></tr></table>>];
+n121 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-FIGHT-OUTCOME.125</td></tr><tr><td>state</td><td id="s1">I-M-DEAD</td></tr><tr><td>actor</td><td id="s2">I-M-DAVID</td></tr></table>>];
+n122 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-OUTCOME-GROUP.126</td></tr><tr><td>1</td><td id="s1">I-M-FIGHT-OUTCOME.122</td></tr><tr><td>2</td><td id="s2">I-M-FIGHT-OUTCOME.123</td></tr><tr><td>3</td><td id="s3">I-M-FIGHT-OUTCOME.124</td></tr><tr><td>4</td><td id="s4">I-M-FIGHT-OUTCOME.125</td></tr></table>>];
+n123 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CRIME.127</td></tr><tr><td>crime_type</td><td id="s1">I-M-HOMICIDE</td></tr><tr><td>defendant</td><td id="s2">I-M-TIM</td></tr><tr><td>victim</td><td id="s3">I-M-DAVID</td></tr><tr><td>events</td><td id="s4">I-M-EVENT-GROUP.121</td></tr><tr><td>outcomes</td><td id="s5">I-M-OUTCOME-GROUP.126</td></tr><tr><td>old</td><td id="s6">I-M-CRIME.101</td></tr><tr><td>escalations</td><td id="s7">I-M-ESCALATION-GROUP.128</td></tr><tr><td>motives</td><td id="s8">I-M-MOTIVE-GROUP.106</td></tr><tr><td>sentence</td><td id="s9">40</td></tr></table>>];
+n124 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-ESCALATION-GROUP.128</td></tr><tr><td>1</td><td id="s1">1</td></tr><tr><td>2</td><td id="s2">1</td></tr><tr><td>3</td><td id="s3">1</td></tr><tr><td>4</td><td id="s4">2</td></tr></table>>];
+n125 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.129</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">1</td></tr><tr><td>prev_motive</td><td id="s3">0</td></tr></table>>];
+n126 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.130</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">1</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n127 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.131</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">1</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n128 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.132</td></tr><tr><td>role</td><td id="s1">MOTIVE</td></tr><tr><td>escalation</td><td id="s2">2</td></tr><tr><td>prev_motive</td><td id="s3">None</td></tr></table>>];
+n129 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-MOTIVE-GROUP.133</td></tr><tr><td>1</td><td id="s1">None</td></tr></table>>];
+n130 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.134</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">3</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-STRIKE</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">1</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-SLAP</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">1</td></tr></table>>];
+n131 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.135</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">2</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-STRIKE</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">1</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-STRIKE</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">1</td></tr></table>>];
+n132 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.136</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">1</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-SLASH</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">3</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-KNOCK-DOWN</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">2</td></tr></table>>];
+n133 [shape=none label=<<table cellspacing="0" bgcolor="green"><tr><td colspan="2" id="n">I-M-CALC.137</td></tr><tr><td>role</td><td id="s1">sentence</td></tr><tr><td>index</td><td id="s2">0</td></tr><tr><td>old_sentence</td><td id="s3">40</td></tr><tr><td>OLD-ACTION</td><td id="s4">I-M-SLASH</td></tr><tr><td>OLD-MOTIVE</td><td id="s5">None</td></tr><tr><td>OLD-SEVERITY</td><td id="s6">3</td></tr><tr><td>THIS-ACTION</td><td id="s7">I-M-STAB</td></tr><tr><td>THIS-MOTIVE</td><td id="s8">None</td></tr><tr><td>THIS-SEVERITY</td><td id="s9">5</td></tr></table>>];
+ n0:n -> n1:n [color="blue"]
+ n0:n -> n6:n [color="blue"]
+ n0:n -> n33:n [color="blue"]
+ n0:n -> n4:n [color="blue"]
+ n0:n -> n10:n [color="blue"]
+ n0:n -> n12:n [color="blue"]
+ n0:n -> n52:n [color="blue"]
+ n0:n -> n65:n [color="blue"]
+ n0:n -> n2:n [color="blue"]
+ n0:n -> n5:n [color="blue"]
+ n0:n -> n13:n [color="blue"]
+ n0:n -> n8:n [color="blue"]
+ n0:n -> n23:n [color="blue"]
+ n0:n -> n27:n [color="blue"]
+ n0:n -> n16:n [color="blue"]
+ n0:n -> n3:n [color="blue"]
+ n1:n -> n0:n [color="orange"]
+ n1:n -> n54:n [color="blue"]
+ n2:n -> n0:n [color="orange"]
+ n2:n -> n47:n [color="blue"]
+ n3:n -> n0:n [color="orange"]
+ n3:n -> n35:n [color="blue"]
+ n4:n -> n0:n [color="orange"]
+ n4:n -> n18:n [color="blue"]
+ n4:n -> n19:n [color="blue"]
+ n4:n -> n20:n [color="blue"]
+ n4:n -> n21:n [color="blue"]
+ n4:n -> n22:n [color="blue"]
+ n4:n -> n17:n [color="blue"]
+ n5:n -> n0:n [color="orange"]
+ n5:n -> n56:n [color="blue"]
+ n5:n -> n55:n [color="blue"]
+ n5:n -> n58:n [color="blue"]
+ n5:n -> n57:n [color="blue"]
+ n6:n -> n0:n [color="orange"]
+ n6:n -> n7:n [color="blue"]
+ n7:n -> n6:n [color="orange"]
+ n8:n -> n0:n [color="orange"]
+ n8:n -> n60:n [color="blue"]
+ n8:n -> n11:n [color="blue"]
+ n8:n -> n61:n [color="blue"]
+ n8:n -> n9:n [color="blue"]
+ n8:n -> n62:n [color="blue"]
+ n8:n -> n59:n [color="blue"]
+ n9:n -> n8:n [color="orange"]
+ n9:n -> n14:n [color="blue"]
+ n10:n -> n0:n [color="orange"]
+ n10:n -> n36:n [color="blue"]
+ n10:n -> n70:n [color="blue"]
+ n10:n -> n15:n [color="blue"]
+ n11:n -> n8:n [color="orange"]
+ n12:n -> n0:n [color="orange"]
+ n12:n -> n63:n [color="blue"]
+ n13:n -> n0:n [color="orange"]
+ n13:n -> n64:n [color="blue"]
+ n13:n -> n74:n [color="blue"]
+ n13:n -> n73:n [color="blue"]
+ n14:n -> n9:n [color="orange"]
+ n15:n -> n10:n [color="orange"]
+ n16:n -> n0:n [color="orange"]
+ n17:n -> n4:n [color="orange"]
+ n18:n -> n4:n [color="orange"]
+ n19:n -> n4:n [color="orange"]
+ n20:n -> n4:n [color="orange"]
+ n21:n -> n4:n [color="orange"]
+ n22:n -> n4:n [color="orange"]
+ n23:n -> n0:n [color="orange"]
+ n23:n -> n24:n [color="blue"]
+ n23:n -> n26:n [color="blue"]
+ n23:n -> n25:n [color="blue"]
+ n24:n -> n23:n [color="orange"]
+ n25:n -> n23:n [color="orange"]
+ n26:n -> n23:n [color="orange"]
+ n27:n -> n0:n [color="orange"]
+ n27:n -> n28:n [color="blue"]
+ n27:n -> n30:n [color="blue"]
+ n27:n -> n29:n [color="blue"]
+ n28:n -> n27:n [color="orange"]
+ n29:n -> n27:n [color="orange"]
+ n29:n -> n32:n [color="blue"]
+ n29:n -> n31:n [color="blue"]
+ n30:n -> n27:n [color="orange"]
+ n31:n -> n29:n [color="orange"]
+ n32:n -> n29:n [color="orange"]
+ n33:n -> n0:n [color="orange"]
+ n33:n -> n34:n [color="blue"]
+ n34:n -> n33:n [color="orange"]
+ n35:n -> n3:n [color="orange"]
+ n35:n -> n43:n [color="blue"]
+ n35:n -> n37:n [color="blue"]
+ n36:n -> n10:n [color="orange"]
+ n37:n -> n35:n [color="orange"]
+ n37:n -> n42:n [color="blue"]
+ n37:n -> n38:n [color="blue"]
+ n37:n -> n39:n [color="blue"]
+ n37:n -> n40:n [color="blue"]
+ n37:n -> n41:n [color="blue"]
+ n38:n -> n37:n [color="orange"]
+ n39:n -> n37:n [color="orange"]
+ n40:n -> n37:n [color="orange"]
+ n41:n -> n37:n [color="orange"]
+ n42:n -> n37:n [color="orange"]
+ n43:n -> n35:n [color="orange"]
+ n43:n -> n46:n [color="blue"]
+ n43:n -> n45:n [color="blue"]
+ n43:n -> n44:n [color="blue"]
+ n44:n -> n43:n [color="orange"]
+ n45:n -> n43:n [color="orange"]
+ n46:n -> n43:n [color="orange"]
+ n47:n -> n2:n [color="orange"]
+ n47:n -> n48:n [color="blue"]
+ n47:n -> n51:n [color="blue"]
+ n47:n -> n50:n [color="blue"]
+ n47:n -> n49:n [color="blue"]
+ n48:n -> n47:n [color="orange"]
+ n49:n -> n47:n [color="orange"]
+ n50:n -> n47:n [color="orange"]
+ n51:n -> n47:n [color="orange"]
+ n52:n -> n0:n [color="orange"]
+ n52:n -> n53:n [color="blue"]
+ n53:n -> n52:n [color="orange"]
+ n53:n -> n95:n [color="blue"]
+ n53:n -> n82:n [color="blue"]
+ n53:n -> n91:n [color="blue"]
+ n53:n -> n120:n [color="blue"]
+ n53:n -> n92:n [color="blue"]
+ n53:n -> n121:n [color="blue"]
+ n53:n -> n93:n [color="blue"]
+ n53:n -> n80:n [color="blue"]
+ n53:n -> n118:n [color="blue"]
+ n53:n -> n94:n [color="blue"]
+ n53:n -> n81:n [color="blue"]
+ n53:n -> n119:n [color="blue"]
+ n54:n -> n1:n [color="orange"]
+ n54:n -> n87:n [color="blue"]
+ n54:n -> n78:n [color="blue"]
+ n54:n -> n116:n [color="blue"]
+ n54:n -> n88:n [color="blue"]
+ n54:n -> n89:n [color="blue"]
+ n54:n -> n113:n [color="blue"]
+ n54:n -> n114:n [color="blue"]
+ n54:n -> n85:n [color="blue"]
+ n54:n -> n76:n [color="blue"]
+ n54:n -> n115:n [color="blue"]
+ n54:n -> n86:n [color="blue"]
+ n54:n -> n77:n [color="blue"]
+ n55:n -> n5:n [color="orange"]
+ n55:n -> n117:n [color="blue"]
+ n55:n -> n90:n [color="blue"]
+ n55:n -> n79:n [color="blue"]
+ n56:n -> n5:n [color="orange"]
+ n56:n -> n96:n [color="blue"]
+ n56:n -> n83:n [color="blue"]
+ n56:n -> n122:n [color="blue"]
+ n57:n -> n5:n [color="orange"]
+ n57:n -> n103:n [color="blue"]
+ n57:n -> n98:n [color="blue"]
+ n57:n -> n124:n [color="blue"]
+ n58:n -> n5:n [color="orange"]
+ n58:n -> n102:n [color="blue"]
+ n58:n -> n109:n [color="blue"]
+ n58:n -> n129:n [color="blue"]
+ n59:n -> n8:n [color="orange"]
+ n60:n -> n8:n [color="orange"]
+ n61:n -> n8:n [color="orange"]
+ n62:n -> n8:n [color="orange"]
+ n63:n -> n12:n [color="orange"]
+ n63:n -> n97:n [color="blue"]
+ n63:n -> n84:n [color="blue"]
+ n63:n -> n123:n [color="blue"]
+ n64:n -> n13:n [color="orange"]
+ n65:n -> n0:n [color="orange"]
+ n65:n -> n126:n [color="blue"]
+ n65:n -> n133:n [color="blue"]
+ n65:n -> n107:n [color="blue"]
+ n65:n -> n75:n [color="blue"]
+ n65:n -> n104:n [color="blue"]
+ n65:n -> n110:n [color="blue"]
+ n65:n -> n101:n [color="blue"]
+ n65:n -> n111:n [color="blue"]
+ n65:n -> n130:n [color="blue"]
+ n65:n -> n127:n [color="blue"]
+ n65:n -> n66:n [color="blue"]
+ n65:n -> n108:n [color="blue"]
+ n65:n -> n131:n [color="blue"]
+ n65:n -> n105:n [color="blue"]
+ n65:n -> n112:n [color="blue"]
+ n65:n -> n99:n [color="blue"]
+ n65:n -> n128:n [color="blue"]
+ n65:n -> n125:n [color="blue"]
+ n65:n -> n132:n [color="blue"]
+ n65:n -> n106:n [color="blue"]
+ n65:n -> n100:n [color="blue"]
+ n66:n -> n65:n [color="orange"]
+ n66:n -> n68:n [color="blue"]
+ n66:n -> n67:n [color="blue"]
+ n66:n -> n69:n [color="blue"]
+ n67:n -> n66:n [color="orange"]
+ n68:n -> n66:n [color="orange"]
+ n69:n -> n66:n [color="orange"]
+ n70:n -> n10:n [color="orange"]
+ n70:n -> n72:n [color="blue"]
+ n70:n -> n71:n [color="blue"]
+ n71:n -> n70:n [color="orange"]
+ n72:n -> n70:n [color="orange"]
+ n73:n -> n13:n [color="orange"]
+ n74:n -> n13:n [color="orange"]
+ n75:n -> n65:n [color="orange"]
+ n76:n -> n54:n [color="orange"]
+ n77:n -> n54:n [color="orange"]
+ n78:n -> n54:n [color="orange"]
+ n79:n -> n55:n [color="orange"]
+ n80:n -> n53:n [color="orange"]
+ n81:n -> n53:n [color="orange"]
+ n82:n -> n53:n [color="orange"]
+ n83:n -> n56:n [color="orange"]
+ n84:n -> n63:n [color="orange"]
+ n85:n -> n54:n [color="orange"]
+ n86:n -> n54:n [color="orange"]
+ n87:n -> n54:n [color="orange"]
+ n88:n -> n54:n [color="orange"]
+ n89:n -> n54:n [color="orange"]
+ n90:n -> n55:n [color="orange"]
+ n91:n -> n53:n [color="orange"]
+ n92:n -> n53:n [color="orange"]
+ n93:n -> n53:n [color="orange"]
+ n94:n -> n53:n [color="orange"]
+ n95:n -> n53:n [color="orange"]
+ n96:n -> n56:n [color="orange"]
+ n97:n -> n63:n [color="orange"]
+ n98:n -> n57:n [color="orange"]
+ n99:n -> n65:n [color="orange"]
+ n100:n -> n65:n [color="orange"]
+ n101:n -> n65:n [color="orange"]
+ n102:n -> n58:n [color="orange"]
+ n103:n -> n57:n [color="orange"]
+ n104:n -> n65:n [color="orange"]
+ n105:n -> n65:n [color="orange"]
+ n106:n -> n65:n [color="orange"]
+ n107:n -> n65:n [color="orange"]
+ n108:n -> n65:n [color="orange"]
+ n109:n -> n58:n [color="orange"]
+ n110:n -> n65:n [color="orange"]
+ n111:n -> n65:n [color="orange"]
+ n112:n -> n65:n [color="orange"]
+ n113:n -> n54:n [color="orange"]
+ n114:n -> n54:n [color="orange"]
+ n115:n -> n54:n [color="orange"]
+ n116:n -> n54:n [color="orange"]
+ n117:n -> n55:n [color="orange"]
+ n118:n -> n53:n [color="orange"]
+ n119:n -> n53:n [color="orange"]
+ n120:n -> n53:n [color="orange"]
+ n121:n -> n53:n [color="orange"]
+ n122:n -> n56:n [color="orange"]
+ n123:n -> n63:n [color="orange"]
+ n124:n -> n57:n [color="orange"]
+ n125:n -> n65:n [color="orange"]
+ n126:n -> n65:n [color="orange"]
+ n127:n -> n65:n [color="orange"]
+ n128:n -> n65:n [color="orange"]
+ n129:n -> n58:n [color="orange"]
+ n130:n -> n65:n [color="orange"]
+ n131:n -> n65:n [color="orange"]
+ n132:n -> n65:n [color="orange"]
+ n133:n -> n65:n [color="orange"]
+ n37:s1 -> n36:n [color="black"]
+ n43:s1 -> n36:n [color="black"]
+ n53:s1 -> n47:n [color="black"]
+ n53:s2 -> n4:n [color="black"]
+ n54:s1 -> n35:n [color="black"]
+ n55:s1 -> n1:n [color="black"]
+ n56:s1 -> n52:n [color="black"]
+ n57:s1 -> n36:n [color="black"]
+ n58:s1 -> n27:n [color="black"]
+ n63:s1 -> n33:n [color="black"]
+ n63:s2 -> n4:n [color="black"]
+ n63:s3 -> n4:n [color="black"]
+ n63:s4 -> n55:n [color="black"]
+ n63:s5 -> n56:n [color="black"]
+ n66:s1 -> n64:n [color="black"]
+ n67:s1 -> n36:n [color="black"]
+ n67:s2 -> n31:n [color="black"]
+ n68:s1 -> n36:n [color="black"]
+ n68:s2 -> n29:n [color="black"]
+ n68:s3 -> n30:n [color="black"]
+ n69:s1 -> n36:n [color="black"]
+ n69:s2 -> n28:n [color="black"]
+ n69:s3 -> n31:n [color="black"]
+ n70:s2 -> n13:n [color="black"]
+ n70:s3 -> n8:n [color="black"]
+ n75:s1 -> n73:n [color="black"]
+ n76:s1 -> n42:n [color="black"]
+ n76:s2 -> n21:n [color="black"]
+ n76:s3 -> n17:n [color="black"]
+ n76:s4 -> n24:n [color="black"]
+ n77:s1 -> n42:n [color="black"]
+ n77:s2 -> n17:n [color="black"]
+ n77:s3 -> n21:n [color="black"]
+ n77:s4 -> n24:n [color="black"]
+ n78:s1 -> n44:n [color="black"]
+ n78:s2 -> n21:n [color="black"]
+ n78:s3 -> n17:n [color="black"]
+ n78:s4 -> n26:n [color="black"]
+ n79:s1 -> n76:n [color="black"]
+ n79:s2 -> n77:n [color="black"]
+ n79:s3 -> n78:n [color="black"]
+ n80:s1 -> n50:n [color="black"]
+ n80:s2 -> n17:n [color="black"]
+ n81:s1 -> n50:n [color="black"]
+ n81:s2 -> n21:n [color="black"]
+ n82:s1 -> n51:n [color="black"]
+ n82:s2 -> n17:n [color="black"]
+ n83:s1 -> n80:n [color="black"]
+ n83:s2 -> n81:n [color="black"]
+ n83:s3 -> n82:n [color="black"]
+ n84:s1 -> n34:n [color="black"]
+ n84:s2 -> n21:n [color="black"]
+ n84:s3 -> n17:n [color="black"]
+ n84:s4 -> n79:n [color="black"]
+ n84:s5 -> n83:n [color="black"]
+ n84:s7 -> n98:n [color="black"]
+ n84:s8 -> n102:n [color="black"]
+ n85:s1 -> n40:n [color="black"]
+ n85:s2 -> n20:n [color="black"]
+ n85:s3 -> n18:n [color="black"]
+ n85:s4 -> n26:n [color="black"]
+ n86:s1 -> n40:n [color="black"]
+ n86:s2 -> n18:n [color="black"]
+ n86:s3 -> n20:n [color="black"]
+ n86:s4 -> n26:n [color="black"]
+ n87:s1 -> n42:n [color="black"]
+ n87:s2 -> n20:n [color="black"]
+ n87:s3 -> n18:n [color="black"]
+ n87:s4 -> n24:n [color="black"]
+ n88:s1 -> n42:n [color="black"]
+ n88:s2 -> n18:n [color="black"]
+ n88:s3 -> n20:n [color="black"]
+ n88:s4 -> n24:n [color="black"]
+ n89:s1 -> n44:n [color="black"]
+ n89:s2 -> n20:n [color="black"]
+ n89:s3 -> n18:n [color="black"]
+ n89:s4 -> n26:n [color="black"]
+ n90:s1 -> n85:n [color="black"]
+ n90:s2 -> n86:n [color="black"]
+ n90:s3 -> n87:n [color="black"]
+ n90:s4 -> n88:n [color="black"]
+ n90:s5 -> n89:n [color="black"]
+ n91:s1 -> n48:n [color="black"]
+ n91:s2 -> n18:n [color="black"]
+ n92:s1 -> n48:n [color="black"]
+ n92:s2 -> n20:n [color="black"]
+ n93:s1 -> n50:n [color="black"]
+ n93:s2 -> n18:n [color="black"]
+ n94:s1 -> n50:n [color="black"]
+ n94:s2 -> n20:n [color="black"]
+ n95:s1 -> n51:n [color="black"]
+ n95:s2 -> n18:n [color="black"]
+ n96:s1 -> n91:n [color="black"]
+ n96:s2 -> n92:n [color="black"]
+ n96:s3 -> n93:n [color="black"]
+ n96:s4 -> n94:n [color="black"]
+ n96:s5 -> n95:n [color="black"]
+ n97:s1 -> n34:n [color="black"]
+ n97:s2 -> n20:n [color="black"]
+ n97:s3 -> n18:n [color="black"]
+ n97:s4 -> n90:n [color="black"]
+ n97:s5 -> n96:n [color="black"]
+ n97:s6 -> n84:n [color="black"]
+ n97:s7 -> n103:n [color="black"]
+ n97:s8 -> n102:n [color="black"]
+ n99:s1 -> n64:n [color="black"]
+ n100:s1 -> n64:n [color="black"]
+ n101:s1 -> n64:n [color="black"]
+ n104:s1 -> n64:n [color="black"]
+ n105:s1 -> n64:n [color="black"]
+ n106:s1 -> n64:n [color="black"]
+ n107:s1 -> n64:n [color="black"]
+ n108:s1 -> n64:n [color="black"]
+ n110:s4 -> n42:n [color="black"]
+ n110:s7 -> n40:n [color="black"]
+ n111:s4 -> n42:n [color="black"]
+ n111:s7 -> n40:n [color="black"]
+ n112:s4 -> n44:n [color="black"]
+ n112:s7 -> n42:n [color="black"]
+ n113:s1 -> n38:n [color="black"]
+ n113:s2 -> n19:n [color="black"]
+ n113:s3 -> n22:n [color="black"]
+ n113:s4 -> n25:n [color="black"]
+ n114:s1 -> n40:n [color="black"]
+ n114:s2 -> n22:n [color="black"]
+ n114:s3 -> n19:n [color="black"]
+ n114:s4 -> n25:n [color="black"]
+ n115:s1 -> n41:n [color="black"]
+ n115:s2 -> n19:n [color="black"]
+ n115:s3 -> n22:n [color="black"]
+ n115:s4 -> n24:n [color="black"]
+ n116:s1 -> n44:n [color="black"]
+ n116:s2 -> n22:n [color="black"]
+ n116:s3 -> n19:n [color="black"]
+ n116:s4 -> n25:n [color="black"]
+ n117:s1 -> n113:n [color="black"]
+ n117:s2 -> n114:n [color="black"]
+ n117:s3 -> n115:n [color="black"]
+ n117:s4 -> n116:n [color="black"]
+ n118:s1 -> n48:n [color="black"]
+ n118:s2 -> n22:n [color="black"]
+ n119:s1 -> n48:n [color="black"]
+ n119:s2 -> n19:n [color="black"]
+ n120:s1 -> n49:n [color="black"]
+ n120:s2 -> n22:n [color="black"]
+ n121:s1 -> n51:n [color="black"]
+ n121:s2 -> n19:n [color="black"]
+ n122:s1 -> n118:n [color="black"]
+ n122:s2 -> n119:n [color="black"]
+ n122:s3 -> n120:n [color="black"]
+ n122:s4 -> n121:n [color="black"]
+ n123:s1 -> n34:n [color="black"]
+ n123:s2 -> n22:n [color="black"]
+ n123:s3 -> n19:n [color="black"]
+ n123:s4 -> n117:n [color="black"]
+ n123:s5 -> n122:n [color="black"]
+ n123:s6 -> n97:n [color="black"]
+ n123:s7 -> n124:n [color="black"]
+ n123:s8 -> n102:n [color="black"]
+ n125:s1 -> n64:n [color="black"]
+ n126:s1 -> n64:n [color="black"]
+ n127:s1 -> n64:n [color="black"]
+ n128:s1 -> n64:n [color="black"]
+ n130:s4 -> n40:n [color="black"]
+ n130:s7 -> n38:n [color="black"]
+ n131:s4 -> n40:n [color="black"]
+ n131:s7 -> n40:n [color="black"]
+ n132:s4 -> n42:n [color="black"]
+ n132:s7 -> n41:n [color="black"]
+ n133:s4 -> n42:n [color="black"]
+ n133:s7 -> n44:n [color="black"]
+}

@@ -871,6 +871,10 @@ class ImprovedRomancerObject():
                 for logpoint in reasserts:
                     self.reassert_logpoint(logpoint)
             self.time = time
+            # create a logpoint that says time has changed
+            empty_logpoint = UniversalLogpoint(time, difs=())
+            self.loglist.append(empty_logpoint)
+
             
         
     def rewind(self, time):

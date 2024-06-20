@@ -1,0 +1,53 @@
+from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+
+
+def next_deterministic_action(o, m):
+    '''This method sends a message to the supervisor indicating the time of the next deterministic action that the agent will take. This can be an arbitrary action. The PersonLikeAgent might invoke either its reasoner or amygdala to determine this action, but it can also represent non-cognitive processes associated with the "person."'''
+    pass
+
+
+def next_deliberate_action(o, m):
+    '''The purpose of this method is to determine whether the agent plans to execute a deliberate action before a maximum time. Deliberate actions are always deterministic, but deterministic actions are not necessarily deliberate. For example, some agents can move just as vehicles can, and some of those movements can be deterministic from a simulation standpoint while not being deliberate. E.g., if an agent represents a falling person, their physical shift to a different disposition as they fell would be deterministic (in that it can be predicted to occur ast a specific future time) but not deliberate in that the agent may not have planned to fall and may not be aware it is falling. The PersonLikeAgent might invoke either its reasoner or amygdala to determine this action.'''
+    pass
+
+
+class PersonLikeAgent(ImprovedRomancerObject):
+    '''Person-like agents are intended to represent human cognitive processes in at least modest fidelity. They incorporate an object approximately representing neuroendocrine and limbic systems (a ) and another representing higher-level reasoning functions (i.e., neocortex).'''
+
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner):
+        super().__init__(environment, time)
+        self.perception_filter = perception_filter # this should probably log by default
+        self.most_recent_percept_time = None # this should definitely log
+        self.amygdala = amygdala
+        self.reasoner = reasoner
+        self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action, 
+                                          'StochasticActionsBeforeTime': lambda o, m: None,
+                                          'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
+                                          'NextDeliberateAction': next_deliberate_action,
+                                          'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)})
+        
+
+    def dispatcher(self, message):
+        '''This is the function that decides how to process messages in the agent's inbox. It should return functions with an (supervisor, message) call signature. Raises an exception if no appropriate dispatch function is found.'''
+        try:
+            f = self.dispatch_table[message.messagetype]
+            return f
+        except KeyError:
+            print('No dispatch found for message type:', message.messagetype)
+
+
+    def forward_simulation(self, time):
+        '''The forward_simulation method for the PersonLikeAgent works by calling the forward_simulation method of the agent's reasoner, which in turn advances the simulation of the amygdala as needed.'''
+        self.reasoner.forward_simulation(time, self.amygdala)
+                
+            
+    def perceive(self, percept):
+        '''This method updates the agent's internal state based on percept. This is delegated to the PerceptionFilter, which may contain closures over the agent's amyygdala and reasoner.'''
+        self.perception_filter.digest_percept(percept)
+
+
+    def deliberate(self, max_time):
+        '''This method causes the agent to cogitate and predict how its mental state and intentions will evolve up until max_time in the future, presuming that it receives no additional percepts after the current time. One of the purposes of this method is to establish the evolution of the internal mental state of the agent. These changes can be stored on the loglist and then used to account for how a new percept can interrupt the agent's 'chain of thought.'
+
+        The PersonLikeAgent delegates deliberation to its reasoner.'''
+        self.reasoner.deliberate(max_time, self.amygdala)
