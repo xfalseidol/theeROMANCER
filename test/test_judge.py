@@ -21,7 +21,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         print(f"Sentence in {instance} is {sentence}.")
 
 
-    def calculate_escalations(self, mop):
+    def calculate_escalations(self, pattern, mop):
         print("---------------------------")
         print(f"Calculating escalations in {mop}")
         previous_severity = 0
@@ -37,7 +37,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         return escalations_mop
     
 
-    def calculate_motives(self, mop):
+    def calculate_motives(self, pattern, mop):
         print("---------------------------")
         print(f"Calculating motives in {mop}")
         prev_motive = 0
@@ -51,8 +51,7 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         motives_mop = self.slots_to_mop(slots=motives, absts={'M-MOTIVE-GROUP'}, mop_type='instance')
         return motives_mop
 
-
-    def adapt_sentence(self, mop):
+    def adapt_sentence(self, pattern, mop):
         old_mop = mop.get_filler('old')
         old_size = old_mop.get_filler('events').group_size()
         old_sentence = old_mop.get_filler('sentence')
@@ -61,10 +60,13 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         print("---------------------------")
         print(f"Adapting sentence in {old_mop}")
 
-        for old_pos, pos in zip(range(1, old_size + 1), range(1, size + 1)):
-            slots = {'role': sentence, 'index': size - pos, 'old_sentence': old_sentence}
-            slots.update(judge.crime_compare_slots(old_mop, old_pos, ['OLD-ACTION', 'OLD-MOTIVE', 'OLD-SEVERITY']))
-            slots.update(judge.crime_compare_slots(mop, pos, ['THIS-ACTION', 'THIS-MOTIVE', 'THIS-SEVERITY']))
+        # for old_pos, pos in zip(range(1, old_size + 1), range(1, size + 1)):
+        for pos in range(0, min(old_size, size)):
+            old_index = old_size - pos
+            index = size - pos
+            slots = {'role': sentence, 'index': pos, 'old_sentence': old_sentence}
+            slots.update(judge.crime_compare_slots(old_mop, old_index, ['old_action', 'old_motive', 'old_severity']))
+            slots.update(judge.crime_compare_slots(mop, index, ['this_action', 'this_motive', 'this_severity']))
             result = judge.mop_calc(slots)
             if result is not None:
                 return result
@@ -72,7 +74,9 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         print("No major difference found")
         print("Using old sentence")
         return old_sentence
-    
+# trace, compare Case 3 (new) with Case 2 (old):
+# 1) old_action: stab, old_motive: , old_severity: 5 (dead)
+
 
     def mop_calc(self, slots):
         instance = self.slots_to_mop(slots=slots, absts={'M-CALC'}, mop_type='instance')
@@ -89,28 +93,28 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         return slots
 
 
-    def adjust_sentence(self, mop):
+    def adjust_sentence(self, pattern, mop):
         print("~---------------------------~")
         print(f"{mop} applied, {mop.get_filler('index')} events from the end")
-        self.adjust_function(
-            mop.get_filler('old_sentence'),
-            mop.get_filler('weight'),
-            mop.get_filler('index'),
-            mop.get_filler('direction')
-        )
+        old_sentence = mop.get_filler('old_sentence')
+        weight = mop.get_filler('weight')
+        index = mop.get_filler('index')
+        direction = mop.get_filler('direction')
+        return self.adjust_function(old_sentence, weight, index, direction)
     
     def compare_constraint(self, constraint, filler, slots):
-        compare_fn = getattr(constraint, 'compare_fn')
+        compare_fn = constraint.get_filler('compare_fn')
         to = self.indirect_filler('to', constraint, slots)
         return compare_fn(filler, to)
 
     def indirect_filler(self, role, mop, slots):
         filler = mop.get_filler(role)
-        return filler.get_filler(slots)
+        return slots.get_filler(filler)
 
     def adjust_function(self, sentence, weight, index, direction):
         closeness = 0.25 if index <= 1 else 0
-        return sentence + (sentence * (weight + closeness) * direction)
+        adjusted_sentence = sentence + (sentence * (weight + closeness) * direction)
+        return adjusted_sentence
 
     
     def range_constraint(self, constraint, filler, slots):
@@ -226,9 +230,9 @@ crime = judge.add_mop(mop_name="M-CRIME",
                             'victim': judge.name_mop('M-ACTOR'), 
                             'events': judge.name_mop('M-EVENT-GROUP'), 
                             'outcomes': judge.name_mop('M-OUTCOME-GROUP'), 
-                            'escalations': judge.calculate_escalations,
-                            'motives': judge.calculate_motives,
-                            'sentence': judge.adapt_sentence})
+                            'escalations': judge.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': judge.calculate_escalations}),
+                            'motives': judge.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': judge.calculate_motives}),
+                            'sentence': judge.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': judge.adapt_sentence})})
 # (DEFMOP M-CRIME (M-CASE)
     # (CRIME-TYPE M-CRIME-TYPE)
     # (DEFENDANT M-ACTOR)
@@ -258,7 +262,8 @@ judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE', absts={'M-CALC-MOTIVE'}, sl
     # (VALUE I-M-RETALIATION))
 judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}), 'prev_motive': justified, 'value': retaliation}, mop_type='mop')
 
-judge.add_mop(mop_name='M-COMPARE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': judge.compare_constraint, 'to': judge.name_mop('M-ROLE'), 'compare_fn': judge.name_mop('M-FUNCTION')})
+judge.add_mop(mop_name='M-COMPARE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': judge.compare_constraint, 'to': 
+judge.name_mop('M-ROLE'), 'compare_fn': judge.name_mop('M-FUNCTION')})
 judge.add_mop(mop_name='M-EQUAL', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.equals})
 judge.add_mop(mop_name='M-LESS-THAN', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.less_than})
 sentence = judge.add_mop(mop_name='SENTENCE', absts={'M-ROLE'}, mop_type='instance')
@@ -266,7 +271,10 @@ judge.add_mop(mop_name='OLD-SEVERITY', absts={'M-ROLE'}, mop_type='instance')
 # (DEFMOP M-ADAPT-SENTENCE (M-CALC)
     # (ROLE SENTENCE)
     # (VALUE M-PATTERN (CALC-FN ADJUST-SENTENCE)))
-judge.add_mop(mop_name='M-ADAPT-SENTENCE', absts={'M-CALC'}, mop_type='mop', slots={'role': sentence, 'value': judge.adjust_sentence})
+judge.add_mop(mop_name='M-ADAPT-SENTENCE', 
+              absts={'M-CALC'}, 
+              mop_type='mop', slots={'role': sentence, 
+                                     'value': judge.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': judge.adjust_sentence})})
 
 ### need to finish these ADAPT MOPS that should look very similar to this
 # (DEFMOP M-CALC-RETALIATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
@@ -280,9 +288,81 @@ judge.add_mop(mop_name='M-ADAPT-SENTENCE', absts={'M-CALC'}, mop_type='mop', slo
     # (THIS-MOTIVE M-UNJUSTIFIED)
     # (WEIGHT 0.50) (DIRECTION -l))
 # still need to fill in the THIS-ACTION slot and all the other slots
-judge.add_mop(mop_name='M-ADAPT-EXTREME-FORCE-OLD', absts={'M-ADAPT-SENTENCE'}, slots={'old_action': wound_act, 'this_action': judge.add_mop()})
+# judge.add_mop(mop_name='M-ADAPT-EXTREME-FORCE-OLD', absts={'M-ADAPT-SENTENCE'}, slots={'old_action': wound_act, 'this_action': judge.add_mop()})
 ###
+judge.add_mop(mop_name='M-ADAPT-EXTREME-FORCE-OLD',
+              absts={'M-ADAPT-SENTENCE'},
+              slots={'old_action': wound_act,
+                     'this_action': judge.add_mop(absts={'M-NOT'}, slots={'object': wound_act}),
+                     'old_motive': unjustified,
+                     'this_motive': unjustified,
+                     'weight': 0.5,
+                     'direction': -1})
 
+# (DEFMOP M-ADAPT-EXTREME-FORCE-NEW (M-ADAPT-SENTENCE) (OLD-ACTION M-NOT (OBJECT M-WOUND-ACT)) (THIS-ACTION M-WOUND-ACT)
+# (OLD-MOTIVE M-UNJUSTIFIED)
+# (THIS-MOTIVE M-UNJUSTIFIED)
+# (WEIGHT 0.50) (DIRECTION 1))
+judge.add_mop(mop_name='M-ADAPT-EXTREME-FORCE-NEW',
+              absts={'M-ADAPT-SENTENCE'},
+              slots={'old_action': judge.add_mop(absts={'M-NOT'}, slots={'object': wound_act}),
+                     'this_action': wound_act,
+                     'old_motive': unjustified,
+                     'this_motive': unjustified,
+                     'weight': 0.5,
+                     'direction': 1})
+# (DEFMOP M-ADAPT-WORSE-MOTIVE-OLD (M-ADAPT-SENTENCE) (OLD-SEVERITY NIL)
+# (THIS-SEVERITY M-EQUAL (TO OLD-SEVERITY)) (OLD-MOTIVE M-UNJUSTIFIED)
+# (THIS-MOTIVE M-JUSTIFIED)
+# (WEIGHT 0.25) (DIRECTION -1))
+judge.add_mop(mop_name='M-ADAPT-WORSE-MOTIVE-OLD',
+              absts={'M-ADAPT-SENTENCE'},
+              slots={'old_severity': None,
+                     'this_severity': judge.add_mop(absts={'M-EQUAL'}, slots={'to': 'old_severity'}),
+                     'old_motive': unjustified,
+                     'this_motive': justified,
+                     'weight': 0.25,
+                     'direction': -1})
+
+# (DEFMOP M-ADAPT-WORSE-MOTIVE-NEW (M-ADAPT-SENTENCE) (OLD-SEVERITY NIL)
+# (THIS-SEVERITY M-EQUAL (TO OLD-SEVERITY)) (OLD-MOTIVE M-JUSTIFIED)
+# (THIS-MOTIVE M-UNJUSTIFIED)
+# (WEIGHT 0.25) (DIRECTION 1))
+judge.add_mop(mop_name='M-ADAPT-WORSE-MOTIVE-NEW',
+              absts={'M-ADAPT-SENTENCE'},
+              slots={'old_severity': None,
+                     'this_severity': judge.add_mop(absts={'M-EQUAL'}, slots={'to': 'old_severity'}),
+                     'old_motive': justified,
+                     'this_motive': unjustified,
+                     'weight': 0.25,
+                     'direction': 1})
+
+# (DEFMOP M-ADAPT-MIXED-OLD (M-ADAPT-SENTENCE) (OLD-SEVERITY NIL)
+# (THIS-SEVERITY M-LESS-THAN (TO OLD-SEVERITY)) (OLD-MOTIVE M-JUSTIFIED)
+# (THIS-MOTIVE M-UNJUSTIFIED)
+# (WEIGHT O.OO) (DIRECTION -1))
+judge.add_mop(mop_name='M-ADAPT-MIXED-OLD',
+              absts={'M-ADAPT-SENTENCE'},
+              slots={'old_severity': None,
+                     'this_severity': judge.add_mop(absts={'M-LESS-THAN'}, slots={'to': 'old_severity'}),
+                     'old_motive': justified,
+                     'this_motive': unjustified,
+                     'weight': 0.0,
+                     'direction': -1})
+
+# (DEFMOP M-ADAPT-MIXED-NEW (M-ADAPT-SENTENCE) (THIS-SEVERITY NIL)
+# (OLD-SEVERITY M-LESS-THAN (TO OLD-SEVERITY)) (OLD-MOTIVE M-UNJUSTIFIED)
+# (THIS-MOTIVE M-JUSTIFIED)
+# (WEIGHT 0.00) (DIRECTION 1))
+judge.add_mop(mop_name='M-ADAPT-MIXED-NEW',
+              absts={'M-ADAPT-SENTENCE'},
+              slots={'this_severity': None,
+                     'old_severity': judge.add_mop(absts={'M-LESS-THAN'}, slots={'to': 'old_severity'}),
+                     'old_motive': unjustified,
+                     'this_motive': justified,
+                     'weight': 0.0,
+                     'direction': 1})
+###
 
 event_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': ted, 'object': al, 'freq': once})
 event_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': slash, 'actor': al, 'object': ted, 'freq': once})
@@ -293,7 +373,7 @@ outcome_2 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots=
 outcome_3 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-OUTCOME'}, slots={'state': dead, 'actor': al})
 case_1_outcomes = judge.add_mop(absts={'M-OUTCOME-GROUP'}, mop_type='instance', slots={1: outcome_1, 2: outcome_2, 3: outcome_3})
 case_1_slots = {'crime_type': homicide, 'defendant': ted, 'victim': al, 'events': case_1_events, 'outcomes': case_1_outcomes, 'sentence': 40}
-judge.judge_case(case_1_slots)
+
 
 # Define the events
 event_1 = judge.add_mop(mop_type='instance', absts={'M-FIGHT-EVENT'}, slots={'action': strike, 'actor': randy, 'object': chuck, 'freq': repeatedly})
@@ -318,9 +398,11 @@ case_2_slots = {
     'victim': chuck,
     'events': case_2_events,
     'outcomes': case_2_outcomes,
+    'sentence': 40
 }
 # Create the case MOP instance
 # Judge the case
+judge.judge_case(case_1_slots)
 judge.judge_case(case_2_slots)
 
 # Define the events
@@ -350,9 +432,9 @@ case_3_slots = {
 judge.judge_case(case_3_slots) 
 
 
-dot = make_graphviz_graph(judge)
-with open("judge.dot", "w") as out_dot:
-    out_dot.write(dot)
-fmt = "png"
-os.system(f"dot -Kdot -T{fmt} -ojudge.{fmt} judge.dot && xdg-open judge.{fmt}")
+# dot = make_graphviz_graph(judge)
+# with open("judge.dot", "w") as out_dot:
+#     out_dot.write(dot)
+# fmt = "png"
+# os.system(f"dot -Kdot -T{fmt} -ojudge.{fmt} judge.dot && xdg-open judge.{fmt}")
  #the aggressor is the one that is killed so sentence is less bad and 30 years

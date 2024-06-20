@@ -43,7 +43,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
         if mop_name and mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
-        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects
+        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts}#if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects 
         if mop_type == None:
             # raise MOPError("Do not add MOPs with mop_type=None.")
             mop_type = self.calc_type(absts, slots)
@@ -52,10 +52,12 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
             new_mop.link_abst(abst) # link absts
+        ## this ought not happen and may be redundant, it results in abstractless mops
         if mop_type == 'mop':
             self.install_abstraction(new_mop)
         elif mop_type == 'instance':
             self.install_instance(new_mop, check_legal=False)
+        ##
         return new_mop
 
 
@@ -139,7 +141,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         mop = self.add_mop(mop_name=None, absts=absts, slots=slots, mop_type=mop_type)
 
-        #this code block is redundant (gets called in add_mop)
+        #this code block may be redundant (gets called in add_mop)
         mop_type = mop.mop_type
         if mop_type == 'instance':
             return self.install_instance(mop)
@@ -147,7 +149,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             return self.install_abstraction(mop)
         ##
         if must_work:
-            raise CBRError(f"Failed to convert {slots} to MOP of type {mop_type} with absts {absts}.")
+            raise CBRError(f"Failed to convert slots {slots} to MOP of type {mop_type} with absts {absts}.")
     
 
     def install_foundation_mops(self):
@@ -169,7 +171,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop')
 
-        self.add_mop(mop_name='M-CASE', slots={'old': self.get_sibling, 'calc_fn': self.get_sibling}, mop_type='mop')
+        self.add_mop(mop_name='M-CASE', slots={'old': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.get_sibling})}, mop_type='mop')
 
         self.add_mop(mop_name='M-ROLE', mop_type='mop')
 
@@ -205,9 +207,11 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         return G
 
-    def get_sibling(self, mop):
+    def get_sibling(self, pattern, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
+        sibling = None
         for abst in mop.absts: # goes up one layer in abstraction
             for spec in abst.specs: # looks at all specializations
-                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction('M-FAILED-SOLUTION'):
-                    return spec
+                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(self.name_mop('M-FAILED-SOLUTION')):
+                    sibling = spec
+        return sibling

@@ -23,10 +23,10 @@ def is_satisfied(constraint, filler, slots):
     4. The constraint is an instance MOP and the filler is empty. The slot source can inherit the instance when needed.
     5. The constraint has at least one slot, the filler is not empty, and all of the slots are satisfied by the slots of the filler.
  
-    Slotless abstractions are treated specially, because they have no slots to constrain what can go under them.'''
+    Slotless abstractions are treated specially, because they have no slots to constrain what can go under them.''' # What should we return in this case?
  
-    g = constraint == None
-    if g: # if constraint is None, this condition is satisfied
+    g = constraint is None
+    if g:
         return g 
     if isinstance(constraint, MOP) and constraint.is_pattern():
         fn = constraint.inherit_filler('abst_fn')
@@ -35,12 +35,13 @@ def is_satisfied(constraint, filler, slots):
     if a:
         return a
     if isinstance(constraint, MOP) and constraint.is_instance_mop() and filler is None: # now this condition matches more closelt the description
-        return True # should return True? 
+        return True
     if isinstance(constraint, MOP) and len(constraint.slots) > 0 and filler is not None:
-        if constraint.slots_satisfied_by(filler):
-            return True # this is new, equivalent of `(FILLER (SLOTS-ABSTP CONSTRAINT FILLER))`
-    else:
-        return False # default: return None or False
+        if constraint.slots_satisfied_by(filler): #this is new
+            return True
+    if not isinstance(constraint, MOP) and filler is None:
+        return True
+    return False # default: return None or False
 
 
 
@@ -102,7 +103,7 @@ class MOP(ImprovedRomancerObject):
         '''Returns True if other is an abtraction, not necessarily immediate, of self (specialization).'''
         '''Returns True when self is a is a specialization of other / other is a specializtion of slef (not necessarily immediate).'''
         # the other mop is in the mops abstractions
-        return self == spec or self in self.calc_all_abstractions()
+        return self == spec or self in spec.calc_all_abstractions()
 
 
     def calc_all_abstractions(self):
@@ -178,7 +179,7 @@ class MOP(ImprovedRomancerObject):
                 filler = abst.role_filler(role)
             except KeyError:
                 filler = None
-            if filler:
+            if filler is not None:
                 return filler
 
 
@@ -191,15 +192,20 @@ class MOP(ImprovedRomancerObject):
             return filler
         else:
             inheritance = self.inherit_filler(role)
-            if inheritance and isinstance(inheritance, MOP) and inheritance.is_instance_mop():
+            if isinstance(inheritance, MOP) and inheritance.is_instance_mop():
                 return inheritance
-            elif inheritance and callable(inheritance):
-                # fn = inheritance.get_filler('calc_fn')
-                # if fn:
-                    new_filler = inheritance(self)
+            # need to check if M-FUNCTION is an abstraction of inheritance (how?)
+            elif callable(inheritance):
+                return inheritance
+            elif isinstance(inheritance, MOP):
+                fn = inheritance.get_filler('calc_fn')
+                if fn is not None:
+                    new_filler = fn(inheritance, self)
                     if new_filler:
                         self.add_role_filler(role, new_filler)
                         return new_filler
+            else:
+                return inheritance
                     # raise MOPError(f"No filler for role {role} in mop {self}")
 
 
@@ -347,11 +353,13 @@ class MOP(ImprovedRomancerObject):
         name = str(absts[0])
         if mop_type == 'instance':
             name = 'I-' + str(absts[0]) + '.' + str(self.uid)
+        if mop_type == 'mop':
+            name = str(absts[0]) + '.' + str(self.uid)
         return name
 
     
-    def equals(a,b):
+    def equals(a, b):
         return a == b
     
-    def less_than(a,b):
+    def less_than(a, b):
         return a < b
