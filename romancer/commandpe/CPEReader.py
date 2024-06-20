@@ -33,13 +33,17 @@ class CPEWeaponFiredReader:
         next(self.weaponendgame_reader)
         # Because this is a stateful API, we'll start off with the first one
         self.last_weapon_endgame_record = next(self.weaponendgame_reader)
-        # Weapon class is not stored in the endgame csv - capture it
+        # Weapon and Target class are not stored in the endgame csv - capture it
         self.weapon_name_to_class = {}
+        self.target_name_to_class = {}
+
+        self.WeaponTargetCount = namedtuple('WeaponTargetCount', ['event_type', 'weapon', 'target', 'count', 'all_events'])
 
         self.curr_time_s = 0
 
         self.scenario_complete = False
-        self.records_read = 0
+        self.records_read_fires = 0
+        self.records_read_endgame = 0
 
     def load_target_scale(self, target_class_csv, target_unit_csv):
         target_scale = {}
@@ -73,8 +77,11 @@ class CPEWeaponFiredReader:
     def get_current_time_s(self):
         return self.curr_time_s
 
-    def get_records_read(self):
-        return self.records_read
+    def get_records_read_fires(self):
+        return self.records_read_fires
+
+    def get_records_read_endgame(self):
+        return self.records_read_endgame
 
     def is_scenario_complete(self):
         ''' Return true if the scenario is "complete" [ie, ran out of inputs] '''
@@ -83,30 +90,33 @@ class CPEWeaponFiredReader:
     def _read_next_weapons_fired(self, timeframe_s):
         ''' Get a namedtuple of weapon/tgt/count 3-tuples during the next timeframe_s seconds from last time this returned '''
         if self.scenario_complete:
-            return {}
+            return []
 
         t_end = self.curr_time_s + timeframe_s
         total_counts = {}  # A map of weaponcategory => { target category => [event list] }
         time_last_weapon_fired_s = self.get_time_s(self.last_weapon_fired_record['Time'])
 
         while time_last_weapon_fired_s < t_end:
-            self.records_read += 1
+            self.records_read_fires += 1
 
+            wpn_name = self.last_weapon_fired_record['WeaponName']
             wpn_class = self.last_weapon_fired_record['WeaponClass']
             this_wpn_scale = self.weapon_scale.get(wpn_class)
-            self.weapon_name_to_class[self.last_weapon_fired_record['WeaponName']] = wpn_class
+            # The endgame reader only has access to WeaponName, so store class for reference
+            self.weapon_name_to_class[wpn_name] = wpn_class
 
             firing_side = self.last_weapon_fired_record['FiringUnitSide']
 
             target_name = self.last_weapon_fired_record['TargetContactActualUnitName']
             target_class = self.last_weapon_fired_record['TargetContactActualUnitClass']
-            this_target_scale = self.target_unit_scale[target_name] if target_name in self.target_unit_scale else self.target_scale.get(target_class)
+            self.target_name_to_class[target_name] = target_class
+            this_target_scale = self.target_unit_scale[target_name] if target_name in self.target_unit_scale else self.target_scale.get(target_class, None)
 
             if firing_side == self.shooterSide:
                 if this_target_scale is None:
-                    print(f"Couldn't find a target scaling lookup for class '{target_class}' or unit name '{target_name}'")
+                    print(f"Fires: Couldn't find a target scaling lookup for class '{target_class}' or unit name '{target_name}'")
                 elif this_wpn_scale is None:
-                    print(f"Couldn't find a weapon scaling lookup for class '{wpn_class}'")
+                    print(f"Fires: Couldn't find a weapon scaling lookup for class '{wpn_class}'")
                 else:
                     if this_wpn_scale not in total_counts:
                         total_counts[this_wpn_scale] = {}
@@ -114,7 +124,6 @@ class CPEWeaponFiredReader:
                     event_list = tgt_map.get(this_target_scale, [])
                     event_list.append(self.last_weapon_fired_record)
                     tgt_map[this_target_scale] = event_list
-
 
             time_last_weapon_fired_str = self.last_weapon_fired_record['Time']
             try:
@@ -128,21 +137,74 @@ class CPEWeaponFiredReader:
 
         # Convert the created map into a list of namedTuples
         result = []
-        WeaponTargetCount = namedtuple('WeaponTargetCount', ['event_type', 'weapon', 'target', 'count', 'all_events'])
         for weapon, targets in total_counts.items():
             for target, event_list in targets.items():
-                result.append(WeaponTargetCount('fired', weapon, target, len(event_list), event_list))
+                result.append(self.WeaponTargetCount('fired', weapon, target, len(event_list), event_list))
 
         return result
 
     def _read_next_weapons_endgame(self):
         ## Very dangerously stateful indeed. MUST BE CALLED *AFTER* READ NEXT WEAPONS FIRED
         ## Timestep is "until the end of the last event from NEXT WEAPONS FIRED"
+
+        if self.scenario_complete:
+            return []
+
+        total_counts = {}  # A map of weaponcategory => { target category => [event list] }
+        time_last_weapon_endgame_s = self.get_time_s(self.last_weapon_endgame_record['Time'])
+
+        while time_last_weapon_endgame_s < self.curr_time_s:
+            self.records_read_endgame += 1
+
+            wpn_name = self.last_weapon_endgame_record['WeaponName']
+            wpn_class = self.weapon_name_to_class.get(wpn_name, None)
+            if wpn_class is None:
+                print(f"Error: Weapon Endgame for {wpn_name} that doesn't seem to have been fired")
+            this_wpn_scale = self.weapon_scale.get(wpn_class, None)
+
+            firing_side = self.last_weapon_endgame_record['WeaponSide']
+
+            target_name = self.last_weapon_endgame_record['TargetName']
+            target_class = self.target_name_to_class.get(target_name, None)
+            if target_class is None:
+                print(f"Error: Weapon Endgame for tgt {target_name} doesn't seem to have been fired")
+
+            this_target_scale = self.target_unit_scale[target_name] if target_name in self.target_unit_scale else self.target_scale.get(target_class, None)
+
+            if firing_side == self.shooterSide:
+                if this_target_scale is None:
+                    print(f"Endgame: Couldn't find a target scaling lookup for class '{target_class}' or unit name '{target_name}'")
+                elif this_wpn_scale is None:
+                    print(f"Endgame: Couldn't find a weapon scaling lookup for class '{wpn_class}'")
+                else:
+                    if this_wpn_scale not in total_counts:
+                        total_counts[this_wpn_scale] = {}
+                    tgt_map = total_counts[this_wpn_scale]
+                    event_list = tgt_map.get(this_target_scale, [])
+                    event_list.append(self.last_weapon_fired_record)
+                    tgt_map[this_target_scale] = event_list
+
+            time_last_weapon_endgame_str = self.last_weapon_endgame_record['Time']
+            try:
+                self.last_weapon_endgame_record = next(self.weaponendgame_reader)
+                time_last_weapon_endgame_s = self.get_time_s(time_last_weapon_endgame_str)
+            except StopIteration:
+                self.scenario_complete = True
+                break
+
+        # Convert the created map into a list of namedTuples
+        result = []
+        for weapon, targets in total_counts.items():
+            for target, event_list in targets.items():
+                result.append(self.WeaponTargetCount('endgame', weapon, target, len(event_list), event_list))
+
+        return result
+
         return []
 
     def read_next_weapons_events(self, timeframe_s=(15*60)):
         retval = self._read_next_weapons_fired(timeframe_s)
-        retval.extend(self._read_next_weapons_endgame())
+        # retval.extend(self._read_next_weapons_endgame())
         return retval
 
 if __name__ == "__main__":
@@ -161,5 +223,5 @@ if __name__ == "__main__":
             e_dict.pop('all_events')
             to_print.append(e_dict)
         print(to_print)
-        print(f"Time is: {cper.get_current_time_s()}, total wpns fired = {cper.get_records_read()}")
+        print(f"Time is: {cper.get_current_time_s()}, total wpns fired = {cper.get_records_read_fires()}, total endgames = {cper.get_records_read_endgame()}")
 
