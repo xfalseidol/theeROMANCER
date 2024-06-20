@@ -170,3 +170,7 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+*.dot
+*.png
+
