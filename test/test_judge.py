@@ -2,6 +2,7 @@ from context import *
 from casebasedreasoner.util import make_graphviz_graph
 import networkx as nx
 import matplotlib.pyplot as plt
+import random
 
 import romancer.supervisor.singlethreadsupervisor
 
@@ -431,10 +432,16 @@ case_3_slots = {
 # Judge the case
 judge.judge_case(case_3_slots) 
 
-
-# dot = make_graphviz_graph(judge)
+# rng = random.Random()
+# for q in range(11):
+#     tests = []
+#     for test in range(10):
+#         tests.append(judge.choose_stochastic('I-M-FIGHT-EVENT.102', q/10.0, rng))
+#     print(f"Decision Making={q}, results={tests}")
+#
+# dot = make_graphviz_graph(judge, include_slot_edges=False)
 # with open("judge.dot", "w") as out_dot:
 #     out_dot.write(dot)
-# fmt = "png"
-# os.system(f"dot -Kdot -T{fmt} -ojudge.{fmt} judge.dot && xdg-open judge.{fmt}")
+# fmt = "svg"
+# os.system(f"dot -Kfdp -T{fmt} -ojudge.{fmt} judge.dot 2>/dev/null && xdg-open judge.{fmt}")
  #the aggressor is the one that is killed so sentence is less bad and 30 years

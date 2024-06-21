@@ -154,7 +154,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             raise CBRError(f"Failed to convert slots {slots} to MOP of type {mop_type} with absts {absts}.")
     
 
-    def install_foundation_mops(self):
+    def install_foundation_mops(self, amygdala=None):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
 
         self.add_mop(mop_name='M-EVENT', mop_type='mop', is_core_cbr_mop=True)
@@ -173,7 +173,13 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop', is_core_cbr_mop=True)
 
-        self.add_mop(mop_name='M-CASE', slots={'old': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.get_sibling}, is_core_cbr_mop=True)}, mop_type='mop', is_core_cbr_mop=True)
+        sibling_func = self.get_sibling
+        if amygdala is not None:
+            # Create a sibling_func that calls choose_stochastic with the current value of the amygdala
+            #  Function must have same calling pattern as self.get_sibling
+            pass
+
+        self.add_mop(mop_name='M-CASE', slots={'old': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': sibling_func}, is_core_cbr_mop=True)}, mop_type='mop', is_core_cbr_mop=True)
 
         self.add_mop(mop_name='M-ROLE', mop_type='mop', is_core_cbr_mop=True)
 
