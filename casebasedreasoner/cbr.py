@@ -1,6 +1,7 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP, is_satisfied
 import networkx as nx
+import random
 
 class CBRError(Exception):
     pass
@@ -24,7 +25,13 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.unlogged_attrs.append('mops')
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
         self.clear_memory(True) # install basic MOPs
+        self.decision_making_ability = None  # A number in the range 0..1. If None, use normal get_sibling
+        self.rng = random.Random()  # Used by the stochastic mop selector
 
+    def set_stochastic_decision_making(self, decision_making_ability):
+        # Setting this turns on the stochastic reasoner
+        # Turn it on after the default and foundational mops are inserted
+        self.decision_making_ability = decision_making_ability
 
     def calc_type(self, absts, slots):
         '''Determine whether a new MOP with absts and slots will be of type 'mop' (for an abstraction) or 'instance'. Returns value as a string.'''
@@ -173,13 +180,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
         g_sibling = self.add_mop(mop_name='GET-SIBLING', absts={'M-FUNCTION'}, mop_type='mop', is_core_cbr_mop=True)
 
-        sibling_func = self.get_sibling
-        if amygdala is not None:
-            # Create a sibling_func that calls choose_stochastic with the current value of the amygdala
-            #  Function must have same calling pattern as self.get_sibling
-            pass
-
-        self.add_mop(mop_name='M-CASE', slots={'old': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': sibling_func}, is_core_cbr_mop=True)}, mop_type='mop', is_core_cbr_mop=True)
+        self.add_mop(mop_name='M-CASE', slots={'old': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.get_sibling}, is_core_cbr_mop=True)}, mop_type='mop', is_core_cbr_mop=True)
 
         self.add_mop(mop_name='M-ROLE', mop_type='mop', is_core_cbr_mop=True)
 
@@ -218,11 +219,15 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def get_sibling(self, pattern, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
         sibling = None
-        for abst in mop.absts: # goes up one layer in abstraction
-            for spec in abst.specs: # looks at all specializations
-                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
-                        self.name_mop('M-FAILED-SOLUTION')):
-                    sibling = spec
+        if self.decision_making_ability is not None:
+            sibling = self.choose_stochastic(mop, self.decision_making_ability, self.rng)
+            print("Randomly chose " + sibling.mop_name)
+        else:
+            for abst in mop.absts: # goes up one layer in abstraction
+                for spec in abst.specs: # looks at all specializations
+                    if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
+                            self.name_mop('M-FAILED-SOLUTION')):
+                        sibling = spec
         return sibling
 
     def get_mop_slots_r(self, mop_name, root_mop=None, curr_dict=None, depth=0):
@@ -314,15 +319,26 @@ class CaseBasedReasoner(ImprovedRomancerObject):
                         other_dict[k] = (other_dict[k] - min_val) / (max_val - min_val)
                 key_mop[k] = (key_mop[k] - min_val) / (max_val - min_val)
 
+    def get_all_siblings(self, mop):
+        '''all siblings for a mop, including the mop itself'''
+        siblings = []
+        absts = mop.absts
+        for abst in absts:  # goes up one layer in abstraction
+            for spec in abst.specs:  # looks at all specializations
+                if isinstance(spec, MOP) and spec.is_instance_mop() and not spec.is_abstraction(
+                        self.name_mop('M-FAILED-SOLUTION')):
+                    siblings.append(spec.mop_name)
+        return siblings
+
     def compare_to_all_other_mops(self, mop_name):
         ''' Return a map of mop_name => similarity_score, showing how similar
         every other mop in this CBR is, to the mop requested '''
         this_mop_dict = self.get_mop_slots_r(mop_name)
         other_dicts = {}
-        for other_mop in self.mops:
+        # In keeping with get_sibling: Only search through MOPs that come from the same abst as the one we're holding
+
+        for other_mop in self.get_all_siblings(mop_name):
             if other_mop == mop_name:
-                continue
-            if self.mops[other_mop].is_default_mop():
                 continue
 
             other_mop_dict = self.get_mop_slots_r(other_mop)
@@ -341,9 +357,10 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def choose_stochastic(self, mop_name, decision_making_ability, rng):
         ''' for a given mop, and a given decision_making_ability , find a comparable mop. Pass a Random Number Generator '''
         # decision_making_ability should be in the range 0 [= no ability to make good decisions] to 1 [= will make best decision possible]
+        return self.mops['I-M-CRIME.123']
         sorted_mops = self.compare_to_all_other_mops(mop_name)
         # Choose uniformly, one from the top n mops, where n is derived from current decision making ability
         select_from_cnt = int(min(len(sorted_mops), max(1, (1.0-decision_making_ability) * len(sorted_mops))))
         # print(f"Decision Making {decision_making_ability}, Selected range: {select_from_cnt}")
         selected_idx = rng.randrange(select_from_cnt)
-        return sorted_mops[selected_idx]
+        return self.mops[sorted_mops[selected_idx]]

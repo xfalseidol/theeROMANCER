@@ -430,18 +430,21 @@ case_3_slots = {
 }
 # Create the case MOP instance
 # Judge the case
-judge.judge_case(case_3_slots) 
 
-# rng = random.Random()
+# judge.judge_case(case_3_slots)
+# judge.set_stochastic_decision_making(0.0)
+judge.judge_case(case_3_slots)
 # for q in range(11):
+#     judge.set_stochastic_intelligence(q / 10.0)
 #     tests = []
 #     for test in range(10):
-#         tests.append(judge.choose_stochastic('I-M-FIGHT-EVENT.102', q/10.0, rng))
+#         sibling = judge.get_sibling(None, 'I-M-FIGHT-EVENT.102')
+#         tests.append(sibling.mop_name)
 #     print(f"Decision Making={q}, results={tests}")
-#
-# dot = make_graphviz_graph(judge, include_slot_edges=False)
-# with open("judge.dot", "w") as out_dot:
-#     out_dot.write(dot)
-# fmt = "svg"
-# os.system(f"dot -Kfdp -T{fmt} -ojudge.{fmt} judge.dot 2>/dev/null && xdg-open judge.{fmt}")
+
+dot = make_graphviz_graph(judge, include_slot_edges=False)
+with open("judge.dot", "w") as out_dot:
+    out_dot.write(dot)
+fmt = "svg"
+os.system(f"dot -Kfdp -T{fmt} -ojudge.{fmt} judge.dot 2>/dev/null && xdg-open judge.{fmt}")
  #the aggressor is the one that is killed so sentence is less bad and 30 years
