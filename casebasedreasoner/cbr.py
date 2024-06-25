@@ -357,7 +357,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def choose_stochastic(self, mop_name, decision_making_ability, rng):
         ''' for a given mop, and a given decision_making_ability , find a comparable mop. Pass a Random Number Generator '''
         # decision_making_ability should be in the range 0 [= no ability to make good decisions] to 1 [= will make best decision possible]
-        return self.mops['I-M-CRIME.123']
+        # return self.mops['I-M-CRIME.123']
         sorted_mops = self.compare_to_all_other_mops(mop_name)
         # Choose uniformly, one from the top n mops, where n is derived from current decision making ability
         select_from_cnt = int(min(len(sorted_mops), max(1, (1.0-decision_making_ability) * len(sorted_mops))))
