@@ -112,7 +112,7 @@ class CPEWeaponFiredReader:
             self.target_name_to_class[target_name] = target_class
             this_target_scale = self.target_unit_scale[target_name] if target_name in self.target_unit_scale else self.target_scale.get(target_class, None)
 
-            if firing_side == self.shooterSide:
+            if firing_side.upper() == self.shooterSide.upper():
                 if this_target_scale is None:
                     print(f"Fires: Couldn't find a target scaling lookup for class '{target_class}' or unit name '{target_name}'")
                 elif this_wpn_scale is None:
@@ -171,7 +171,7 @@ class CPEWeaponFiredReader:
 
             this_target_scale = self.target_unit_scale[target_name] if target_name in self.target_unit_scale else self.target_scale.get(target_class, None)
 
-            if firing_side == self.shooterSide:
+            if firing_side.upper() == self.shooterSide.upper():
                 if this_target_scale is None:
                     print(f"Endgame: Couldn't find a target scaling lookup for class '{target_class}' or unit name '{target_name}'")
                 elif this_wpn_scale is None:
