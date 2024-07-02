@@ -208,8 +208,8 @@ class CPEWeaponFiredReader:
         return retval
 
 if __name__ == "__main__":
-    cpeoutputfolder = "data/commandpe_output"
-    cpeinputfolder = "data/commandpe_input"
+    cpeoutputfolder = "data/orwaca_sample"
+    cpeinputfolder = "data/orwaca_sample"
     cper = CPEWeaponFiredReader(f"{cpeinputfolder}/weaponClass.csv", f"{cpeinputfolder}/targetClass.csv",
                                 f"{cpeinputfolder}/targetUnitClass.csv",
                                 f"{cpeoutputfolder}/WeaponFired.csv", f"{cpeoutputfolder}/WeaponEndgame.csv",
