@@ -1,6 +1,6 @@
 from environment.object import ImprovedRomancerObject
-from agent.reasoner import UpdateAmygdalaParameters
 from typing import NamedTuple
+import math
 
 class CurrentAmygdalaParameters(NamedTuple):
     current_pbf: float
@@ -43,7 +43,7 @@ class Amygdala(ImprovedRomancerObject):
     def current_amygdala_parameters(self):
         '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Not that it does not update and log self.pbf.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
-        cur_pbf = self.pbf * e**(-self.pbf_decay_rate * delta_t)
+        cur_pbf = self.pbf * math.e**(-self.pbf_decay_rate * delta_t)
         # determine dominant response, if any
         responses = [('fight', self.fight * self.fight_weight), ('flight', self.flight * self.flight_weight), ('freeze', self.freeze * self.freeze_weight)]
         dominant_response = max(responses, key = lambda n: n[1])
@@ -73,7 +73,7 @@ class Amygdala(ImprovedRomancerObject):
 
 
     def update_parameters(self, message):
-        '''The purpose of this method is to update the amygdala parameters that takes into account the decay of pbf while ensuring proper logging. Note that it returns the amygdala object to its initial time, while pogging anticipated future changes if needed.'''
+        '''The purpose of this method is to update the amygdala parameters that takes into account the decay of pbf while ensuring proper logging. Note that it returns the amygdala object to its initial time, while logging anticipated future changes if needed.'''
         cur_time = self.time
         if message.time < self.time:
             self.rewind(message.time)
@@ -83,21 +83,21 @@ class Amygdala(ImprovedRomancerObject):
         # update parameters if needed
         update_parameters = message.parameters # UpdateAmygdalaParameters object
         cur_parameters = self.current_amygdala_parameters()
-        if parameters.delta_pbf > 0:
+        if update_parameters.delta_pbf > 0:
             self.pbf_update_time = self.time
             cur_pbf = cur_parameters.current_pbf + update_parameters.delta_pbf
             if cur_pbf > self.max_pbf:
-                cur_pbf = self.max_pbf
-        if parameters.delta_fight > 0:
+                self.pbf = self.max_pbf
+        if update_parameters.delta_fight > 0:
             self.fight += update_parameters.delta_fight
-        if parameters.delta_flight > 0:
+        if update_parameters.delta_flight > 0:
             self.flight += update_parameters.delta_flight
-        if parameters.delta_freeze > 0:
+        if update_parameters.delta_freeze > 0:
             self.freeze += update_parameters.delta_freeze
-
 
         if self.time > cur_time:
             self.rewind(cur_time)
         elif self.time < cur_time:
             self.forward_simulation(cur_time)
-        
+
+        self.last_pbf_update_time = self.time # update last pbf update time

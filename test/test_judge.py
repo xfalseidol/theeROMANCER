@@ -10,7 +10,8 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         instance = self.slots_to_mop(slots=case_slots, absts={'M-CRIME'}, mop_type='instance', must_work=True)
         defendant = instance.role_filler('defendant')
         print(f"Sentencing {defendant} in {instance}...")
-        instance.get_filler('sentence')
+        instance.get_filler('sentence') 
+        
         return instance
     
 
@@ -262,12 +263,15 @@ judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE', absts={'M-CALC-MOTIVE'}, sl
     # (VALUE I-M-RETALIATION))
 judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}, is_default_mop=True), 'prev_motive': justified, 'value': retaliation}, mop_type='mop', is_default_mop=True)
 
+
 judge.add_mop(mop_name='M-COMPARE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': judge.compare_constraint, 'to': 
             judge.name_mop('M-ROLE'), 'compare_fn': judge.name_mop('M-FUNCTION')}, is_default_mop=True)
 judge.add_mop(mop_name='M-EQUAL', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.equals}, is_default_mop=True)
 judge.add_mop(mop_name='M-LESS-THAN', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.less_than}, is_default_mop=True)
 sentence = judge.add_mop(mop_name='SENTENCE', absts={'M-ROLE'}, mop_type='instance', is_default_mop=True)
 judge.add_mop(mop_name='OLD-SEVERITY', absts={'M-ROLE'}, mop_type='instance', is_default_mop=True)
+
+
 # (DEFMOP M-ADAPT-SENTENCE (M-CALC)
     # (ROLE SENTENCE)
     # (VALUE M-PATTERN (CALC-FN ADJUST-SENTENCE)))
@@ -293,7 +297,7 @@ judge.add_mop(mop_name='M-ADAPT-SENTENCE',
 judge.add_mop(mop_name='M-ADAPT-EXTREME-FORCE-OLD',
               absts={'M-ADAPT-SENTENCE'},
               slots={'old_action': wound_act,
-                     'this_action': judge.add_mop(absts={'M-NOT'}, slots={'object': wound_act}, is_default_mop=True),
+                     'this_action': judge.add_mop(absts={'M-NOT'}, slots={'object': wound_act}, is_default_mop=True), #checking if the action is not true and this is our constraint.
                      'old_motive': unjustified,
                      'this_motive': unjustified,
                      'weight': 0.5,
