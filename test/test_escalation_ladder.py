@@ -2,9 +2,10 @@ from context import *
 import unittest
 import romancer.agent.escalationladderreasoner
 import romancer.environment
+from heapq import heapify, heappush, heappop
 import romancer.environment.environment
 from romancer.environment.percept import Percept
-from romancer.agent.amygdala import Amygdala
+from romancer.agent.amygdala import Amygdala, UpdateAmygdalaParameters
 
 # create an EscalationLadderReasoner (assume we're making blue)
 ## create an EscalationLadder
@@ -33,7 +34,7 @@ class EscalationLadderTest(unittest.TestCase):
         # call deliberate with several different values of max_time, depending on the time of the percepts in the previous test
         # deliberate is suppoosed to return certain time values or None, depending on whether escalation has occurred
         max_time = 0
-        amygdala = Amygdala(self.env, self.env.time)
+        amygdala = Amygdala(self.env, self.env.time, response_threshhold=0.5)
         result = self.reasoner.deliberate(max_time, amygdala)
         assert result is None, "Result of deliberating at t=0 resulted in an escalation, but shouldn't have."
         current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
@@ -43,7 +44,7 @@ class EscalationLadderTest(unittest.TestCase):
         new_time = 5
         self.reasoner.forward_simulation(new_time)
         new_percept = Percept(weapon_class=1, location='Hong Kong')
-        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time, most_recent_percept_time=new_time)
+        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time)
         result = self.reasoner.deliberate(new_time, amygdala)
         assert result == 5, f"expected 5, got {result} (should have escalated)"
         current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
@@ -53,7 +54,7 @@ class EscalationLadderTest(unittest.TestCase):
         new_time = 10
         self.reasoner.forward_simulation(new_time)
         new_percept = Percept(speed=1000, location='Hong Kong')
-        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time, most_recent_percept_time=new_time)
+        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time)
         result = self.reasoner.deliberate(new_time, amygdala)
         assert result is None, f"expected None, got {result} (should not have escalated)"
         current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
@@ -63,7 +64,7 @@ class EscalationLadderTest(unittest.TestCase):
         new_time = 15
         self.reasoner.forward_simulation(new_time)
         new_percept = Percept(weapon_class=1, location='South China Sea')
-        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time, most_recent_percept_time=new_time)
+        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time)
         result = self.reasoner.deliberate(new_time, amygdala)
         assert result == 15, f"expected 15, got {result} (should have escalated)"
         current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
@@ -73,33 +74,80 @@ class EscalationLadderTest(unittest.TestCase):
         new_time = 20
         self.reasoner.forward_simulation(new_time)
         new_percept = Percept(weapon_class=5)
-        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time, most_recent_percept_time=new_time)
+        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time)
         result = self.reasoner.deliberate(new_time, amygdala)
         assert result == 20, f"expected 20, got {result} (should have escalated)"
         current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
         assert current_rung_number == 5, f"expected 5, got {current_rung_number}"
 
-
+    # tests highest_matched_rung
     def test_deliberate_jump_several_rungs(self):
         self.reset_reasoner()
 
-        amygdala = Amygdala(self.env, self.env.time)
+        amygdala = Amygdala(self.env, self.env.time, response_threshhold=0.5)
         new_time = 20
         self.reasoner.forward_simulation(new_time)
         new_percept = Percept(weapon_class=5, location="Taiwan")
-        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time, most_recent_percept_time=new_time)
+        self.reasoner.enqueue_digested_percept(digested_percept=new_percept, percept_time=new_time)
         result = self.reasoner.deliberate(new_time, amygdala)
         assert result == 20, f"expected 20, got {result} (should have escalated)"
         # assert self.reasoner.current_rung.match_attributes == {"weapon_class": 5}, f"expected rung with attributes 'weapon_class': 5, got rung with attributes {self.reasoner.current_rung.match_attributes}"
         current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
         assert current_rung_number == 5, f"expected rung 5, got rung {current_rung_number}"
 
-    def test_deliberate_future_time(self):
-        ## for example, a plane on a bearing at present time is not in a restricted zone
-        ## but is headed toward one
 
-        ## for example, this amygdala has a stress condition, which increases stress over time
-        pass
+    def test_deliberate_future_time(self):
+        # a 3-rung system
+        ## rung 1 (doesn't matter)
+        ## rung 2 (streses agent into freeze response)
+        ## rung 3 (should be triggered but isn't due to the freeze response)
+        self.reset_reasoner()
+        amygdala = Amygdala(self.env, self.env.time, response_threshhold=0.2, pbf_halflife=5)
+
+        freeze_update = UpdateAmygdalaParameters(0.7, 0, 0, 10) # should cause agent to freeze
+        # tell the rung how it will stress the agent
+        self.reasoner.escalation_ladder[1].amygdala_update = freeze_update
+
+        # trigger Rung 2 at Time 5
+        new_time = 5
+        self.reasoner.forward_simulation(new_time)
+        amygdala.forward_simulation(new_time)
+        new_percept = Percept(weapon_class=1) # should escalate to Rung 2, freezing the agent
+        self.reasoner.enqueue_digested_percept(new_percept, new_time)
+        result = self.reasoner.deliberate(new_time, amygdala)
+        assert result == new_time
+        current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
+        assert current_rung_number == 2
+
+        # new percept should trigger next rung, but won't due to Freeze response
+        new_time = 5.1
+        new_percept = Percept(weapon_class=2)
+        self.reasoner.forward_simulation(new_time)
+        self.reasoner.enqueue_digested_percept(new_percept, new_time)
+        amygdala.forward_simulation(new_time)
+        result = self.reasoner.deliberate(new_time, amygdala)
+        assert result is None, f"expected None, got {result}"
+        current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
+        assert current_rung_number == 2, f"expected Rung 2, got {current_rung_number}"
+
+        # deliberate into the future
+        # result should be approximately the moment that stress decays
+        # to the point that freeze is no longer the dominant response
+        # and the reasoner matches Rung 3
+        future_time = 100
+        result = self.reasoner.deliberate(future_time, amygdala)
+        approximate_time = 5.2
+        tolerance = 1.0
+        assert abs(approximate_time - result) <= tolerance, f"expected about {approximate_time}, got {result}"
+
+        # forward to moment Freeze response is non-dominant
+        new_time = approximate_time + 1
+        self.reasoner.forward_simulation(new_time)
+        amygdala.forward_simulation(new_time)
+        result = self.reasoner.deliberate(new_time, amygdala)
+        assert result == new_time
+        current_rung_number = self.reasoner.escalation_ladder.rung_number(self.reasoner.current_rung)
+        assert current_rung_number == 3
 
 
     def reset_reasoner(self):

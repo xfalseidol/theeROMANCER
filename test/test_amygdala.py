@@ -3,8 +3,9 @@ from romancer.agent.amygdala import Amygdala, CurrentAmygdalaParameters, UpdateA
 import unittest
 
 class AmygdalaTest(unittest.TestCase):
-    sup = romancer.supervisor.SingleThreadSupervisor()
-    env = romancer.SingleThreadEnvironment(sup, None, None)
+    sup = romancer.supervisor.singlethreadsupervisor.SingleThreadSupervisor()
+    env = romancer.environment.singlethreadenvironment.SingleThreadEnvironment(sup, None, None)
+
     amygdala = Amygdala(env, env.time)
 
     def test_current_amygdala_parameters(self):

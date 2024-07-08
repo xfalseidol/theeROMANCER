@@ -25,7 +25,7 @@ class Amygdala(ImprovedRomancerObject):
     To represent 'lizard brain' types of responses, the Amygdala object provides proxies for fight, flight, or freeze responses. The agent's reasoner can either act on the basis of these responses or not as it sees fit. The reasoner also needs to incorporate funtionality to update these parameters on the basis of its evolving state--otherwise, they are ignored.
     '''
 
-    def __init__(self, environment, time, fight_weight = 0.0, flight_weight = 0.0, freeze_weight = 0.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_decay_rate = 0.0, max_pbf = 1.0, response_threshhold = 0.0):
+    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 0, max_pbf = 1.0, response_threshhold = 1.0):
         super().__init__(environment, time)
         self.fight_weight = fight_weight # used to update/predict fight response
         self.flight_weight = flight_weight # used to update/predict flight response
@@ -35,7 +35,7 @@ class Amygdala(ImprovedRomancerObject):
         self.freeze = initial_freeze # freeze response level
         self.pbf = initial_pbf # initial cortisol level
         self.last_pbf_update_time = self.time # used to calculate pbf decay
-        self.pbf_decay_rate = pbf_decay_rate # rate at which cortisol is metabolized
+        self.pbf_decay_rate = (1 / math.log(2)) * pbf_halflife # rate at which cortisol is metabolized
         self.max_pbf = max_pbf # maximum possible cortisol level
         self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
 
@@ -47,9 +47,9 @@ class Amygdala(ImprovedRomancerObject):
         # determine dominant response, if any
         responses = [('fight', self.fight * self.fight_weight), ('flight', self.flight * self.flight_weight), ('freeze', self.freeze * self.freeze_weight)]
         dominant_response = max(responses, key = lambda n: n[1])
-        if dominant_response[1] < self.response_threshhold:
+        if cur_pbf < self.response_threshhold: # if unstressed
             dominant_response = None
-        else:
+        else: # otherwise, too stressed
             dominant_response = dominant_response[0]
         return CurrentAmygdalaParameters(current_pbf = cur_pbf, current_fight = self.fight * self.fight_weight, current_flight = self.flight * self.flight_weight, current_freeze = self.freeze * self.freeze_weight, current_dominant_response = dominant_response)
         
@@ -84,9 +84,9 @@ class Amygdala(ImprovedRomancerObject):
         update_parameters = message.parameters # UpdateAmygdalaParameters object
         cur_parameters = self.current_amygdala_parameters()
         if update_parameters.delta_pbf > 0:
-            self.pbf_update_time = self.time
-            cur_pbf = cur_parameters.current_pbf + update_parameters.delta_pbf
-            if cur_pbf > self.max_pbf:
+            self.last_pbf_update_time = self.time
+            self.pbf = cur_parameters.current_pbf + update_parameters.delta_pbf
+            if self.pbf > self.max_pbf:
                 self.pbf = self.max_pbf
         if update_parameters.delta_fight > 0:
             self.fight += update_parameters.delta_fight
@@ -101,3 +101,7 @@ class Amygdala(ImprovedRomancerObject):
             self.forward_simulation(cur_time)
 
         self.last_pbf_update_time = self.time # update last pbf update time
+
+    def dominant_response(self):
+        dominant_response = self.current_amygdala_parameters().current_dominant_response
+        return dominant_response

@@ -4,6 +4,7 @@ from collections import UserList
 from heapq import heapify, heappush, heappop
 from scipy import optimize
 import math
+from collections import namedtuple
 
 
 class EscalationLadder(UserList):
@@ -25,7 +26,7 @@ class EscalationLadder(UserList):
         finally:
             return next_rung
 
-
+    # for deliberating into the future
     def next_matched_rung(self, current_rung, reasoner, amygdala):
         matched = False
         next_rung = self.next_rung(current_rung)
@@ -33,10 +34,9 @@ class EscalationLadder(UserList):
             matched = next_rung.rung_matched(reasoner, amygdala)
             if matched:
                 return next_rung
-            next_rung = self.next_rung(current_rung)
-            current_rung = next_rung
+            next_rung = self.next_rung(next_rung)
 
-
+    # for deliberaing present time
     def highest_matched_rung(self, current_rung, reasoner, amygdala):
         matched = False
         next_rung = self.next_rung(current_rung)
@@ -56,17 +56,28 @@ class EscalationLadder(UserList):
 
 class EscalationLadderRung():
     '''Much of the logic of the EscalationLadderReasoner is stored in EscalationLadderRung instances. This permits these rungs to exhibit custom behavior if necessary.'''
+    rung_id = 1
 
-    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0):
+    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0)):
         self.match_attributes = match_attributes # a sequence of patterns that are used to check whether agent believes that this rung has been reached
         self.pbf_threshold = pbf_threshold # what stress level would trigger this rung regardless of match_attributes
         self.red_actions = red_actions # collection of actions that reasoner believes Red will take at this rung, associated with amount of time that must pass before/between those actions
         self.blue_actions = blue_actions # collection of actions that reasoner believes Blue will take at this rung, associated with amount of time that must pass before/between those actions
         self.red_deescalation_actions = red_deescalation_actions # collection of actions that reasoner believes Red will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
         self.blue_deescalation_actions = blue_deescalation_actions  # collection of actions that reasoner believes Blue will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
-
+        self.amygdala_update = amygdala_update 
+        self.id = EscalationLadderRung.rung_id
+        EscalationLadderRung.rung_id += 1
 
     def rung_matched(self, reasoner, amygdala):
+        dominant_response = amygdala.dominant_response()
+        if dominant_response == "freeze": # always escalate
+            return False
+        if dominant_response == "fight": # always escalate
+            return True
+        if dominant_response == "flight": # never escalate ??
+            return False
+        
         # ANY attribute in match_attributes matches a digested percept
         for attribute, value in self.match_attributes.items():
             for percept in reasoner.digested_percepts:
@@ -120,7 +131,10 @@ class EscalationLadderRung():
         for action in self.untaken_actions(self.blue_deescalation_actions, reasoner):
             reasoner.planned_actions.heappush((reasoner.time + action[0], action[1], reasoner.digested_percepts[-1].time))
     
+    def __repr__(self):
+        return "Rung " + str(self.id)
     
+
 class EscalationLadderReasoner(ImprovedRomancerObject):
     '''
     '''
@@ -150,11 +164,11 @@ class EscalationLadderReasoner(ImprovedRomancerObject):
         else:
             self.digested_percepts = LoggedList(data = list(), parent = self, varname = 'digested_percepts')
         self.max_deliberation_time = self.time # maximum time to which reasoner has deliberated; should this be unlogged?
+        self.most_recent_percept_time = self.time
 
-
-    def enqueue_digested_percept(self, digested_percept, percept_time, most_recent_percept_time=math.inf):
+    def enqueue_digested_percept(self, digested_percept, percept_time):
         '''This method is used to update the EscalationLadderReasoner's internal state on the basis of the output of the egent's perception filter. What this does is enque the digested percept in the history of percepts digested by the reasoner, and update the reasoner's max_deliberation_time so that the next time that its deliberate method is called, its planned future actions will be recalculated if necessary.'''
-        if percept_time < most_recent_percept_time:
+        if percept_time < self.most_recent_percept_time:
             self.rewind(percept_time) # this
             self.max_deliberation_time = percept_time
             # what, if anything, should be done with planned_actions at this juncture?
@@ -173,6 +187,8 @@ class EscalationLadderReasoner(ImprovedRomancerObject):
             self.max_deliberation_time = percept_time
             self.digested_percepts.append(digested_percept)
 
+        if percept_time > self.most_recent_percept_time:
+            self.most_recent_percept_time = percept_time
 
     def deliberate(self, max_time, amygdala):
         '''This method causes the agent to cogitate and predict how its mental state and intentions will evolve up until max_time in the future, presuming that it receives no additional percepts after the current time. One of the purposes of this method is to establish the evolution of the internal mental state of the agent. These changes can be stored on the loglist and then used to account for how a new percept can interrupt the agent's 'chain of thought.'
@@ -190,7 +206,7 @@ class EscalationLadderReasoner(ImprovedRomancerObject):
         amygdala.forward_simulation(max_time)
         next_rung = self.escalation_ladder.next_matched_rung(self.current_rung, self, amygdala)
         if next_rung: # there is a match in the future
-            return self.__find_approximate_match_time(amygdala)
+            return self.__find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
         self.max_deliberation_time = max_time
 
 
@@ -255,7 +271,9 @@ class EscalationLadderReasoner(ImprovedRomancerObject):
     def __escalate(self, next_rung, amygdala):
         next_rung.update_planned_actions(self)
         self.current_rung = next_rung
-        # amygdala.update_parameters() # increase pbf to account for stress of going up escalation ladder
+        Message = namedtuple('Message', ['time', 'parameters'])
+        message = Message(time=self.time, parameters=next_rung.amygdala_update)
+        amygdala.update_parameters(message) # increase pbf toaccount for stress of going up escalation ladder
         parameters = amygdala.current_amygdala_parameters()
         if parameters.current_dominant_response == 'fight':
             # match and/or escalate
@@ -280,13 +298,19 @@ class EscalationLadderReasoner(ImprovedRomancerObject):
                 # enqueue actions not yet taken
 
 
-    def __find_approximate_match_time(self, amygdala):
-        pres_time = self.time
-        # def matched_at_time(t):
-        #             cur_time_parameters = amygdala.anticipated_parameters_at_time(t)
-        #             if any((matcher(self, cur_time_parameters) for matcher in matchers)):
-        #                 return 1
-        #             else:
-        #                 return -1
-        # match_time = optimize.bisect(matched_at_time, pres_time, max_time)
-        # return match_time 
+
+    def __find_approximate_match_time(self, pres_time, max_time, matched_rung, amygdala):
+        def matched_at_time(t): # adjust objects to correct time, determine if there's a match
+            if t < self.time:
+                self.rewind(t)
+                amygdala.rewind(t)
+            elif t > self.time:
+                self.forward_simulation(t)
+                amygdala.forward_simulation(t)
+            if matched_rung.rung_matched(self, amygdala):
+                return 1
+            else:
+                return -1
+        match_time = optimize.bisect(matched_at_time, pres_time, max_time)
+        return match_time
+
