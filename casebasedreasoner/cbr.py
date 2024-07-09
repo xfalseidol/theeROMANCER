@@ -1,6 +1,7 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP, is_satisfied
 import networkx as nx
+import random
 
 class CBRError(Exception):
     pass
@@ -24,7 +25,13 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.unlogged_attrs.append('mops')
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
         self.clear_memory(True) # install basic MOPs
+        self.decision_making_ability = None  # A number in the range 0..1. If None, use normal get_sibling
+        self.rng = random.Random()  # Used by the stochastic mop selector
 
+    def set_stochastic_decision_making(self, decision_making_ability):
+        # Setting this turns on the stochastic reasoner
+        # Turn it on after the default and foundational mops are inserted
+        self.decision_making_ability = decision_making_ability
 
     def calc_type(self, absts, slots):
         '''Determine whether a new MOP with absts and slots will be of type 'mop' (for an abstraction) or 'instance'. Returns value as a string.'''
@@ -154,7 +161,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             raise CBRError(f"Failed to convert slots {slots} to MOP of type {mop_type} with absts {absts}.")
     
 
-    def install_foundation_mops(self):
+    def install_foundation_mops(self, amygdala=None):
         '''Equivilent to the DEFMOPs in listing 3.21 of Schank/Riesbeck.'''
 
         self.add_mop(mop_name='M-EVENT', mop_type='mop', is_core_cbr_mop=True)
@@ -212,36 +219,48 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def get_sibling(self, pattern, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
         sibling = None
-        for abst in mop.absts: # goes up one layer in abstraction
-            for spec in abst.specs: # looks at all specializations
-                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
-                        self.name_mop('M-FAILED-SOLUTION')):
-                    sibling = spec
+        if self.decision_making_ability is not None:
+            sibling = self.choose_stochastic(mop, self.decision_making_ability, self.rng)
+            print("Randomly chose " + sibling.mop_name)
+        else:
+            for abst in mop.absts: # goes up one layer in abstraction
+                for spec in abst.specs: # looks at all specializations
+                    if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
+                            self.name_mop('M-FAILED-SOLUTION')):
+                        sibling = spec
         return sibling
 
-    def get_mop_slots_r(self, mop_name, curr_dict={}, depth=0):
+    def get_mop_slots_r(self, mop_name, root_mop=None, curr_dict=None, depth=0):
         ''' For a given mop, return a map of all slot->slot_value.
          Do this recursively [ie, if a slot references another mop, go down into that]
           A higher-level dict value should not be overwritten by a lower level one '''
+        if root_mop is None:
+            root_mop = mop_name
+        if curr_dict is None:
+            curr_dict = dict()
         if mop_name not in self.mops:
             return curr_dict
         if depth > 200:
             raise CBRError("Recursively getting slots went too deep (cycle in graph?)")
 
         this_mop = self.mops[mop_name]
+        recurse_mop_queue = []
+
         for slot in this_mop.slots:
             # Already have a key
             if slot in curr_dict:
                 continue
 
             slot_val = this_mop.slots[slot]
+            if slot_val == root_mop:
+                continue
             if slot_val in self.mops:
                 curr_dict[slot] = slot_val
-                self.get_mop_slots_r(slot_val, curr_dict, depth=depth+1)
+                recurse_mop_queue.append(slot_val)
             elif isinstance(slot_val, MOP):
                 mop_name = slot_val.mop_name
                 curr_dict[slot] = slot_val.mop_name
-                self.get_mop_slots_r(mop_name, curr_dict, depth=depth + 1)
+                recurse_mop_queue.append(slot_val.mop_name)
             elif isinstance(slot_val, (str, int, float)):
                 curr_dict[slot] = slot_val
             elif callable(slot_val):
@@ -251,6 +270,9 @@ class CaseBasedReasoner(ImprovedRomancerObject):
                 pass
             else:
                 print(f"Slot {slot} on mop {mop_name} has unknown slot type {type(slot_val)}")
+
+        for r_mop in recurse_mop_queue:
+            self.get_mop_slots_r(r_mop, root_mop, curr_dict, depth=depth + 1)
 
         return curr_dict
 
@@ -275,28 +297,58 @@ class CaseBasedReasoner(ImprovedRomancerObject):
                 if v1 == v2:
                     retval += 1
             elif isinstance(v1, (int, float)):
-                retval += v1 * v2
+                retval -= pow((v1 - v2), 2)
             else:
                 print(f"Don't know how to compare two {type(v1)}")
 
         return retval
 
+    def normalise_mop_dicts(self, key_mop, other_dicts):
+        for k in key_mop.keys():
+            if isinstance(key_mop[k], (int, float)):
+                min_val = 1000000
+                max_val = -1000000
+                for other_mop in other_dicts.keys():
+                    other_dict = other_dicts[other_mop]
+                    if k in other_dict:
+                        min_val = min(min_val, other_dict[k])
+                        max_val = max(max_val, other_dict[k])
+                for other_mop in other_dicts.keys():
+                    other_dict = other_dicts[other_mop]
+                    if k in other_dict:
+                        other_dict[k] = (other_dict[k] - min_val) / (max_val - min_val)
+                key_mop[k] = (key_mop[k] - min_val) / (max_val - min_val)
+
+    def get_all_siblings(self, mop):
+        '''all siblings for a mop, including the mop itself'''
+        siblings = []
+        absts = mop.absts
+        for abst in absts:  # goes up one layer in abstraction
+            for spec in abst.specs:  # looks at all specializations
+                if isinstance(spec, MOP) and spec.is_instance_mop() and not spec.is_abstraction(
+                        self.name_mop('M-FAILED-SOLUTION')):
+                    siblings.append(spec.mop_name)
+        return siblings
 
     def compare_to_all_other_mops(self, mop_name):
         ''' Return a map of mop_name => similarity_score, showing how similar
         every other mop in this CBR is, to the mop requested '''
         this_mop_dict = self.get_mop_slots_r(mop_name)
-        comparisons = {}
         other_dicts = {}
-        for other_mop in self.mops:
+        # In keeping with get_sibling: Only search through MOPs that come from the same abst as the one we're holding
+
+        for other_mop in self.get_all_siblings(mop_name):
             if other_mop == mop_name:
-                continue
-            if self.mops[other_mop].is_default_mop():
                 continue
 
             other_mop_dict = self.get_mop_slots_r(other_mop)
             other_dicts[other_mop] = other_mop_dict
-            comparisons[other_mop] = self.compare_two_mop_dicts(this_mop_dict, other_mop_dict)
+
+        self.normalise_mop_dicts(this_mop_dict, other_dicts)
+
+        comparisons = {}
+        for other_mop in other_dicts:
+            comparisons[other_mop] = self.compare_two_mop_dicts(this_mop_dict, other_dicts[other_mop])
 
         sorted_items = sorted(comparisons.items(), key=lambda x: x[1], reverse=True)
         sorted_mops = [item[0] for item in sorted_items]
@@ -305,9 +357,10 @@ class CaseBasedReasoner(ImprovedRomancerObject):
     def choose_stochastic(self, mop_name, decision_making_ability, rng):
         ''' for a given mop, and a given decision_making_ability , find a comparable mop. Pass a Random Number Generator '''
         # decision_making_ability should be in the range 0 [= no ability to make good decisions] to 1 [= will make best decision possible]
+        # return self.mops['I-M-CRIME.123']
         sorted_mops = self.compare_to_all_other_mops(mop_name)
         # Choose uniformly, one from the top n mops, where n is derived from current decision making ability
         select_from_cnt = int(min(len(sorted_mops), max(1, (1.0-decision_making_ability) * len(sorted_mops))))
-        print(f"Decision Making {decision_making_ability}, Selected range: {select_from_cnt}")
+        # print(f"Decision Making {decision_making_ability}, Selected range: {select_from_cnt}")
         selected_idx = rng.randrange(select_from_cnt)
-        return sorted_mops[selected_idx]
+        return self.mops[sorted_mops[selected_idx]]
