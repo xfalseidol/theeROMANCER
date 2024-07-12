@@ -14,7 +14,7 @@ class CommandPEPercept(Percept):
     def hit_count(self):
         count = 0
         for event in self.events_list:
-            if event['event_type'] = 'hit':
+            if event['event_type'] == 'hit':
                 count +=1
         return count
             
@@ -23,7 +23,7 @@ class CommandPEPercept(Percept):
     def fired_count(self):
         count = 0
         for event in self.events_list:
-            if event['event_type'] = 'fired':
+            if event['event_type'] == 'fired':
                 count +=1
         return count
 
@@ -31,16 +31,16 @@ class CommandPEPercept(Percept):
     def weighted_hits(self):
         weighted_count = 0
         for event in self.events_list:
-            if event['event_type'] = 'hit':
-                weighted_count += count event['weapon'] * event['target']
+            if event['event_type'] == 'hit':
+                weighted_count += event['weapon'] * event['target']
         return weighted_count
 
 
     def weighted_fired(self):
         weighted_count = 0
         for event in self.events_list:
-            if event['event_type'] = 'fired':
-                weighted_count += count event['weapon'] * event['target']
+            if event['event_type'] == 'fired':
+                weighted_count += event['weapon'] * event['target']
         return weighted_count
     
 

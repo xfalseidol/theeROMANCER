@@ -9,9 +9,9 @@ from copy import copy
 def default_aggregator_fn(events_list, cur_time, inevitable_events):
     '''The purpose of the aggregator function is to convert events returned by the CPEWeaponFiredReader used by CommandPEWatchlist's __init__ method into WatchlistItems that are then used to populated the CommandPEWatchlist's inevitable_events attribute. In order to generate different WatchlistItems from the same set of CommandPE files, pass a differet version of this function.'''
     # convert events into WatchlistItem(s)
-    item = CommandPEWatchlistItem(events_list, cur_time) 
+    item = CommandPEWatchlistItem(cur_time, events_list) 
     # push WatchlistItem(s) onto inevitable_events
-    inevitable_events.push(item)
+    inevitable_events.append(item)
 
 
 class CommandPEWatchlist():
@@ -38,7 +38,7 @@ class CommandPEWatchlist():
         if len(self.data) == 0: 
             for event in self.inevitable_events:
                 self.push(copy(event))
-        if time = 0.0:
+        if time == 0.0:
             self.time = time # time is time of most recently popped event
         else:
             self.rewind(time) # set watchlist to correct subset of inevitable_events
