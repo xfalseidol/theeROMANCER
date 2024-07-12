@@ -1,4 +1,5 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
+from romancer.supervisor.watchlist import WatchlistItem
 
 
 def next_deterministic_action(o, m):
@@ -51,3 +52,42 @@ class PersonLikeAgent(ImprovedRomancerObject):
 
         The PersonLikeAgent delegates deliberation to its reasoner.'''
         self.reasoner.deliberate(max_time, self.amygdala)
+
+
+class PersonLikeAgentAction(WatchlistItem):
+    '''This WatchlistItem takes the next action on the associated PersonLikeAgent's action queue and updates its amygdala parameters.'''
+
+    def __init__(self, time, agent_uid):
+        super().__init__(time)
+        self.agent_uid = object_uid
+
+
+    def process(self, supervisor):
+        agent = supervisor.environment.message_dispatch_table[self.agent_uid]
+        # take next action on agent's reasoner's action queue
+        params = agent.reasoner.take_next_action() # take_next_action() method returns amygdala update parameters
+        # use returned params to update agent's amygdala state
+        agent.update_amygdala(params)
+        
+
+    def __repr__(self):
+        return '{}(time={}, agent_uid={}, amygdala_params={})'.format(self.__class__.__name__, self.time, self.agent_uid, self.amygdala_params)
+
+
+class PersonlikeActionROMANCERMessage(NamedTuple):
+    uid: int # unique identifier used for routing message and confirming receipt
+    recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
+    sender: tuple[int, int] # specific object sending message
+    messagetype: str # this string can be employed to dispatch messages
+    time: float # simulation time
+    action: str
+    amygdala_params: dict = {'delta_pbf': 0.0, 'delta_fight': 0.0, 'delta_flight': 0.0, 'delta_freeze': 0.0}
+    confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
+    most_recent_percept_time: float = -1.0 # negative value means 'None'
+    target_uid: int = 0 # target object if needed, 0 means 'none'
+
+    
+def push_personlike_action(sup, message):
+    '''This method is supposed to be used with the SingleThreadSupervisor's dispatch table in response to a PersonlikeActionROMANCERMessage.'''
+    item = PersonLikeAgentAction(message.time, agent_uid = message.sender[1])
+    return item

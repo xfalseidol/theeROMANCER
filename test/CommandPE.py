@@ -5,6 +5,7 @@ from environment.location import GeographicLocation
 from environment.dispositiontree import GeographicDispositionStump
 from romancer.commandpe.watchlist import CommandPEWatchlist
 from romancer.commandpe.perceptionengine import CommandPEPerceptionEngine, CommandPEPerceptionFilter
+from romancer.agent.personlikeagent import push_personlike_action
 from romancer.agent.escalationladderagent import EscalationLadderAgent
 from romancer.agent.escalationladderreasoner import EscalationLadder, EscalationLadderRung
 from romancer.agent.amygdala import Amygdala
@@ -18,6 +19,9 @@ cpeoutputfolder = cpeinputfolder = "data/orwaca_sample"
 # STEP 1: Make supervisor
 # Note that the supervisor as initialized here does not have its environment set; need to set it once environment is created
 sup = SingleThreadSupervisor()
+
+# set dispatch function for PersonlikeActionROMANCERMessage
+sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
 
 watchlist = CommandPEWatchlist(weapon_class_csv = f"{cpeinputfolder}/weaponClass.csv", target_class_csv = f"{cpeinputfolder}/targetClass.csv", target_unit_csv = f"{cpeinputfolder}/targetUnitClass.csv", weapon_fired_csv = f"{cpeoutputfolder}/WeaponFired.csv", weapon_endgame_csv = f"{cpeoutputfolder}/WeaponEndgame.csv")
 
