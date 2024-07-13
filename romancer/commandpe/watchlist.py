@@ -103,19 +103,30 @@ class CommandPEWatchlist():
                 self.pop()
         # else: # time == self.time
         #     pass # is this right? There may be multiple items on Watchlist for simultaneous time
+
+
+    def __len__(self):
+        '''This is needed as the supervisor uses len() on the watchlist.'''
+        return len(self.data)
         
 
 class CommandPEWatchlistItem(WatchlistItem):
     '''The CommandPEWatchlistItem is basically a container for the list of events returned by the CPEREader's read_next_weapons_events method, which also provides the process method expected by the supervisor.'''
 
-    def __init__(self, time, events_list):
+    def __init__(self, time, events_list, agent_uid = None):
         self.time = time
         self.events_list = events_list
+        self._agent_uid = agent_uid # programmed recipient for percept(s), automatically determined if only one agent exists in environment
 
 
     def process(self, supervisor):
         '''When processed, the CommandPEWatchlistItem is supposed to call the PerceptionEngine to convert the contents of self.events_list into a percept, which is then passed to the agent(s) perception filter(s).'''
-        self.environment.perception_engine.force_percept(self.time, self.events_list) # this method should generate the percept from events_list and have it queued for delivery when the perceptionengine is run
+        if not self._agent_uid:
+            if len(supervisor.environment.agents) == 1: # only one possible agent to receive percept
+                agent_uid = supervisor.environment.agents[0].uid
+        else:
+             agent_uid = self._agent_uid
+        supervisor.environment.perception_engine.force_percept(self.time, self.events_list, agent_uid) # this method should generate the percept from events_list and have it queued for delivery when the perceptionengine is run
         supervisor.check_for_percepts = True # this tells the supervisor to run the perception engine
 
 

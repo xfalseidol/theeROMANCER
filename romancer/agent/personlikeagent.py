@@ -1,5 +1,7 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from romancer.supervisor.watchlist import WatchlistItem
+from romancer.environment.location import StationaryGeographicLocation
+from typing import NamedTuple
 
 
 def next_deterministic_action(o, m):
@@ -15,17 +17,19 @@ def next_deliberate_action(o, m):
 class PersonLikeAgent(ImprovedRomancerObject):
     '''Person-like agents are intended to represent human cognitive processes in at least modest fidelity. They incorporate an object approximately representing neuroendocrine and limbic systems (a ) and another representing higher-level reasoning functions (i.e., neocortex).'''
 
-    def __init__(self, environment, time, perception_filter, amygdala, reasoner):
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0)):
         super().__init__(environment, time)
         self.perception_filter = perception_filter # this should probably log by default
         self.most_recent_percept_time = None # this should definitely log
         self.amygdala = amygdala
         self.reasoner = reasoner
+        self.location = location # fixed location
+        self.resolution = 1.0 # fixed resolution, should this be very large?
         self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action, 
                                           'StochasticActionsBeforeTime': lambda o, m: None,
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
-                                          'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)})
+                                          'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
         
 
     def dispatcher(self, message):

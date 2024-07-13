@@ -45,18 +45,18 @@ class CommandPEPercept(Percept):
     
 
 class CommandPEPerceptionEngine(PerceptionEngine):
-    '''Theis PerceptionFIlter is designed not just to '''
+    '''Theis PerceptionFIlter is designed not just to force percepts genetated from CommandPE or AFSIM output files, but to also coexist with percepts originating from a parallel ROMANCER simulation.'''
 
     def __init__(self, environment=None):
         super().__init__(environment)
         self.queued_percepts = dict() # {agent_id: [percept_list]}
-        queued_percepts_time = inf
+        self.queued_percepts_time = inf
 
 
     def run(self, **kwargs):
         observer_percepts = super().run() # in default case where there are no observers, returns an empty dict
         # check to see if it is time for currently queued percepts
-        if self.environment.time == queued_percepts_time: # I don't think this should ever happen under normal circumstances but we should check to be safe
+        if self.environment.time == self.queued_percepts_time: # I don't think this should ever happen under normal circumstances but we should check to be safe
             for key in self.queued_percepts.keys():
                 if key in observer_percepts:
                     observer_percepts[key] += self.queued_percepts[key]
@@ -72,7 +72,7 @@ class CommandPEPerceptionEngine(PerceptionEngine):
         for event in events_list:
             event_dict = dict()
             for k in event_keys:
-                event_dict.append({k: getattr(event, k)})
+                event_dict.update({k: getattr(event, k)})
             refined_events_list.append(event_dict)
         percept = CommandPEPercept(events_list = refined_events_list)
         if time == self.queued_percepts_time:
@@ -80,7 +80,7 @@ class CommandPEPerceptionEngine(PerceptionEngine):
                 self.queued_percepts[agent_id] += [percept]
             else:
                 self.queued_percepts[agent_id] = [percept]
-        elif time < queued_percepts_time:
+        elif time < self.queued_percepts_time:
             self.queued_percepts_time = time
             self.queued_percepts[agent_id] = [percept]
         else:
@@ -94,4 +94,4 @@ class CommandPEPerceptionFilter(PerceptionFilter):
         '''This method assumes a CommandPEPercept.'''
         cur_params = self.agent.amygdala.current_amygdala_parameters()
         updated_percept = CommandPEPercept(events_list = percept.events_list, amygdala_params = cur_params)
-        self.agent.reasoner.enqueue_digested_percept(percept, self.agent.time, self.most_recent_percept_time)
+        self.agent.reasoner.enqueue_digested_percept(percept, self.agent.time)

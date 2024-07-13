@@ -10,8 +10,6 @@ class Reasoner(ImprovedRomancerObject):
         super().__init__(environment, time)
         # Note that self.next_deliberate_action is likely to be reset regularly, often by the PerceptionFilter because it detects new stimuli that may change future planned actions
         # the Reasoner's forward_simulation method can take care of keeping these values updated
-        self.next_deliberate_action = None
-        self.next_deliberate_action_time = None # this should only be non-null if self.next_deliberate_action is set
 
 
     def forward_simulation(self, time, amygdala):
@@ -43,7 +41,16 @@ class Reasoner(ImprovedRomancerObject):
             cur_time = self.time
             self.forward_simulation(max_time, amygdala) # amygdala needs to be passed as well as the future histories evolve jointly
             self.rewind(cur_time)
-        
 
-    
+
+    @property
+    def next_deliberate_action(self):
+        '''This returns the next deliberate action, which for the nulle default reasoner is always empty.'''
+        return None
+
+
+    @property
+    def next_deliberate_action_time(self):
+        '''This returns the time of the next deliberate action, which for the nulle default reasoner is always empty.'''
+        return None
     

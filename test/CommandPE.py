@@ -7,7 +7,7 @@ from romancer.commandpe.watchlist import CommandPEWatchlist
 from romancer.commandpe.perceptionengine import CommandPEPerceptionEngine, CommandPEPerceptionFilter
 from romancer.agent.personlikeagent import push_personlike_action
 from romancer.agent.escalationladderagent import EscalationLadderAgent
-from romancer.agent.escalationladderreasoner import EscalationLadder, EscalationLadderRung
+from romancer.agent.escalationladderreasoner import EscalationLadder, EscalationLadderRung, EscalationLadderReasoner
 from romancer.agent.amygdala import Amygdala
 from dill import dump, load
 from pathlib import Path
@@ -25,11 +25,18 @@ sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
 
 watchlist = CommandPEWatchlist(weapon_class_csv = f"{cpeinputfolder}/weaponClass.csv", target_class_csv = f"{cpeinputfolder}/targetClass.csv", target_unit_csv = f"{cpeinputfolder}/targetUnitClass.csv", weapon_fired_csv = f"{cpeoutputfolder}/WeaponFired.csv", weapon_endgame_csv = f"{cpeoutputfolder}/WeaponEndgame.csv")
 
-start_time = watchlist.peek().time # time at which simulated events from CommandPE start
+start_time = 0.0 # watchlist.peek().time # time at which simulated events from CommandPE start
 
 sup.watchlist = watchlist # replace default SingleThreadSupervisor watchlist with populated CommandPE watchlist
 
-print(sup.watchlist.data[0:3])
+sup.watchlist.data = sup.watchlist.data[0:3] # make this manageably short for debugging purposes
+
+# Step 1.2: Configure logger
+
+def demologger(s):
+    print('Processed watchlist item: ', s)
+
+sup.logger = demologger
 
 # Step 2: Make environment
 
@@ -80,7 +87,7 @@ red_perception_filter = CommandPEPerceptionFilter(agent = None)
 # Step 3.3: Create reasoner
 
 # Step 3.3.1: Create and populate escalation ladder
-rung1 = EscalationLadderRung(match_attributes = {event_type='fired', weapon='3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
+rung1 = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
                              red_actions = [], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                              blue_deescalation_actions = [], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
@@ -88,12 +95,12 @@ rung1 = EscalationLadderRung(match_attributes = {event_type='fired', weapon='3'}
                              )
 # While Herman Kahn's escalation ladder had 44 rungs, for our purposes here far fewer are needed, as we only need a subsection of a full ladder appropriate for the situation decribed in the Command PE model run used to generate the watchlist
 
-# rung2 = EscalationLadderRung(match_attributes = ,
-#                              blue_actions = ,
-#                              red_actions = ,
-#                              blue_deescalation_actions = ,
-#                              red_deescalation_actions =
-#                              )
+rung2 = EscalationLadderRung(match_attributes = {'event_type': 'hit', 'weapon': '3'},
+                             blue_actions = [],
+                             red_actions = [],
+                             blue_deescalation_actions = [],
+                             red_deescalation_actions = []
+                             )
 
 # rung3 = EscalationLadderRung(match_attributes = ,
 #                              blue_actions = ,
@@ -130,4 +137,4 @@ env.add_agent(red_nca)
 
 # Step 5: Run simulation
 
-# sup.run(verbose = True)
+sup.run(verbose = True)

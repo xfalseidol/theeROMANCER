@@ -1,5 +1,6 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from romancer.agent.amygdala import UpdateAmygdalaParameters
+from romancer.agent.reasoner import Reasoner
 from collections import UserList
 from heapq import heapify, heappush, heappop
 from scipy import optimize
@@ -135,7 +136,7 @@ class EscalationLadderRung():
         return "Rung " + str(self.id)
     
 
-class EscalationLadderReasoner(ImprovedRomancerObject):
+class EscalationLadderReasoner(Reasoner):
     '''
     '''
 

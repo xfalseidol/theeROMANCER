@@ -1,6 +1,6 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from romancer.agent.personlikeagent import PersonLikeAgent, PersonlikeActionROMANCERMessage
-from typing import NamedTuple
+from romancer.environment.location import StationaryGeographicLocation
 
     
 def next_deterministic_action(o, m):
@@ -15,7 +15,7 @@ def next_deliberate_action(o, m):
         return None
     else:
         action = o.reasoner.next_deliberate_action
-        message = PersonlikeActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', action=action, time=next_action_time, most_recent_percept_time=0.most_recent_percept_time)
+        message = PersonlikeActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', action=action, time=next_action_time, most_recent_percept_time=o.most_recent_percept_time)
         o.outbox.append(new_message)
     
 
@@ -23,16 +23,12 @@ class EscalationLadderAgent(PersonLikeAgent):
     '''
     '''
 
-    def __init__(self, environment, time, perception_filter, amygdala, reasoner):
-        super().__init__(environment, time)
-        self.perception_filter = perception_filter # this should probably log by default
-        self.most_recent_percept_time = None # this should definitely log
-        self.amygdala = amygdala
-        self.reasoner = reasoner
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0)):
+        super().__init__(environment, time, perception_filter, amygdala, reasoner, location)
         self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action, 
                                           'StochasticActionsBeforeTime': lambda o, m: None,
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
-                                          'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)})
+                                          'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
 
  
