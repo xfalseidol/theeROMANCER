@@ -15,7 +15,7 @@ def next_deliberate_action(o, m):
         return None
     else:
         action = o.reasoner.next_deliberate_action
-        message = PersonlikeActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', action=action, time=next_action_time, most_recent_percept_time=o.most_recent_percept_time)
+        message = PersonlikeActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', actions=tuple(action), time=next_action_time, most_recent_percept_time=o.most_recent_percept_time)
         o.outbox.append(new_message)
     
 
@@ -30,5 +30,3 @@ class EscalationLadderAgent(PersonLikeAgent):
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
                                           'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
-
- 

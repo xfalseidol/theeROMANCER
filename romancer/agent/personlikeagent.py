@@ -70,6 +70,7 @@ class PersonLikeAgentAction(WatchlistItem):
         agent = supervisor.environment.message_dispatch_table[self.agent_uid]
         # take next action on agent's reasoner's action queue
         params = agent.reasoner.take_next_action() # take_next_action() method returns amygdala update parameters
+        # it also is permitted to send arbitrary numbers of arbitrary messsages to the supervisor which can then trigger changes in supervisor and environment state (e.g., enqueing future WatchlistItems)
         # use returned params to update agent's amygdala state
         agent.update_amygdala(params)
         
@@ -84,7 +85,7 @@ class PersonlikeActionROMANCERMessage(NamedTuple):
     sender: tuple[int, int] # specific object sending message
     messagetype: str # this string can be employed to dispatch messages
     time: float # simulation time
-    action: str
+    actions: tuple # sequence (possibly empty) or action messages sent to supervisor when action is executed
     amygdala_params: dict = {'delta_pbf': 0.0, 'delta_fight': 0.0, 'delta_flight': 0.0, 'delta_freeze': 0.0}
     confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     most_recent_percept_time: float = -1.0 # negative value means 'None'
@@ -95,3 +96,25 @@ def push_personlike_action(sup, message):
     '''This method is supposed to be used with the SingleThreadSupervisor's dispatch table in response to a PersonlikeActionROMANCERMessage.'''
     item = PersonLikeAgentAction(message.time, agent_uid = message.sender[1])
     return item
+
+
+class DraftROMANCERMessage():
+    '''The purpose of this class is to provide a means of generating arbitrary ROMANCER messages, which are by definition immutable objects, at runtime. It is used by initializing with kwargs that include all the slots of the message in addition to an argument 'message_class' which indicates the class name of the message. The same DraftROMANCERMessage object can be mutated to create many different immutable messages as desired. The generate a message based on the current state of the object, use the coerce_to_message method.'''
+
+    def __init__(self, **kwargs):
+        default_kwargs = dict({'confirmReceipt': False})
+        default_kwargs.update(kwargs)
+        default_kwargs.pop('message_class')
+        self.class_obj = globals()[kwargs['message_class']]
+        self.constructor_args = default_kwargs
+
+
+    def coerce_to_message(self, **substitute_kwargs):
+        current_args = self.constructor_args | substitute_kwargs
+        message = self.class_obj(**current_args)
+        return message
+
+
+    def __repr__(self):
+        print_args = self.constructor_args | {'message_class': self.class_obj.__name__}
+        return 'DraftROMANCERMessage(**{})'.format(print_args)

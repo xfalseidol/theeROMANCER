@@ -72,11 +72,11 @@ class EscalationLadderRung():
 
     def rung_matched(self, reasoner, amygdala):
         dominant_response = amygdala.dominant_response()
-        if dominant_response == "freeze": # always escalate
+        if dominant_response == "freeze": # never escalate
             return False
         if dominant_response == "fight": # always escalate
             return True
-        if dominant_response == "flight": # never escalate ??
+        if dominant_response == "flight": # try to de-escalate
             return False
         
         # ANY attribute in match_attributes matches a digested percept
@@ -106,12 +106,13 @@ class EscalationLadderRung():
 
     def untaken_actions(self, actions, reasoner):
         '''This method returns a set of actions that are not in the reasoner's actions_taken list. It may be handy to override this method to get more subtle, custom behavior from certain rungs.'''
-        return set(reasoner.actions_taken).difference(actions)
+        return set(reasoner.actions_taken).difference(actions) # FIX
         
 
     def enqueue_red_actions(self, reasoner):
         '''This method enqueues the red actions associated with this rung in the reasoner's action queue.'''
         for action in self.untaken_actions(self.red_actions, reasoner):
+            # 
             reasoner.planned_actions.heappush((reasoner.time + action[0], action[1], reasoner.digested_percepts[-1].time))
 
 
@@ -247,7 +248,7 @@ class EscalationLadderReasoner(Reasoner):
     @property
     def next_deliberate_action(self):
         if len(self.planned_actions):
-            return peek(self.planned_actions)[1]
+            return peek(self.planned_actions)[1] # this is an iterable of messages for the supervisor
         else:
             return None
 
@@ -262,11 +263,16 @@ class EscalationLadderReasoner(Reasoner):
         
     def take_next_action(self):
         '''This method is meant to be called when a WatchListItem reflecting the agent's planned action is processed by the Supervisor. It should be an internal implementation detail which is called via a method on the PersonLikeAgent, which uses the values it returns to update the Amygdala state.'''
-        action = heappop(self.planned_actions)
+        action_time, actions, params = heappop(self.planned_actions) # This should return an iterable of messages 
         self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
-        # send message to supervisor reflecting action, if necessary
-        self.actions_taken.push((action, action_time))
-        return UpdateAmygdalaParameters(delta_pbf = action.delta_pbf, delta_fight = action.delta_fight, delta_flight = action.delta.flight, delta_freeze = action.delta_freeze) # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
+        # send messages to supervisor reflecting actions, if necessary
+        if len(actions) > 0:
+            self.environment.supervisor.inbox.clear() # should already be empty
+            self.environment.supervisor.deliver_messages(actions)
+            self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
+            self.environment.supervisor.inbox.clear() # remove action messages
+        self.actions_taken.push((actions, action_time))
+        return params # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
 
 
     def __escalate(self, next_rung, amygdala):
