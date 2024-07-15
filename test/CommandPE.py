@@ -5,7 +5,7 @@ from environment.location import GeographicLocation
 from environment.dispositiontree import GeographicDispositionStump
 from romancer.commandpe.watchlist import CommandPEWatchlist
 from romancer.commandpe.perceptionengine import CommandPEPerceptionEngine, CommandPEPerceptionFilter
-from romancer.agent.personlikeagent import push_personlike_action
+from romancer.agent.personlikeagent import push_personlike_action, DraftROMANCERMessage
 from romancer.agent.escalationladderagent import EscalationLadderAgent
 from romancer.agent.escalationladderreasoner import EscalationLadder, EscalationLadderRung, EscalationLadderReasoner
 from romancer.agent.amygdala import Amygdala
@@ -87,6 +87,13 @@ red_perception_filter = CommandPEPerceptionFilter(agent = None)
 # Step 3.3: Create reasoner
 
 # Step 3.3.1: Create and populate escalation ladder
+sample_rung = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
+                             blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
+                             red_actions = [(0.1, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage')), {'delta_pbf': 0.1, 'delta_fight': 0.2, 'delta_flight': 0.3,'delta_freeze': 0.4})], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                             blue_deescalation_actions = [], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
+                             red_deescalation_actions = [] # actions that agent assumes that red will take if it attempts to de-escalate from this rung
+                            )
+
 rung1 = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
                              red_actions = [], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)

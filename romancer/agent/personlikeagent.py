@@ -72,7 +72,7 @@ class PersonLikeAgentAction(WatchlistItem):
         params = agent.reasoner.take_next_action() # take_next_action() method returns amygdala update parameters
         # it also is permitted to send arbitrary numbers of arbitrary messsages to the supervisor which can then trigger changes in supervisor and environment state (e.g., enqueing future WatchlistItems)
         # use returned params to update agent's amygdala state
-        agent.update_amygdala(params)
+        agent.amygdala.update_parameters(params)
         
 
     def __repr__(self):
