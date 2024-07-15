@@ -388,7 +388,7 @@ class SingleThreadSupervisor(Supervisor):
         item = self.watchlist.peek()
         item.process(self) # run code associated with WatchlistItem; this can cause arbitrary changes to environment and supervisor state
         self.logger(self.watchlist.pop()) # pop the just-processed item off of the watchlist and log it if desired
-        if self.check_for_percepts:
+        if self.check_for_percepts and len(self.watchlist) > 0:
             next_time = self.watchlist.peek().time
             self.perceive_and_deliberate(next_time)
             self.check_for_percepts = False
