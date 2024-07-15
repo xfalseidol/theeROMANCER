@@ -27,6 +27,16 @@ class EscalationLadder(UserList):
         finally:
             return next_rung
 
+    def previous_rung(self, current_rung):
+        '''The opposite of next_rung.'''
+        cur_i = self.data.index(current_rung)
+        try:
+            previous_rung = self.data[cur_i - 1]
+        except IndexError:
+            previous_rung = None
+        finally:
+            return previous_rung
+
     # for deliberating into the future
     def next_matched_rung(self, current_rung, reasoner, amygdala):
         matched = False
@@ -72,11 +82,11 @@ class EscalationLadderRung():
 
     def rung_matched(self, reasoner, amygdala):
         dominant_response = amygdala.dominant_response()
-        if dominant_response == "freeze": # always escalate
+        if dominant_response == "freeze": # never escalate
             return False
         if dominant_response == "fight": # always escalate
             return True
-        if dominant_response == "flight": # never escalate ??
+        if dominant_response == "flight": # try to de-escalate
             return False
         
         # ANY attribute in match_attributes matches a digested percept
@@ -106,31 +116,52 @@ class EscalationLadderRung():
 
     def untaken_actions(self, actions, reasoner):
         '''This method returns a set of actions that are not in the reasoner's actions_taken list. It may be handy to override this method to get more subtle, custom behavior from certain rungs.'''
-        return set(reasoner.actions_taken).difference(actions)
+        # return set(reasoner.actions_taken).difference(actions) # FIX
+        return actions
         
 
+    def _enqueue_actions(self, actions, reasoner):
+        '''This method enqueues the actions in the reasoner's action queue. Actions should be an iterable of three-tuples with the form (delta_t, (draft_action_message_1, ... draft_action_message_n), amygdala_update_parameters). When this method is run, the draft action messages are converted into immutable messages to be sent to the supervisor at a time defined as the decision (current) time plus delta_t. The EscalationLadderReasoner's take_next_action() method uses this three tuple to determine when the planned action will take place, what messages will be sent to the supervisor when this action is taken, and how the associated agent's amygdala will be updated when the action is taken. The action messages are stored by the reasoner and used to determine whether an action has been taken or not.'''
+        for a in actions:
+            delta_t, draft_messages, update_params = a # unpack 3-tuple
+            action_time = reasoner.time + delta_t
+            action_messages = [draft_message.coerce_to_message(**{'uid': reasoner.new_message_index(), 'time': action_time, 'sender': (reasoner.environment.uid, reasoner.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
+            action_messages = self.untaken_actions(action_messages, reasoner)
+            reasoner.planned_actions.heappush((action_time, tuple(actions), update_params))
+                
+        
     def enqueue_red_actions(self, reasoner):
         '''This method enqueues the red actions associated with this rung in the reasoner's action queue.'''
-        for action in self.untaken_actions(self.red_actions, reasoner):
-            reasoner.planned_actions.heappush((reasoner.time + action[0], action[1], reasoner.digested_percepts[-1].time))
+        self._enqueue_actions(self.red_actions, reasoner)
 
 
     def enqueue_blue_actions(self, reasoner):
         '''This method enqueues the blue actions associated with this rung in the reasoner's action queue.'''
-        for action in self.untaken_actions(self.blue_actions, reasoner):
-            reasoner.planned_actions.heappush((reasoner.time + action[0], action[1], reasoner.digested_percepts[-1].time))
+        self._enqueue_actions(self.blue_actions, reasoner)
 
 
     def enqueue_red_deescalation_actions(self, reasoner):
         '''This method enqueues the red deescalation actions associated with this rung in the reasoner's action queue.'''
-        for action in self.untaken_actions(self.red_deescalation_actions, reasoner):
-            reasoner.planned_actions.heappush((reasoner.time + action[0], action[1], reasoner.digested_percepts[-1].time))
+        self._enqueue_actions(self.red_deescalation_actions, reasoner)
 
 
     def enqueue_blue_deescalation_actions(self, reasoner):
         '''This method enqueues the blue deescalation actions associated with this rung in the reasoner's action queue.'''
-        for action in self.untaken_actions(self.blue_deescalation_actions, reasoner):
-            reasoner.planned_actions.heappush((reasoner.time + action[0], action[1], reasoner.digested_percepts[-1].time))
+        self._enqueue_actions(self.blue_deescalation_actions, reasoner)
+
+
+    def check_for_deescalation(self, reasoner, amygdala):
+        '''This method uses information stored in this rung and the reasoner, in conjunction with the current amygdala state, to determine whether it appears that the adversary is attempting to deescalate (from the reasoner's standpoint, or if the agent is is desperate based on its amygdala state that it wants to try to deescalate no matter what. (This captures the case in which stressors cause the agent to become more desparate even though conditions necessary to match a higher rung of the escalation ladder have not occured.)'''
+        # This needs to compare reasoner.digested_percepts and the opponent's deescalation_actions and return True if there is a suffient match
+        # It seems reasonable that deescalation will usually be associated with *special* percepts (explicit messages) that will be easy to test for, but for a general solution it will be necessary to consider the whole percept history somehow
+        # Also return True if dominant amygdala response is currently 'flight'
+        parameters = amygdala.current_amygdala_parameters()
+        if parameters.current_dominant_response == 'flight':
+            return True, False
+        elif parameters.current_dominant_response == 'freeze' or parameters.current_dominant_response == 'fight':
+            return False, False
+        # elif :                   
+        #     return True, True
     
     def __repr__(self):
         return "Rung " + str(self.id)
@@ -210,6 +241,16 @@ class EscalationLadderReasoner(Reasoner):
             return self.__find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
         self.max_deliberation_time = max_time
 
+        # Check for de-escalation and attempt to de-escalate if possible and desired
+        deescalate, adversary_deescalated = self.current_rung.check_for_deescalation(reasoner, amygdala)
+        if deescalate:
+            self.__deescalate(amygdala)
+        if adversary_deescalated:
+            new_rung = self.escalation_ladder.previous_rung(self.current_rung)
+            self.current_rung = new_rung
+            # need to update reasoner's stored percepts that're used to detect escalation such that the next rung doesn't instantly match again
+            # the simplest way to do this is to clear the whole percept history and start afresh
+            self.digested_percepts.clear()
 
         # what is the point of this situation?
         # if max_time <= self.max_deliberation_time:
@@ -247,7 +288,7 @@ class EscalationLadderReasoner(Reasoner):
     @property
     def next_deliberate_action(self):
         if len(self.planned_actions):
-            return peek(self.planned_actions)[1]
+            return peek(self.planned_actions)[1] # this is an iterable of messages for the supervisor
         else:
             return None
 
@@ -262,11 +303,16 @@ class EscalationLadderReasoner(Reasoner):
         
     def take_next_action(self):
         '''This method is meant to be called when a WatchListItem reflecting the agent's planned action is processed by the Supervisor. It should be an internal implementation detail which is called via a method on the PersonLikeAgent, which uses the values it returns to update the Amygdala state.'''
-        action = heappop(self.planned_actions)
+        action_time, actions, params = heappop(self.planned_actions) # This should return an iterable of messages 
         self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
-        # send message to supervisor reflecting action, if necessary
-        self.actions_taken.push((action, action_time))
-        return UpdateAmygdalaParameters(delta_pbf = action.delta_pbf, delta_fight = action.delta_fight, delta_flight = action.delta.flight, delta_freeze = action.delta_freeze) # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
+        # send messages to supervisor reflecting actions, if necessary
+        if len(actions) > 0:
+            self.environment.supervisor.inbox.clear() # should already be empty
+            self.environment.supervisor.deliver_messages(actions)
+            self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
+            self.environment.supervisor.inbox.clear() # remove action messages
+        self.actions_taken.push((action_time, actions))
+        return params # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
 
 
     def __escalate(self, next_rung, amygdala):
@@ -289,14 +335,14 @@ class EscalationLadderReasoner(Reasoner):
                 # if sufficiently angry, escalate further
                 if parameters.current_pbf > 0.95: # assign this to some sesible value relative to Amygdala configuration
                     self.current_rung = self.escalation_ladder.next_rung(self.current_rung)
-        elif parameters.current_dominant_response == 'flight':
-            # try to de-escalate
-            if self.identity == 'blue':
-                # enqueue actions not yet taken
-                next_rung.enqueue_blue_deescalation_actions(self)
-            elif self.identity == 'red':
-                next_rung.enqueue_red_deescalation_actions(self)
-                # enqueue actions not yet taken
+        # elif parameters.current_dominant_response == 'flight':
+        #     # try to de-escalate
+        #     if self.identity == 'blue':
+        #         # enqueue actions not yet taken
+        #         next_rung.enqueue_blue_deescalation_actions(self)
+        #     elif self.identity == 'red':
+        #         next_rung.enqueue_red_deescalation_actions(self)
+        #         # enqueue actions not yet taken
 
 
 
@@ -315,3 +361,12 @@ class EscalationLadderReasoner(Reasoner):
         match_time = optimize.bisect(matched_at_time, pres_time, max_time)
         return match_time
 
+
+    def __deescalate(self, amygdala):
+        # update planned actions
+        self.current_rung.update_planned_actions(self)
+        if self.identity == 'blue':
+            # enqueue actions not yet taken
+            current_rung.enqueue_blue_deescalation_actions(self)
+        elif self.identity == 'red':
+            current_rung.enqueue_red_deescalation_actions(self)
