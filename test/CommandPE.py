@@ -3,15 +3,17 @@ from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from environment.location import GeographicLocation
 from environment.dispositiontree import GeographicDispositionStump
-from romancer.commandpe.watchlist import CommandPEWatchlist
+from romancer.commandpe.watchlist import CommandPEWatchlist, CommandPEWatchlistItem
 from romancer.commandpe.perceptionengine import CommandPEPerceptionEngine, CommandPEPerceptionFilter
 from romancer.agent.personlikeagent import push_personlike_action, DraftROMANCERMessage
 from romancer.agent.escalationladderagent import EscalationLadderAgent
 from romancer.agent.escalationladderreasoner import EscalationLadder, EscalationLadderRung, EscalationLadderReasoner
-from romancer.agent.amygdala import Amygdala
+from romancer.agent.amygdala import Amygdala, UpdateAmygdalaParameters
 from dill import dump, load
 from pathlib import Path
 from numpy import deg2rad
+from collections import namedtuple
+
 
 
 cpeoutputfolder = cpeinputfolder = "data/orwaca_sample" 
@@ -30,11 +32,16 @@ start_time = 0.0 # watchlist.peek().time # time at which simulated events from C
 sup.watchlist = watchlist # replace default SingleThreadSupervisor watchlist with populated CommandPE watchlist
 
 sup.watchlist.data = sup.watchlist.data[0:3] # make this manageably short for debugging purposes
+WeaponEvent = namedtuple('WeaponEvent', ['event_type', 'weapon', 'target'])
+sup.watchlist.push(CommandPEWatchlistItem(time=2000, events_list=[])) 
+sup.watchlist.push(CommandPEWatchlistItem(time=2100, events_list=[WeaponEvent('other', '5', '3')])) # third eventful watchlist item
+sup.watchlist.push(CommandPEWatchlistItem(time=10000, events_list=[])) # end of simulation item
 
 # Step 1.2: Configure logger
 
 def demologger(s):
     print('Processed watchlist item: ', s)
+    print()
 
 sup.logger = demologger
 
@@ -66,16 +73,16 @@ engine.environment = env # set perception engine's environment attribute
 
 # Step 3.1.1: Define Red NCA temperament
 # These may need to be set to "crazy" values to get dramatic effects from the demo
-red_fight_weight = 0.0
-red_flight_weight = 0.0
-red_freeze_weight = 0.0
+red_fight_weight = 1.0
+red_flight_weight = 1.0
+red_freeze_weight = 1.0
 red_initial_fight = 0.0
 red_initial_flight = 0.0
 red_initial_freeze = 0.0
 red_initial_pbf = 0.0001
-red_pbf_halflife = 0.0
+red_pbf_halflife = 100.0
 red_max_pbf = 1.0
-red_response_threshhold = 0.0
+red_response_threshhold = 0.8
 
 # Step 3.1.2: 
 red_amygdala = Amygdala(environment = env, time = start_time, fight_weight = red_fight_weight, flight_weight = red_flight_weight, freeze_weight = red_freeze_weight, initial_fight = red_initial_fight, initial_flight = red_initial_flight, initial_freeze = red_initial_freeze, initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife, max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
@@ -87,37 +94,59 @@ red_perception_filter = CommandPEPerceptionFilter(agent = None)
 # Step 3.3: Create reasoner
 
 # Step 3.3.1: Create and populate escalation ladder
-sample_rung = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
+test_action = (0.1, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0, 0, 0, 0))
+low_stress_action = (0.5, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.1, 0.2, 0.3, 0.4))
+high_stress_freeze_action = (0.3, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.8, 0.6, 0.7, 0.8))
+high_stress_fight_action = (0.1, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.8, 2.0, 0, 0))
+high_stress_flight_action = (0.2, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.8, 0, 5.0, 0))
+
+# agents start on sample_rung:
+## first watchlist item escalates to rung1, stressing out agent just a bit
+## second watchlist item escalates to rung2, stressing out agent to point of freezing
+## third watchlist item should escalate to rung3, but doesn't since agent is frozen
+## agent destresses enough to unfreeze and escalates to rung3, which stresses agent out to point of fighting
+## agent automatically escalates to rung4 despite no match, due to fight stress response
+## rung4 stresses agent out to point of flight and agent attempts to deescalate
+
+rung1 = EscalationLadderRung(match_attributes = {'event_type': 'deployed', 'weapon': '2'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
-                             red_actions = [(0.1, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage')), {'delta_pbf': 0.1, 'delta_fight': 0.2, 'delta_flight': 0.3,'delta_freeze': 0.4})], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                             red_actions = [test_action], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                              blue_deescalation_actions = [], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
                              red_deescalation_actions = [] # actions that agent assumes that red will take if it attempts to de-escalate from this rung
                             )
 
-rung1 = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
+rung2 = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
-                             red_actions = [], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                             red_actions = [low_stress_action], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                              blue_deescalation_actions = [], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
                              red_deescalation_actions = [] # actions that agent assumes that red will take if it attempts to de-escalate from this rung
                              )
 # While Herman Kahn's escalation ladder had 44 rungs, for our purposes here far fewer are needed, as we only need a subsection of a full ladder appropriate for the situation decribed in the Command PE model run used to generate the watchlist
 
-rung2 = EscalationLadderRung(match_attributes = {'event_type': 'hit', 'weapon': '3'},
+rung3 = EscalationLadderRung(match_attributes = {'event_type': 'hit', 'weapon': '4'},
                              blue_actions = [],
-                             red_actions = [],
+                             red_actions = [high_stress_freeze_action],
                              blue_deescalation_actions = [],
                              red_deescalation_actions = []
                              )
 
-# rung3 = EscalationLadderRung(match_attributes = ,
-#                              blue_actions = ,
-#                              red_actions = ,
-#                              blue_deescalation_actions = ,
-#                              red_deescalation_actions =
-#                              )
+rung4 = EscalationLadderRung(match_attributes = {'weapon': '5'},
+                             blue_actions = [],
+                             red_actions = [high_stress_fight_action],
+                             blue_deescalation_actions = [],
+                             red_deescalation_actions = []
+                             )
+
+rung5 = EscalationLadderRung(match_attributes = {'weapon': '6'},
+                             blue_actions = [],
+                             red_actions = [high_stress_flight_action],
+                             blue_deescalation_actions = [],
+                             red_deescalation_actions = []
+                             )
 
 
-red_escalation_ladder = EscalationLadder([rung1, rung2])
+
+red_escalation_ladder = EscalationLadder([rung1, rung2, rung3, rung4, rung5])
 
 red_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
 
@@ -135,13 +164,15 @@ red_perception_filter.agent = red_nca
 env.register_object(red_nca)
 env.add_agent(red_nca)
 
-# Step 4: Save configured environment
+# Step 4: Set up the perception engine 
+
+# Step 5 Save configured environment
 
 # filepath = Path.cwd() / 'commandpedemosupervisor.pkl'
 
 # with open(filepath, 'wb') as f:
 #     dump(sup, f)
 
-# Step 5: Run simulation
+# Step 6: Run simulation
 
 sup.run(verbose = True)

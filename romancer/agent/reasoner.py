@@ -12,9 +12,10 @@ class Reasoner(ImprovedRomancerObject):
         # the Reasoner's forward_simulation method can take care of keeping these values updated
 
 
-    def forward_simulation(self, time, amygdala):
+    def forward_simulation(self, time, amygdala=None):
         # bring amygdala up to time
-        amygdala.forward_simulation(time)
+        if amygdala:
+            amygdala.forward_simulation(time)
         # pass if time is current
         if self.time == time:
             pass

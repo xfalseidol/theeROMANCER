@@ -1,4 +1,4 @@
-from environment.object import ImprovedRomancerObject
+from romancer.environment.object import ImprovedRomancerObject
 from typing import NamedTuple
 import math
 
@@ -25,7 +25,7 @@ class Amygdala(ImprovedRomancerObject):
     To represent 'lizard brain' types of responses, the Amygdala object provides proxies for fight, flight, or freeze responses. The agent's reasoner can either act on the basis of these responses or not as it sees fit. The reasoner also needs to incorporate funtionality to update these parameters on the basis of its evolving state--otherwise, they are ignored.
     '''
 
-    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 0, max_pbf = 1.0, response_threshhold = 1.0):
+    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 100, max_pbf = 1.0, response_threshhold = 1.0):
         super().__init__(environment, time)
         self.fight_weight = fight_weight # used to update/predict fight response
         self.flight_weight = flight_weight # used to update/predict flight response
@@ -72,16 +72,10 @@ class Amygdala(ImprovedRomancerObject):
             return state # return past state
 
 
-    def update_parameters(self, message):
+    def update_parameters(self, parameters):
         '''The purpose of this method is to update the amygdala parameters that takes into account the decay of pbf while ensuring proper logging. Note that it returns the amygdala object to its initial time, while logging anticipated future changes if needed.'''
-        cur_time = self.time
-        if message.time < self.time:
-            self.rewind(message.time)
-        elif message.time > self.time:
-            self.forward_simulation(message.time)
-            
         # update parameters if needed
-        update_parameters = message.parameters # UpdateAmygdalaParameters object
+        update_parameters = parameters # UpdateAmygdalaParameters object
         cur_parameters = self.current_amygdala_parameters()
         if update_parameters.delta_pbf > 0:
             self.last_pbf_update_time = self.time
@@ -94,11 +88,6 @@ class Amygdala(ImprovedRomancerObject):
             self.flight += update_parameters.delta_flight
         if update_parameters.delta_freeze > 0:
             self.freeze += update_parameters.delta_freeze
-
-        if self.time > cur_time:
-            self.rewind(cur_time)
-        elif self.time < cur_time:
-            self.forward_simulation(cur_time)
 
         self.last_pbf_update_time = self.time # update last pbf update time
 

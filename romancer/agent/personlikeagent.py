@@ -44,7 +44,8 @@ class PersonLikeAgent(ImprovedRomancerObject):
     def forward_simulation(self, time):
         '''The forward_simulation method for the PersonLikeAgent works by calling the forward_simulation method of the agent's reasoner, which in turn advances the simulation of the amygdala as needed.'''
         self.reasoner.forward_simulation(time, self.amygdala)
-                
+        if self.time < time:
+                self.time = time      
             
     def perceive(self, percept):
         '''This method updates the agent's internal state based on percept. This is delegated to the PerceptionFilter, which may contain closures over the agent's amyygdala and reasoner.'''
@@ -63,7 +64,8 @@ class PersonLikeAgentAction(WatchlistItem):
 
     def __init__(self, time, agent_uid):
         super().__init__(time)
-        self.agent_uid = object_uid
+        self.agent_uid = agent_uid
+        self.amygdala_update_parameters = None
 
 
     def process(self, supervisor):
@@ -72,11 +74,12 @@ class PersonLikeAgentAction(WatchlistItem):
         params = agent.reasoner.take_next_action() # take_next_action() method returns amygdala update parameters
         # it also is permitted to send arbitrary numbers of arbitrary messsages to the supervisor which can then trigger changes in supervisor and environment state (e.g., enqueing future WatchlistItems)
         # use returned params to update agent's amygdala state
+        self.amygdala_update_parameters = params
+
         agent.amygdala.update_parameters(params)
         
-
     def __repr__(self):
-        return '{}(time={}, agent_uid={}, amygdala_params={})'.format(self.__class__.__name__, self.time, self.agent_uid, self.amygdala_params)
+        return '{}(time={}, agent_uid={}, amygdala_params={})'.format(self.__class__.__name__, self.time, self.agent_uid, self.amygdala_update_parameters)
 
 
 class PersonlikeActionROMANCERMessage(NamedTuple):

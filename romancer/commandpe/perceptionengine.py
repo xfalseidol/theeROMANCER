@@ -75,16 +75,11 @@ class CommandPEPerceptionEngine(PerceptionEngine):
                 event_dict.update({k: getattr(event, k)})
             refined_events_list.append(event_dict)
         percept = CommandPEPercept(events_list = refined_events_list)
-        if time == self.queued_percepts_time:
-            if agent_id in self.queued_percepts:
-                self.queued_percepts[agent_id] += [percept]
-            else:
-                self.queued_percepts[agent_id] = [percept]
-        elif time < self.queued_percepts_time:
-            self.queued_percepts_time = time
-            self.queued_percepts[agent_id] = [percept]
+        if agent_id in self.queued_percepts:
+            self.queued_percepts[agent_id] += [percept]
         else:
-            ValueError('Perception engine time greater than scheduled percept time')
+            self.queued_percepts[agent_id] = [percept]
+        self.queued_percepts_time = time
            
 
 class CommandPEPerceptionFilter(PerceptionFilter):

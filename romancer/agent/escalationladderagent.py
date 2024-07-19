@@ -16,7 +16,7 @@ def next_deliberate_action(o, m):
     else:
         action = o.reasoner.next_deliberate_action
         message = PersonlikeActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', actions=tuple(action), time=next_action_time, most_recent_percept_time=o.most_recent_percept_time)
-        o.outbox.append(new_message)
+        o.outbox.append(message)
     
 
 class EscalationLadderAgent(PersonLikeAgent):
