@@ -36,6 +36,7 @@ class Amygdala(ImprovedRomancerObject):
         self.pbf = initial_pbf # initial cortisol level
         self.last_pbf_update_time = self.time # used to calculate pbf decay
         self.pbf_decay_rate = (1 / math.log(2)) * pbf_halflife # rate at which cortisol is metabolized
+        self.pbf_halflife = pbf_halflife # half-life of cortisol
         self.max_pbf = max_pbf # maximum possible cortisol level
         self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
 
@@ -43,7 +44,9 @@ class Amygdala(ImprovedRomancerObject):
     def current_amygdala_parameters(self):
         '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Not that it does not update and log self.pbf.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
-        cur_pbf = self.pbf * math.e**(-self.pbf_decay_rate * delta_t)
+        cur_pbf = self.pbf * 2**(-delta_t / self.pbf_halflife)
+        self.pbf = cur_pbf
+        self.last_pbf_update_time = self.time
         # determine dominant response, if any
         responses = [('fight', self.fight * self.fight_weight), ('flight', self.flight * self.flight_weight), ('freeze', self.freeze * self.freeze_weight)]
         dominant_response = max(responses, key = lambda n: n[1])

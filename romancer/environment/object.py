@@ -897,8 +897,8 @@ class ImprovedRomancerObject():
 
         As this base class cannot change state, it returns None.'''
         return None
-
     
+
     def __repr__(self):
         '''This method is designed to print representations useful in experimental programming on the repl.'''
         class_name = self.__class__.__name__

@@ -33,9 +33,11 @@ sup.watchlist = watchlist # replace default SingleThreadSupervisor watchlist wit
 
 sup.watchlist.data = sup.watchlist.data[0:3] # make this manageably short for debugging purposes
 WeaponEvent = namedtuple('WeaponEvent', ['event_type', 'weapon', 'target'])
-sup.watchlist.push(CommandPEWatchlistItem(time=2000, events_list=[])) 
-sup.watchlist.push(CommandPEWatchlistItem(time=2100, events_list=[WeaponEvent('other', '5', '3')])) # third eventful watchlist item
-sup.watchlist.push(CommandPEWatchlistItem(time=10000, events_list=[])) # end of simulation item
+sup.watchlist.push(CommandPEWatchlistItem(time=1810, events_list=[WeaponEvent('other', '5', '3')])) # third eventful watchlist item
+sup.watchlist.push(CommandPEWatchlistItem(time=1820, events_list=[])) # hack to trigger fight response 
+sup.watchlist.push(CommandPEWatchlistItem(time=1821, events_list=[])) # hack to trigger fight escalation
+sup.watchlist.push(CommandPEWatchlistItem(time=1822, events_list=[])) # hack to trigger flight de-escalation
+sup.watchlist.push(CommandPEWatchlistItem(time=2200, events_list=[])) # arbitrary end of simulation
 
 # Step 1.2: Configure logger
 
@@ -82,7 +84,7 @@ red_initial_freeze = 0.0
 red_initial_pbf = 0.0001
 red_pbf_halflife = 100.0
 red_max_pbf = 1.0
-red_response_threshhold = 0.8
+red_response_threshhold = 0.7
 
 # Step 3.1.2: 
 red_amygdala = Amygdala(environment = env, time = start_time, fight_weight = red_fight_weight, flight_weight = red_flight_weight, freeze_weight = red_freeze_weight, initial_fight = red_initial_fight, initial_flight = red_initial_flight, initial_freeze = red_initial_freeze, initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife, max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
@@ -99,14 +101,27 @@ low_stress_action = (0.5, (DraftROMANCERMessage(messagetype='PersonlikeActionROM
 high_stress_freeze_action = (0.3, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.8, 0.6, 0.7, 0.8))
 high_stress_fight_action = (0.1, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.8, 2.0, 0, 0))
 high_stress_flight_action = (0.2, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(0.8, 0, 5.0, 0))
+deescalate_action = (0.6, (DraftROMANCERMessage(messagetype='PersonlikeActionROMANCERMessage', time=0.0, actions=(), message_class = 'PersonlikeActionROMANCERMessage'),), UpdateAmygdalaParameters(-0.3, 0, 0, 0))
 
-# agents start on sample_rung:
-## first watchlist item escalates to rung1, stressing out agent just a bit
-## second watchlist item escalates to rung2, stressing out agent to point of freezing
-## third watchlist item should escalate to rung3, but doesn't since agent is frozen
-## agent destresses enough to unfreeze and escalates to rung3, which stresses agent out to point of fighting
-## agent automatically escalates to rung4 despite no match, due to fight stress response
-## rung4 stresses agent out to point of flight and agent attempts to deescalate
+# agents start on rung1:
+## first watchlist item escalates to rung2, stressing out agent just a bit
+## second watchlist item escalates to rung3, stressing out agent to point of freezing
+## third watchlist item should escalate to rung4, but doesn't since agent is frozen
+## agent destresses enough to unfreeze and escalates to rung4, which stresses agent out to point of fighting
+## agent automatically escalates to rung5 despite no match, due to fight stress response
+## rung5 stresses agent out to point of flight and agent attempts to deescalate
+
+# Intended Schedule:
+## 600: New WatchlistItem causes agent to escalate from Rung1 to Rung2
+## 600.5:   Agent takes low_stress_action
+## 1800:    New WatchlistItem causes agent to escalate from Rung2 to Rung3
+## 1800.3:  Agent takes high_stress_freeze_action, freezes
+## 1810:    New WatchlistItem should cause agent to escalate from Rung3 to Rung4, doesn't happen due to freeze
+## 1819.57: Agent should un-freeze and escalate
+## 1819.67: Agent takes high_stress_fight_action
+## ????+0.1: Agent automatically escalates from Rung4 to Rung5
+## ????+0.3: Agent takes high_stress_flight_action
+## ????+0.3: Agent de-escalates
 
 rung1 = EscalationLadderRung(match_attributes = {'event_type': 'deployed', 'weapon': '2'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
@@ -141,7 +156,7 @@ rung5 = EscalationLadderRung(match_attributes = {'weapon': '6'},
                              blue_actions = [],
                              red_actions = [high_stress_flight_action],
                              blue_deescalation_actions = [],
-                             red_deescalation_actions = []
+                             red_deescalation_actions = [deescalate_action]
                              )
 
 

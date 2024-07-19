@@ -1,6 +1,8 @@
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from romancer.agent.amygdala import UpdateAmygdalaParameters
 from romancer.agent.reasoner import Reasoner
+from romancer.agent.personlikeagent import PersonlikeActionROMANCERMessage
+from romancer.commandpe.watchlist import CommandPEWatchlistItem
 from collections import UserList
 from heapq import heapify, heappush, heappop
 from scipy import optimize
@@ -123,12 +125,12 @@ class EscalationLadderRung():
 
     def enqueue_red_deescalation_actions(self, reasoner):
         '''This method enqueues the red deescalation actions associated with this rung in the reasoner's action queue.'''
-        self._enqueue_actions(self.red_deescalation_actions, reasoner)
+        reasoner._enqueue_actions(self.red_deescalation_actions, reasoner)
 
 
     def enqueue_blue_deescalation_actions(self, reasoner):
         '''This method enqueues the blue deescalation actions associated with this rung in the reasoner's action queue.'''
-        self._enqueue_actions(self.blue_deescalation_actions, reasoner)
+        reasoner._enqueue_actions(self.blue_deescalation_actions, reasoner)
 
 
     def check_for_deescalation(self, reasoner, amygdala):
@@ -213,13 +215,15 @@ class EscalationLadderReasoner(Reasoner):
         next_rung = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
         if next_rung:
             self._escalate(next_rung, amygdala)
-            return pres_time
+            # return pres_time
 
         # determine if a higher rung will be matched in the future
         self.forward_simulation(max_time, amygdala)
         next_rung = self.escalation_ladder.next_matched_rung(self.current_rung, self, amygdala)
         if next_rung: # there is a match in the future
-            return self._find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
+            match_time = self._find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
+            # create a new watchlist item as future match time
+            self.environment.supervisor.watchlist.push(CommandPEWatchlistItem(time=match_time, events_list=[]))
         self.max_deliberation_time = max_time
 
         # Check for de-escalation and attempt to de-escalate if possible and desired
@@ -286,6 +290,19 @@ class EscalationLadderReasoner(Reasoner):
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
+    def _enqueue_deescalation_actions(self):
+        if self.identity == 'blue':
+            actions = self.current_rung.blue_deescalation_actions
+        elif self.identity == 'red':
+            actions = self.current_rung.red_deescalation_actions
+
+        for action in actions:
+            delta_t, draft_messages, update_params = action # unpack 3-tuple
+            action_time = self.time + delta_t
+            action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
+            # action_messages = self.untaken_actions(action_messages, reasoner)
+            heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
+
 
     def _find_approximate_match_time(self, pres_time, max_time, matched_rung, amygdala):
         def matched_at_time(t): # adjust objects to correct time, determine if there's a match
@@ -302,11 +319,8 @@ class EscalationLadderReasoner(Reasoner):
         return match_time
 
 
-    def __deescalate(self, amygdala):
+    def _deescalate(self, amygdala):
         # update planned actions
         self.current_rung.update_planned_actions(self)
-        if self.identity == 'blue':
-            # enqueue actions not yet taken
-            self.current_rung.enqueue_blue_deescalation_actions(self)
-        elif self.identity == 'red':
-            self.current_rung.enqueue_red_deescalation_actions(self)
+        self._enqueue_deescalation_actions()
+

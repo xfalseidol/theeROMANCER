@@ -16,22 +16,23 @@ class Reasoner(ImprovedRomancerObject):
         # bring amygdala up to time
         if amygdala:
             amygdala.forward_simulation(time)
+        super().forward_simulation(time)
         # pass if time is current
-        if self.time == time:
-            pass
-        # rewind if time is in the past
-        elif self.time > time:
-            self.rewind(time)
-        # if some or all anticipated future is precalculated and in loglist reassert precomputed history
-        else:
-            # check if at least some of the desired future times are already stored in loglist
-            if self.time < self.loglist.maximum_time():
-                reasserts = self.loglist.reassert_list(self.time, time)
-                # reassert logpoints if needed
-                for logpoint in reasserts:
-                    self.reassert_logpoint(logpoint)
-            # simulate new future cognition here, if necessary
-            self.time = time
+        # if self.time == time:
+        #     pass
+        # # rewind if time is in the past
+        # elif self.time > time:
+        #     self.rewind(time)
+        # # if some or all anticipated future is precalculated and in loglist reassert precomputed history
+        # else:
+        #     # check if at least some of the desired future times are already stored in loglist
+        #     if self.time < self.loglist.maximum_time():
+        #         reasserts = self.loglist.reassert_list(self.time, time)
+        #         # reassert logpoints if needed
+        #         for logpoint in reasserts:
+        #             self.reassert_logpoint(logpoint)
+        #     # simulate new future cognition here, if necessary
+        #     self.time = time
         
     
     def deliberate(self, max_time, amygdala):
