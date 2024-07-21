@@ -1,6 +1,7 @@
 from romancer.environment.object import ImprovedRomancerObject
 from typing import NamedTuple
 import math
+import matplotlib.pyplot as plt
 
 class CurrentAmygdalaParameters(NamedTuple):
     current_pbf: float
@@ -39,6 +40,43 @@ class Amygdala(ImprovedRomancerObject):
         self.pbf_halflife = pbf_halflife # half-life of cortisol
         self.max_pbf = max_pbf # maximum possible cortisol level
         self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
+
+        # Eventually capture from the logged object, but for now capture these synchronously as they change.
+        self.plot_time = []
+        self.plot_fight = []
+        self.plot_flight = []
+        self.plot_freeze = []
+        self.plot_pbf = []
+
+    def capture_plot(self):
+        self.plot_time.append(self.time)
+        self.plot_fight.append(self.fight)
+        self.plot_flight.append(self.flight)
+        self.plot_freeze.append(self.freeze)
+        self.plot_pbf.append(self.pbf)
+
+    def export_plot(self, filename=None, title=None):
+        if filename is None:
+            filename = "amygdala.png"
+
+        fig, ax1 = plt.subplots(figsize=(10, 6))
+
+        ax1.plot(self.plot_time, self.plot_fight, label="Fight", color="r")
+        ax1.plot(self.plot_time, self.plot_flight, label="Flight", color="g")
+        ax1.plot(self.plot_time, self.plot_freeze, label="Freeze", color="b")
+        ax1.set_xlabel("Time (s)")
+        ax1.set_ylabel("Response")
+        ax1.legend(loc="upper left")
+
+        ax2 = ax1.twinx()
+        ax2.plot(self.plot_time, self.plot_pbf, label="PBF", color="grey")
+        ax2.set_ylabel("PBF")
+        ax2.legend(loc="upper right")
+
+        plt.title("Mood Meter" if title is None else title)
+        plt.savefig(filename)
+        plt.show()
+
 
 
     def current_amygdala_parameters(self):
@@ -92,6 +130,7 @@ class Amygdala(ImprovedRomancerObject):
         if update_parameters.delta_freeze > 0:
             self.freeze += update_parameters.delta_freeze
 
+        self.capture_plot()
         self.last_pbf_update_time = self.time # update last pbf update time
 
     def dominant_response(self):

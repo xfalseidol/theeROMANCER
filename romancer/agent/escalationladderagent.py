@@ -30,3 +30,7 @@ class EscalationLadderAgent(PersonLikeAgent):
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
                                           'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
+
+    def visualise_final(self):
+        print("abasfafs")
+        self.amygdala.export_plot()

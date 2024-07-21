@@ -58,6 +58,11 @@ class PersonLikeAgent(ImprovedRomancerObject):
         The PersonLikeAgent delegates deliberation to its reasoner.'''
         self.reasoner.deliberate(max_time, self.amygdala)
 
+    def visualise_final(self):
+        ''' Right at the end of the scenario, this will get called'''
+        self.amygdala.export_plot()
+
+
 
 class PersonLikeAgentAction(WatchlistItem):
     '''This WatchlistItem takes the next action on the associated PersonLikeAgent's action queue and updates its amygdala parameters.'''
