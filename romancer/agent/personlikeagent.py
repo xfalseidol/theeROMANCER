@@ -17,7 +17,7 @@ def next_deliberate_action(o, m):
 class PersonLikeAgent(ImprovedRomancerObject):
     '''Person-like agents are intended to represent human cognitive processes in at least modest fidelity. They incorporate an object approximately representing neuroendocrine and limbic systems (a ) and another representing higher-level reasoning functions (i.e., neocortex).'''
 
-    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0)):
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0), name=None):
         super().__init__(environment, time)
         self.perception_filter = perception_filter # this should probably log by default
         self.most_recent_percept_time = None # this should definitely log
@@ -25,7 +25,8 @@ class PersonLikeAgent(ImprovedRomancerObject):
         self.reasoner = reasoner
         self.location = location # fixed location
         self.resolution = 1.0 # fixed resolution, should this be very large?
-        self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action, 
+        self.name = name
+        self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action,
                                           'StochasticActionsBeforeTime': lambda o, m: None,
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
@@ -59,8 +60,8 @@ class PersonLikeAgent(ImprovedRomancerObject):
         self.reasoner.deliberate(max_time, self.amygdala)
 
     def visualise_final(self):
-        ''' Right at the end of the scenario, this will get called'''
-        self.amygdala.export_plot()
+        super().visualise_final()
+        self.amygdala.export_plot(title=f"Amygdala {self.name}", filename="amygdala_{self.name}.png")
 
 
 

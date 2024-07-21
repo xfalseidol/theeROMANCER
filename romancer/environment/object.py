@@ -904,5 +904,9 @@ class ImprovedRomancerObject():
         class_name = self.__class__.__name__
         results = {key: self.__getattribute__(key) for key in self.repr_list}
         return f"{class_name}({', '.join([f'{k}={v.__repr__()}' for k,v in results.items()])})"
-                
+
+    def visualise_final(self):
+        ''' Right at the end of the scenario, this will get called'''
+        pass
+
     id_counter = 0

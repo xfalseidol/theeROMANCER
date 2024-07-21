@@ -114,4 +114,9 @@ class Environment():
         self.agents.remove(agent)
         self.remove_object(agent)
         self.graveyard.append(agent)
+
+    def finalise(self):
+        '''Called at the end to do anything that needs doing'''
+        for agent in self.agents:
+            agent.visualise_final()
         

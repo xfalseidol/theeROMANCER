@@ -23,8 +23,8 @@ class EscalationLadderAgent(PersonLikeAgent):
     '''
     '''
 
-    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0)):
-        super().__init__(environment, time, perception_filter, amygdala, reasoner, location)
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0), name = None):
+        super().__init__(environment, time, perception_filter, amygdala, reasoner, location, name)
         self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action, 
                                           'StochasticActionsBeforeTime': lambda o, m: None,
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
@@ -32,5 +32,4 @@ class EscalationLadderAgent(PersonLikeAgent):
                                           'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
 
     def visualise_final(self):
-        print("abasfafs")
-        self.amygdala.export_plot()
+        super().visualise_final()

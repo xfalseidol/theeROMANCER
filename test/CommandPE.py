@@ -174,7 +174,7 @@ red_digested_percepts = None # change to give Red NCA history of digested percep
 red_reasoner = EscalationLadderReasoner(environment = env, time = start_time, escalation_ladder = red_escalation_ladder, identity = 'red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
 
 # Step 3.3.2: Create Red NCA and add to environment
-red_nca = EscalationLadderAgent(environment = env, time = start_time, perception_filter = red_perception_filter, amygdala = red_amygdala, reasoner = red_reasoner)
+red_nca = EscalationLadderAgent(environment = env, time = start_time, perception_filter = red_perception_filter, amygdala = red_amygdala, reasoner = red_reasoner, name="Red NCA")
 red_perception_filter.agent = red_nca
 env.register_object(red_nca)
 env.add_agent(red_nca)

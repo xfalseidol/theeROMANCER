@@ -412,3 +412,4 @@ class SingleThreadSupervisor(Supervisor):
         while len(self.watchlist) > 0 and not self.paused: # loop as long as watchlist items remain and self.paused is False
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_next_watchlist_item() # process next watchlist event
+        self.environment.finalise()
