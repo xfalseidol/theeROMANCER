@@ -47,6 +47,7 @@ class Amygdala(ImprovedRomancerObject):
         self.plot_flight = []
         self.plot_freeze = []
         self.plot_pbf = []
+        self.capture_plot()
 
     def capture_plot(self):
         self.plot_time.append(self.time)
