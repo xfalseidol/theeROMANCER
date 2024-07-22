@@ -127,36 +127,38 @@ rung1 = EscalationLadderRung(match_attributes = {'event_type': 'deployed', 'weap
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
                              red_actions = [test_action], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                              blue_deescalation_actions = [], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
-                             red_deescalation_actions = [] # actions that agent assumes that red will take if it attempts to de-escalate from this rung
-                            )
+                             red_deescalation_actions = [], # actions that agent assumes that red will take if it attempts to de-escalate from this rung
+                             name = "Calm")
 
 rung2 = EscalationLadderRung(match_attributes = {'event_type': 'fired', 'weapon': '3'}, # the characteristics mapped from the percepts the agent has digested that map to this rung
                              blue_actions = [], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
                              red_actions = [low_stress_action], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                              blue_deescalation_actions = [], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
-                             red_deescalation_actions = [] # actions that agent assumes that red will take if it attempts to de-escalate from this rung
-                             )
+                             red_deescalation_actions = [], # actions that agent assumes that red will take if it attempts to de-escalate from this rung
+                             name = "Irritated")
 # While Herman Kahn's escalation ladder had 44 rungs, for our purposes here far fewer are needed, as we only need a subsection of a full ladder appropriate for the situation decribed in the Command PE model run used to generate the watchlist
 
 rung3 = EscalationLadderRung(match_attributes = {'event_type': 'hit', 'weapon': '4'},
                              blue_actions = [],
                              red_actions = [high_stress_freeze_action],
                              blue_deescalation_actions = [],
-                             red_deescalation_actions = []
-                             )
+                             red_deescalation_actions = [],
+                             name = "Annoyed")
 
 rung4 = EscalationLadderRung(match_attributes = {'weapon': '5'},
                              blue_actions = [],
                              red_actions = [high_stress_fight_action],
                              blue_deescalation_actions = [],
-                             red_deescalation_actions = []
+                             red_deescalation_actions = [],
+                             name = "Agitated"
                              )
 
 rung5 = EscalationLadderRung(match_attributes = {'weapon': '6'},
                              blue_actions = [],
                              red_actions = [high_stress_flight_action],
                              blue_deescalation_actions = [],
-                             red_deescalation_actions = [deescalate_action]
+                             red_deescalation_actions = [deescalate_action],
+                             name = "Angry"
                              )
 
 

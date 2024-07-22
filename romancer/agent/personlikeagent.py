@@ -61,6 +61,7 @@ class PersonLikeAgent(ImprovedRomancerObject):
 
     def visualise_final(self):
         super().visualise_final()
+        self.reasoner.visualise_final()
         self.amygdala.export_plot(title=f"Amygdala {self.name}", filename="amygdala_{self.name}.png")
 
 

@@ -75,7 +75,7 @@ class Amygdala(ImprovedRomancerObject):
 
         plt.title("Mood Meter" if title is None else title)
         plt.savefig(filename)
-        plt.show()
+#        plt.show()
 
 
 

@@ -6,6 +6,7 @@ from romancer.commandpe.watchlist import CommandPEWatchlistItem
 from collections import UserList
 from heapq import heapify, heappush, heappop
 from scipy import optimize
+import matplotlib.pyplot as plt
 import math
 from collections import namedtuple
 
@@ -71,7 +72,7 @@ class EscalationLadderRung():
     '''Much of the logic of the EscalationLadderReasoner is stored in EscalationLadderRung instances. This permits these rungs to exhibit custom behavior if necessary.'''
     rung_id = 1
 
-    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0)):
+    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name="None"):
         self.match_attributes = match_attributes # a sequence of patterns that are used to check whether agent believes that this rung has been reached
         self.pbf_threshold = pbf_threshold # what stress level would trigger this rung regardless of match_attributes
         self.red_actions = red_actions # collection of actions that reasoner believes Red will take at this rung, associated with amount of time that must pass before/between those actions
@@ -80,6 +81,7 @@ class EscalationLadderRung():
         self.blue_deescalation_actions = blue_deescalation_actions  # collection of actions that reasoner believes Blue will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
         self.amygdala_update = amygdala_update 
         self.id = EscalationLadderRung.rung_id
+        self.name = name if name is not None else self.id
         EscalationLadderRung.rung_id += 1
 
     def rung_matched(self, reasoner, amygdala):
@@ -181,6 +183,10 @@ class EscalationLadderReasoner(Reasoner):
         self.max_deliberation_time = self.time # maximum time to which reasoner has deliberated; should this be unlogged?
         self.most_recent_percept_time = self.time
 
+        self.plot_time = []
+        self.plot_rungs = []
+        self.capture_plot()
+
     def enqueue_digested_percept(self, digested_percept, percept_time):
         '''This method is used to update the EscalationLadderReasoner's internal state on the basis of the output of the egent's perception filter. What this does is enque the digested percept in the history of percepts digested by the reasoner, and update the reasoner's max_deliberation_time so that the next time that its deliberate method is called, its planned future actions will be recalculated if necessary.'''
         if percept_time < self.most_recent_percept_time:
@@ -275,6 +281,7 @@ class EscalationLadderReasoner(Reasoner):
         next_rung.update_planned_actions(self)
         self.current_rung = next_rung
         self._enqueue_actions()
+        self.capture_plot()
 
 
     def _enqueue_actions(self):
@@ -323,4 +330,31 @@ class EscalationLadderReasoner(Reasoner):
         # update planned actions
         self.current_rung.update_planned_actions(self)
         self._enqueue_deescalation_actions()
+        self.capture_plot()
+
+    def capture_plot(self):
+        self.plot_time.append(self.time)
+        self.plot_rungs.append(self.current_rung)
+
+    def export_plot(self, filename=None, title=None):
+        if filename is None:
+            filename = "escalationladder.png"
+
+
+        plt.figure(figsize=(10, 6))
+        plt.step(self.plot_time, [self.escalation_ladder.rung_number(rung)-1 for rung in self.plot_rungs], where="post", label="Rung", marker="o")
+        plt.xlabel("Time (s)")
+        plt.ylabel("Ladder")
+        plt.title("Escalation Ladder" if title is None else title)
+        plt.legend()
+
+        rung_labels = [rung.name for rung in self.escalation_ladder]
+        plt.yticks(range(len(rung_labels)), labels=rung_labels)
+        plt.savefig(filename)
+        plt.show()
+
+    def visualise_final(self):
+        super().visualise_final()
+        self.export_plot()
+
 
