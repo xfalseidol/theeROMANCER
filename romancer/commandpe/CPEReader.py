@@ -1,5 +1,7 @@
 from datetime import datetime
 import csv
+import numpy as np
+import matplotlib.pyplot as plt
 from collections import namedtuple
 
 
@@ -44,6 +46,9 @@ class CPEWeaponFiredReader:
         self.scenario_complete = False
         self.records_read_fires = 0
         self.records_read_endgame = 0
+
+        self.plot_event_fires = []
+        self.report_rollup_times = []
 
     def load_target_scale(self, target_class_csv, target_unit_csv):
         target_scale = {}
@@ -126,14 +131,20 @@ class CPEWeaponFiredReader:
                     tgt_map[this_target_scale] = event_list
 
             time_last_weapon_fired_str = self.last_weapon_fired_record['Time']
+
             try:
                 self.last_weapon_fired_record = next(self.weaponfired_reader)
                 time_last_weapon_fired_s = self.get_time_s(time_last_weapon_fired_str)
+
+                if this_target_scale is not None and this_wpn_scale is not None:
+                    self.plot_event_fires.append((time_last_weapon_fired_s, int(this_target_scale), int(this_wpn_scale)))
+
             except StopIteration:
                 self.scenario_complete = True
                 break
 
         self.curr_time_s = t_end
+        self.report_rollup_times.append(t_end)
 
         # Convert the created map into a list of namedTuples
         result = []
@@ -207,6 +218,37 @@ class CPEWeaponFiredReader:
         # retval.extend(self._read_next_weapons_endgame())
         return retval
 
+    def visualise_final(self):
+        filename = "cpe_events_" + self.shooterSide + ".png"
+
+        times = [event[0] for event in self.plot_event_fires]
+        weaponscale = [event[2] for event in self.plot_event_fires]
+        cmap = plt.get_cmap('viridis')
+        norm = plt.Normalize(min(weaponscale), max(weaponscale))
+
+        fig, ax = plt.subplots(figsize=(10, 3))
+        for v_time in self.report_rollup_times:
+            ax.axvline(x=v_time, color="grey", linestyle="--", linewidth=1,
+                       label='Report Times' if v_time == self.report_rollup_times[0] else "")
+
+        for i, (time, target_scale, weapon_scale) in enumerate(self.plot_event_fires):
+            plt.scatter(time, target_scale, color=cmap(norm(weapon_scale)), s=40)
+        # plt.xlabel("Time (s)")
+        plt.ylabel("Target Class")
+
+        # plt.yticks([])
+        plt.title("Weapon Fires Timeline")
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        plt.colorbar(sm, ax=ax, ticks=range(min(weaponscale), max(weaponscale)+1))
+
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(handles, labels, loc='upper left')
+
+        plt.show()
+        plt.savefig(filename)
+
+
 if __name__ == "__main__":
     cpeoutputfolder = "data/orwaca_sample"
     cpeinputfolder = "data/orwaca_sample"
@@ -215,7 +257,7 @@ if __name__ == "__main__":
                                 f"{cpeoutputfolder}/WeaponFired.csv", f"{cpeoutputfolder}/WeaponEndgame.csv",
                                 'BLUE')
     while not cper.is_scenario_complete():
-        event_list = cper.read_next_weapons_events(5 * 60)
+        event_list = cper.read_next_weapons_events(15 * 60)
         # Full event list isn't helpful to print
         to_print = []
         for e in event_list:
@@ -224,4 +266,5 @@ if __name__ == "__main__":
             to_print.append(e_dict)
         print(to_print)
         print(f"Time is: {cper.get_current_time_s()}, total wpns fired = {cper.get_records_read_fires()}, total endgames = {cper.get_records_read_endgame()}")
+    cper.visualise_final()
 
