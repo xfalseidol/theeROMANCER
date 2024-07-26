@@ -3,7 +3,6 @@ from romancer.supervisor.watchlist import WatchlistItem
 from romancer.environment.location import StationaryGeographicLocation
 from typing import NamedTuple
 
-
 def next_deterministic_action(o, m):
     '''This method sends a message to the supervisor indicating the time of the next deterministic action that the agent will take. This can be an arbitrary action. The PersonLikeAgent might invoke either its reasoner or amygdala to determine this action, but it can also represent non-cognitive processes associated with the "person."'''
     pass
@@ -26,7 +25,7 @@ class PersonLikeAgent(ImprovedRomancerObject):
         self.location = location # fixed location
         self.resolution = 1.0 # fixed resolution, should this be very large?
         self.name = name
-        self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action,
+        self.dispatch_table = LoggedDict({'DeterministicActionBeforeTime': next_deterministic_action,
                                           'StochasticActionsBeforeTime': lambda o, m: None,
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
@@ -46,7 +45,7 @@ class PersonLikeAgent(ImprovedRomancerObject):
         '''The forward_simulation method for the PersonLikeAgent works by calling the forward_simulation method of the agent's reasoner, which in turn advances the simulation of the amygdala as needed.'''
         self.reasoner.forward_simulation(time, self.amygdala)
         if self.time < time:
-                self.time = time      
+            self.time = time      
             
     def perceive(self, percept):
         '''This method updates the agent's internal state based on percept. This is delegated to the PerceptionFilter, which may contain closures over the agent's amyygdala and reasoner.'''
@@ -59,10 +58,10 @@ class PersonLikeAgent(ImprovedRomancerObject):
         The PersonLikeAgent delegates deliberation to its reasoner.'''
         self.reasoner.deliberate(max_time, self.amygdala)
 
-    def visualise_final(self):
-        super().visualise_final()
-        self.reasoner.visualise_final()
-        self.amygdala.export_plot(title=f"Amygdala {self.name}", filename="amygdala_{self.name}.png")
+    # def visualise_final(self):
+    #     super().visualise_final()
+    #     self.reasoner.visualise_final()
+    #     self.amygdala.export_plot(title=f"Amygdala {self.name}", filename="amygdala_{self.name}.png")
 
 
 
@@ -84,6 +83,14 @@ class PersonLikeAgentAction(WatchlistItem):
         self.amygdala_update_parameters = params
 
         agent.amygdala.update_parameters(params)
+        if not self.agent_uid:
+            if len(supervisor.environment.agents) == 1: # only one possible agent to receive percept
+                agent_uid = supervisor.environment.agents[0].uid
+        else: 
+            agent_uid = self.agent_uid
+        supervisor.environment.perception_engine.force_percept(self.time, [], agent_uid) # this method should generate the percept from events_list and have it queued for delivery when the perceptionengine is run
+        supervisor.check_for_percepts = True
+
         
     def __repr__(self):
         return '{}(time={}, agent_uid={}, amygdala_params={})'.format(self.__class__.__name__, self.time, self.agent_uid, self.amygdala_update_parameters)
