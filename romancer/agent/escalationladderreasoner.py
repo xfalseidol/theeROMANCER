@@ -7,6 +7,7 @@ from collections import UserList
 from heapq import heapify, heappush, heappop
 from scipy import optimize
 import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import math
 from collections import namedtuple
 
@@ -340,15 +341,33 @@ class EscalationLadderReasoner(Reasoner):
         if filename is None:
             filename = "escalationladder.png"
 
+        fig, ax = plt.subplots(figsize=(10, 6))
+        # plt.figure(figsize=(10, 6))
+        rung_labels = [rung.name for rung in self.escalation_ladder]
 
-        plt.figure(figsize=(10, 6))
+        show_ladder_y_axis = True
+        if show_ladder_y_axis:
+
+            ax.yaxis.set_visible(False)
+            ladder_halfwidth = 180
+            ax.set_xlim(-ladder_halfwidth - 5, self.plot_time[len(self.plot_time) - 1])
+            ax.set_ylim(-1, len(self.escalation_ladder))
+
+            ladder_linewidth = 3
+            ax.axvline(x=-ladder_halfwidth, color='grey', linewidth=ladder_linewidth)
+            ax.axvline(x=0, color='grey', linewidth=ladder_linewidth)
+            for y in range(len(rung_labels)):
+                # ax.axhline(y=y, xmin=-ladder_halfwidth, xmax=0, linewidth=ladder_linewidth, color="grey")
+                rung = mlines.Line2D([-ladder_halfwidth, 0], [y, y], color='grey', linewidth=ladder_linewidth)
+                ax.add_line(rung)
+                ax.text(-ladder_halfwidth/2, y+0.1, rung_labels[y], ha='center', va='center')
+
         plt.step(self.plot_time, [self.escalation_ladder.rung_number(rung)-1 for rung in self.plot_rungs], where="post", label="Rung", marker="o")
         plt.xlabel("Time (s)")
         plt.ylabel("Ladder")
         plt.title("Escalation Ladder" if title is None else title)
         plt.legend()
 
-        rung_labels = [rung.name for rung in self.escalation_ladder]
         plt.yticks(range(len(rung_labels)), labels=rung_labels)
         plt.savefig(filename)
         plt.show()

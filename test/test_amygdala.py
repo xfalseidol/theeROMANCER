@@ -99,9 +99,13 @@ class AmygdalaTest(unittest.TestCase):
         expected_params = CurrentAmygdalaParameters(0.0, 0.4, 0.0, 0.8, 'flight')
         assert self.amygdala.current_amygdala_parameters() == expected_params
 
+    def render(self):
+        self.amygdala.export_plot()
+
 
 if __name__ == "__main__":
     test_class = AmygdalaTest()
     test_class.test_current_amygdala_parameters()
     test_class.test_anticipated_parameters_at_time()
     test_class.test_update_parameters()
+    test_class.render()
