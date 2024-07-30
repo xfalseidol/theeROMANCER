@@ -272,7 +272,9 @@ class LoggedList(MutableSequence):
         return self.data.copy()
     
     def clear(self):
-        raise NotImplementedError("LoggedList.clear() not implemented.")
+        while len(self.data) > 0:
+            self.pop()
+        # raise NotImplementedError("LoggedList.clear() not implemented.")
         # logpoint = UniversalLogpoint(time = self.parent.time, difs = tuple([AttrSetLog(attr_name = self.varname, oldval = copy.copy(self), newval = LoggedList(data=[], parent=self.parent, varname=self.varname))]))
         # self.parent.loglist.append(logpoint)
         # self.data = list()
@@ -908,5 +910,4 @@ class ImprovedRomancerObject():
     def visualise_final(self):
         ''' Right at the end of the scenario, this will get called'''
         pass
-
     id_counter = 0

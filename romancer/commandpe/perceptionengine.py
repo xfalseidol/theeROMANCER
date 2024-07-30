@@ -58,11 +58,13 @@ class CommandPEPerceptionEngine(PerceptionEngine):
         # check to see if it is time for currently queued percepts
         if self.environment.time == self.queued_percepts_time: # I don't think this should ever happen under normal circumstances but we should check to be safe
             for key in self.queued_percepts.keys():
+                # if it is, add queued percepts to observer_percepts
                 if key in observer_percepts:
                     observer_percepts[key] += self.queued_percepts[key]
                 else:
                     observer_percepts[key] = self.queued_percepts[key]
-        # if it is, add queued percepts to observer_percepts
+                    # now we clear the queued percepts for each key (agent_id)
+                    self.queued_percepts[key] = []
         return observer_percepts
         
 

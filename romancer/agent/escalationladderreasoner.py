@@ -34,6 +34,8 @@ class EscalationLadder(UserList):
     def previous_rung(self, current_rung):
         '''The opposite of next_rung.'''
         cur_i = self.data.index(current_rung)
+        if cur_i == 0:
+            return None
         try:
             previous_rung = self.data[cur_i - 1]
         except IndexError:
@@ -66,14 +68,14 @@ class EscalationLadder(UserList):
 
 
     def rung_number(self, rung):
-        return self.data.index(rung) + 1
+        return self.data.index(rung)
     
 
 class EscalationLadderRung():
     '''Much of the logic of the EscalationLadderReasoner is stored in EscalationLadderRung instances. This permits these rungs to exhibit custom behavior if necessary.'''
     rung_id = 1
 
-    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name="None"):
+    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name=""):
         self.match_attributes = match_attributes # a sequence of patterns that are used to check whether agent believes that this rung has been reached
         self.pbf_threshold = pbf_threshold # what stress level would trigger this rung regardless of match_attributes
         self.red_actions = red_actions # collection of actions that reasoner believes Red will take at this rung, associated with amount of time that must pass before/between those actions
@@ -82,7 +84,7 @@ class EscalationLadderRung():
         self.blue_deescalation_actions = blue_deescalation_actions  # collection of actions that reasoner believes Blue will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
         self.amygdala_update = amygdala_update 
         self.id = EscalationLadderRung.rung_id
-        self.name = name if name is not None else self.id
+        self.name = name
         EscalationLadderRung.rung_id += 1
 
     def rung_matched(self, reasoner, amygdala):
@@ -183,7 +185,6 @@ class EscalationLadderReasoner(Reasoner):
             self.digested_percepts = LoggedList(data = list(), parent = self, varname = 'digested_percepts')
         self.max_deliberation_time = self.time # maximum time to which reasoner has deliberated; should this be unlogged?
         self.most_recent_percept_time = self.time
-
         self.plot_time = []
         self.plot_rungs = []
         self.capture_plot()
@@ -224,26 +225,27 @@ class EscalationLadderReasoner(Reasoner):
             self._escalate(next_rung, amygdala)
             # return pres_time
 
-        # determine if a higher rung will be matched in the future
-        self.forward_simulation(max_time, amygdala)
-        next_rung = self.escalation_ladder.next_matched_rung(self.current_rung, self, amygdala)
-        if next_rung: # there is a match in the future
-            match_time = self._find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
-            # create a new watchlist item as future match time
-            self.environment.supervisor.watchlist.push(CommandPEWatchlistItem(time=match_time, events_list=[]))
-        self.max_deliberation_time = max_time
-
         # Check for de-escalation and attempt to de-escalate if possible and desired
         deescalate, adversary_deescalated = self.current_rung.check_for_deescalation(self, amygdala)
-        if deescalate:
+        if deescalate or adversary_deescalated:
             self._deescalate(amygdala)
-        if adversary_deescalated:
-            new_rung = self.escalation_ladder.previous_rung(self.current_rung)
-            self.current_rung = new_rung
-            # need to update reasoner's stored percepts that're used to detect escalation such that the next rung doesn't instantly match again
-            # the simplest way to do this is to clear the whole percept history and start afresh
             self.digested_percepts.clear()
+        
+        # determine if a higher rung will be matched in the future\
+        if max_time > pres_time:
+            self.forward_simulation(max_time, amygdala)
+            next_rung = self.escalation_ladder.next_matched_rung(self.current_rung, self, amygdala)
+            if next_rung: # there is a match in the future
+                match_time = self._find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
+                # create a new WatchlistItem at future match time
+                self._push_empty_action(match_time)
+            self.max_deliberation_time = max_time
 
+        # self.rewind(pres_time)
+
+
+    def _push_empty_action(self, time):
+        heappush(self.planned_actions, (time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
         
     @property
     def next_deliberate_action(self):
@@ -298,6 +300,9 @@ class EscalationLadderReasoner(Reasoner):
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
+        if len(actions) == 0:
+            self._push_empty_action()
+
     def _enqueue_deescalation_actions(self):
         if self.identity == 'blue':
             actions = self.current_rung.blue_deescalation_actions
@@ -311,6 +316,8 @@ class EscalationLadderReasoner(Reasoner):
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
+        if len(actions) == 0:
+            self._push_empty_action()
 
     def _find_approximate_match_time(self, pres_time, max_time, matched_rung, amygdala):
         def matched_at_time(t): # adjust objects to correct time, determine if there's a match
@@ -329,13 +336,17 @@ class EscalationLadderReasoner(Reasoner):
 
     def _deescalate(self, amygdala):
         # update planned actions
-        self.current_rung.update_planned_actions(self)
-        self._enqueue_deescalation_actions()
-        self.capture_plot()
+        previous_rung = self.escalation_ladder.previous_rung(self.current_rung)
+        if previous_rung:
+            self.current_rung.update_planned_actions(self)
+            self._enqueue_deescalation_actions()
+            self.current_rung = self.escalation_ladder.previous_rung(self.current_rung)
+            self.capture_plot()
 
     def capture_plot(self):
         self.plot_time.append(self.time)
-        self.plot_rungs.append(self.current_rung)
+        self.plot_rungs.append(self.escalation_ladder.rung_number(self.current_rung))
+        
 
     def export_plot(self, filename=None, title=None):
         if filename is None:

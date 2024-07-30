@@ -79,9 +79,8 @@ class Amygdala(ImprovedRomancerObject):
 #        plt.show()
 
 
-
     def current_amygdala_parameters(self):
-        '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Not that it does not update and log self.pbf.'''
+        '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Note that it does not update and log self.pbf.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
         cur_pbf = self.pbf * 2**(-delta_t / self.pbf_halflife)
         self.pbf = cur_pbf
@@ -89,10 +88,10 @@ class Amygdala(ImprovedRomancerObject):
         # determine dominant response, if any
         responses = [('fight', self.fight * self.fight_weight), ('flight', self.flight * self.flight_weight), ('freeze', self.freeze * self.freeze_weight)]
         dominant_response = max(responses, key = lambda n: n[1])
-        if cur_pbf < self.response_threshhold: # if unstressed
-            dominant_response = None
-        else: # otherwise, too stressed
+        if cur_pbf > self.response_threshhold: # if too stressed
             dominant_response = dominant_response[0]
+        else: # otherwise, not srtressed
+            dominant_response = None
         return CurrentAmygdalaParameters(current_pbf = cur_pbf, current_fight = self.fight * self.fight_weight, current_flight = self.flight * self.flight_weight, current_freeze = self.freeze * self.freeze_weight, current_dominant_response = dominant_response)
         
         
@@ -118,12 +117,16 @@ class Amygdala(ImprovedRomancerObject):
         '''The purpose of this method is to update the amygdala parameters that takes into account the decay of pbf while ensuring proper logging. Note that it returns the amygdala object to its initial time, while logging anticipated future changes if needed.'''
         # update parameters if needed
         update_parameters = parameters # UpdateAmygdalaParameters object
+        # cause the parameters to decay
         cur_parameters = self.current_amygdala_parameters()
-        if update_parameters.delta_pbf > 0:
+        if update_parameters.delta_pbf != 0:
             self.last_pbf_update_time = self.time
             self.pbf = cur_parameters.current_pbf + update_parameters.delta_pbf
+            # self.pbf += update_parameters.delta_pbf
             if self.pbf > self.max_pbf:
                 self.pbf = self.max_pbf
+            if self.pbf < 0:
+                self.pbf = 0
         if update_parameters.delta_fight > 0:
             self.fight += update_parameters.delta_fight
         if update_parameters.delta_flight > 0:
