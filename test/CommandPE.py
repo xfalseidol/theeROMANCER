@@ -25,7 +25,7 @@ def plot_escalations(times, rungs):
     plt.title("Escalation Ladder")
     plt.legend()
 
-    rung_labels = range(1,6)
+    rung_labels = ["Calm", "Irritated", "Annoyed", "Agitated", "Angry"]
     plt.yticks(range(len(rung_labels)), labels=rung_labels)
     plt.show()
 
