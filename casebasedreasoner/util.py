@@ -196,6 +196,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
              SELECT mopid AS source, abstmopid AS target, 'abst' AS label, 'abst' AS hier FROM mop_abst
             UNION ALL
              SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier FROM mop_spec
+            UNION ALL
+             SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier FROM slot WHERE ref_mopid IS NOT NULL
     ''')
 
     conn.commit()
