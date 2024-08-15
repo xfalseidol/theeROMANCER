@@ -1,4 +1,6 @@
 import sqlite3
+import sys
+
 from casebasedreasoner import cbr, mop
 import inspect
 import types
@@ -253,7 +255,7 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
         is_default = (moprow[3]>0)
         mop_type = moprow[4]
 
-        cursor.execute('''SELECT slot.name AS slotname, val, is_func, mop.name AS refmopname
+        cursor.execute('''SELECT slot.name AS slotname, val, is_func, mop.name AS refmopname, TYPEOF(val) AS val_type 
                                FROM slot LEFT JOIN mop ON slot.ref_mopid=mop.mopid
                                WHERE slot.mopid=?
                            ''', (mopid,))
@@ -274,6 +276,7 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
             slotval = slotrow[1]
             is_func = slotrow[2]
             slot_mopname = slotrow[3]
+            slot_valtype = slotrow[4]
 
             if is_func:
                 try:
@@ -293,7 +296,15 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
                 mopref = new_cbr.mops[slot_mopname]
                 create_slots[slotname] = mopref
             else:
-                create_slots[slotname] = slotval
+                # SQLite's type system lets us get away with this
+                if slot_valtype == 'text':
+                    create_slots[slotname] = slotval
+                elif slot_valtype == 'integer':
+                    create_slots[slotname] = int(slotval)
+                elif slot_valtype == 'real':
+                    create_slots[slotname] = float(slotval)
+                else:
+                    sys.stderr.write(f"Error! Do not know how to interpret \"{slotval}\" as a {slot_valtype}\n")
 
         new_cbr.add_mop(name, absts=absts, mop_type=mop_type, slots=create_slots,
                         is_default_mop=is_default, is_core_cbr_mop=is_core)
