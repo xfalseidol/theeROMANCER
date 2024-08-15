@@ -201,6 +201,21 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     conn.commit()
     conn.close()
 
+# For the code-based activities, we're attaching methods to classes
+def __instantiatemethodonclass(instance, code):
+    # Exceptionally not-robust
+    try:
+        method_code = compile(code, "<string>", "exec")
+    except IndentationError:
+        # When it came from a method on a class...
+        method_code = compile(textwrap.dedent(code), "<string>", "exec")
+    local_namespace = {}
+    exec(method_code, globals(), local_namespace)
+    method_name = list(local_namespace.keys())[0]
+    method = local_namespace[method_name]
+    bound_method = types.MethodType(method, instance)
+    setattr(instance, method_name, bound_method)
+    return method_name
 
 # Construct a new case based reasoner given a sqlite database created by export_cbr_sqlite
 def load_cbr_sqlite(dbfile, env, cbrclass):
@@ -212,17 +227,7 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
     for methodrow in cursor.fetchall():
         print("Inserting CBR method " + methodrow[0])
         code = methodrow[1]
-        try:
-            method_code = compile(code, "<string>", "exec")
-        except IndentationError:
-            # When it came from a method on a class...
-            method_code = compile(textwrap.dedent(code), "<string>", "exec")
-        local_namespace = {}
-        exec(method_code, globals(), local_namespace)
-        method_name = list(local_namespace.keys())[0]
-        method = local_namespace[method_name]
-        bound_method = types.MethodType(method, new_cbr)
-        setattr(new_cbr, method_name, bound_method)
+        __instantiatemethodonclass(new_cbr, code)
 
     cursor.execute("SELECT mopid, name, is_core, is_default, mop_type FROM mop ORDER BY mopid ASC")
     mopqueue = cursor.fetchall()
@@ -279,18 +284,8 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
             slot_valtype = slotrow[4]
 
             if is_func:
-                try:
-                    method_code = compile(slotval, "<string>", "exec")
-                except IndentationError:
-                    # When it came from a method on a class...
-                    method_code = compile(textwrap.dedent(slotval), "<string>", "exec")
-                local_namespace = {}
-                exec(method_code, globals(), local_namespace)
-                method_name = list(local_namespace.keys())[0]
-                method = local_namespace[method_name]
-                bound_method = types.MethodType(method, new_cbr)
-                setattr(new_cbr, method_name, bound_method)
-                create_slots[slotname] = bound_method
+                methodname = __instantiatemethodonclass(new_cbr, slotval)
+                create_slots[slotname] = getattr(new_cbr, methodname)
             elif slot_mopname is not None:
                 # print("Looking up mop " + slot_mopname + " for " + slotname + " on mop " + name)
                 mopref = new_cbr.mops[slot_mopname]
