@@ -1,8 +1,9 @@
 from context import *
-from casebasedreasoner.util import make_graphviz_graph
+from casebasedreasoner.util import make_graphviz_graph, export_cbr_sqlite
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
+import os
 
 import romancer.supervisor.singlethreadsupervisor
 
@@ -445,6 +446,10 @@ judge.judge_case(case_3_slots)
 #         sibling = judge.get_sibling(None, 'I-M-FIGHT-EVENT.102')
 #         tests.append(sibling.mop_name)
 #     print(f"Decision Making={q}, results={tests}")
+
+sqlite3_db = "judge.sqlite"
+os.unlink(sqlite3_db)
+export_cbr_sqlite(judge, "judge.sqlite")
 
 dot = make_graphviz_graph(judge, include_slot_edges=False)
 with open("judge.dot", "w") as out_dot:

@@ -1,3 +1,5 @@
+import sqlite3
+import inspect
 
 def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_edges=True):
     ''' Given a CBR, returns a representation of this in graphviz format '''
@@ -81,3 +83,90 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
 
     g.append('}')
     return "\n".join(g)
+
+def export_cbr_sqlite(cbrinst, dbfile):
+    conn = sqlite3.connect(dbfile)
+    cursor = conn.cursor()
+    # Because slots vary wildly, using an E-A-V style antipattern
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop_type (
+            mop_type TEXT UNIQUE NOT NULL
+        )
+    ''')
+    cursor.execute("INSERT INTO mop_type (mop_type) VALUES ('instance'), ('mop')")
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop (
+            mopid INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            is_core BOOLEAN NOT NULL,
+            is_default BOOLEAN NOT NULL,
+            mop_type TEXT NOT NULL REFERENCES mop_type(mop_type),
+            UNIQUE(name)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop_abst (
+            id INTEGER PRIMARY KEY,
+            mopid INTEGER NOT NULL REFERENCES mop(mopid),
+            abstmopid INTEGER NOT NULL REFERENCES mop(mopid),
+            UNIQUE(mopid, abstmopid)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop_spec (
+            id INTEGER PRIMARY KEY,
+            mopid INTEGER NOT NULL REFERENCES mop(mopid),
+            specmopid INTEGER NOT NULL REFERENCES mop(mopid),
+            UNIQUE(mopid, specmopid)
+        )
+    ''')
+    # Take advantage of SQLite's type system. Can insert things of any type into the value column
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS slot (
+            id INTEGER PRIMARY KEY,
+            mopid INTEGER NOT NULL REFERENCES mop(mopid),
+            name TEXT NOT NULL,
+            val NUMBER NOT NULL,
+            ref_mopid INTEGER REFERENCES mop(mopid),
+            is_func BOOLEAN NOT NULL
+        )
+    ''')
+
+    # Insert all MOPs first. Relationships will be set up later
+    for mopname in cbrinst.mops:
+        # print("Nodes for " + str(mopname))
+        this_mop = cbrinst.mops[mopname]
+        cursor.execute("INSERT INTO mop(name, is_core, is_default, mop_type) VALUES (?, ?, ?, ?)",
+                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type))
+    conn.commit()
+
+    for mopname in cbrinst.mops:
+        # Yes, all the subselects are slow. If it turns out to matter, can grab the lot later
+        this_mop = cbrinst.mops[mopname]
+        abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
+        cursor.executemany("INSERT INTO mop_abst(mopid, abstmopid) VALUES"
+                           " ((SELECT mopid FROM mop WHERE name=?), (SELECT mopid FROM mop WHERE name=?))", abstrows)
+
+        specrows = [(this_mop.mop_name, spec.mop_name) for spec in this_mop.specs]
+        cursor.executemany("INSERT INTO mop_spec(mopid, specmopid) VALUES"
+                           " ((SELECT mopid FROM mop WHERE name=?), (SELECT mopid FROM mop WHERE name=?))", specrows)
+
+        for slotname in this_mop.slots:
+            val = this_mop.slots[slotname]
+            val_s = str(val)
+            is_func = False
+            if callable(val):
+                try:
+                    val_s = inspect.getsource(val)
+                except OSError as e:
+                    print(f"Source for {slotname} unavailable")
+                    val_s = None
+                is_func = True
+
+            cursor.execute("INSERT INTO slot(mopid, name, val, ref_mopid, is_func) VALUES"
+                           " ((SELECT mopid FROM mop WHERE name=?), ?, ?, (SELECT mopid FROM mop WHERE name=?), ?)",
+                           (this_mop.mop_name, slotname, val_s, val_s, is_func))
+
+    conn.commit()
+    conn.close()
