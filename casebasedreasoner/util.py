@@ -88,11 +88,18 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
     return "\n".join(g)
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
-def export_cbr_sqlite(cbrinst, dbfile):
+def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
+    # extramethodnames is a list of methods that should also be put in database, from the cbrinst class
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
     # Because slots vary wildly, using an E-A-V style antipattern
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cbr_methods (
+            name TEXT NOT NULL UNIQUE,
+            code TEXT NOT NULL
+        )
+    ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS mop_type (
             mop_type TEXT UNIQUE NOT NULL
@@ -136,6 +143,11 @@ def export_cbr_sqlite(cbrinst, dbfile):
             is_func BOOLEAN NOT NULL
         )
     ''')
+
+    for methodname in extramethodnames:
+        method = getattr(cbrinst, methodname)
+        source = inspect.getsource(method)
+        cursor.execute("INSERT INTO cbr_methods (name, code) VALUES (?, ?)", (methodname, source))
 
     # Insert all MOPs first. Relationships will be set up later
     for mopname in cbrinst.mops:
@@ -193,6 +205,23 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
     new_cbr = cbrclass(env, env.time)
     conn = sqlite3.connect(f'file:{dbfile}?mode=ro', uri=True)
     cursor = conn.cursor()
+
+    cursor.execute("SELECT name, code FROM cbr_methods")
+    for methodrow in cursor.fetchall():
+        print("Inserting CBR method " + methodrow[0])
+        code = methodrow[1]
+        try:
+            method_code = compile(code, "<string>", "exec")
+        except IndentationError:
+            # When it came from a method on a class...
+            method_code = compile(textwrap.dedent(code), "<string>", "exec")
+        local_namespace = {}
+        exec(method_code, globals(), local_namespace)
+        method_name = list(local_namespace.keys())[0]
+        method = local_namespace[method_name]
+        bound_method = types.MethodType(method, new_cbr)
+        setattr(new_cbr, method_name, bound_method)
+
     cursor.execute("SELECT mopid, name, is_core, is_default, mop_type FROM mop ORDER BY mopid ASC")
     mopqueue = cursor.fetchall()
     remaining_insert_attempts = 4 * len(mopqueue)
@@ -259,8 +288,6 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
                 bound_method = types.MethodType(method, new_cbr)
                 setattr(new_cbr, method_name, bound_method)
                 create_slots[slotname] = bound_method
-                if method_name == 'adapt_sentence':
-                    print(method_code)
             elif slot_mopname is not None:
                 # print("Looking up mop " + slot_mopname + " for " + slotname + " on mop " + name)
                 mopref = new_cbr.mops[slot_mopname]
