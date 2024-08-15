@@ -1,5 +1,8 @@
 import sqlite3
+from casebasedreasoner import cbr, mop
 import inspect
+import types
+import textwrap
 
 def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_edges=True):
     ''' Given a CBR, returns a representation of this in graphviz format '''
@@ -84,6 +87,7 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
     g.append('}')
     return "\n".join(g)
 
+# Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
 def export_cbr_sqlite(cbrinst, dbfile):
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
@@ -182,3 +186,91 @@ def export_cbr_sqlite(cbrinst, dbfile):
 
     conn.commit()
     conn.close()
+
+
+# Construct a new case based reasoner given a sqlite database created by export_cbr_sqlite
+def load_cbr_sqlite(dbfile, env, cbrclass):
+    new_cbr = cbrclass(env, env.time)
+    conn = sqlite3.connect(f'file:{dbfile}?mode=ro', uri=True)
+    cursor = conn.cursor()
+    cursor.execute("SELECT mopid, name, is_core, is_default, mop_type FROM mop ORDER BY mopid ASC")
+    mopqueue = cursor.fetchall()
+    remaining_insert_attempts = 4 * len(mopqueue)
+    while len(mopqueue) > 0:
+        remaining_insert_attempts -= 1
+        if 0 == remaining_insert_attempts:
+            print("Bailing. Failed to insert all mops before running out of chances")
+            break
+
+        moprow = mopqueue.pop(0)
+        mopid = moprow[0]
+        name = moprow[1]
+
+        if name in new_cbr.mops:
+            print("Rejecting " + name + " because it has already been loaded")
+            continue
+
+        cursor.execute('''
+            SELECT m.name FROM mop_abst q
+                INNER JOIN mop m ON q.abstmopid = m.mopid
+                WHERE q.mopid=?
+        ''', (mopid,))
+
+        needed_mops = []
+        absts = {row[0] for row in cursor.fetchall()}
+        needed_mops.extend(absts)
+
+        is_core = (moprow[2]>0)
+        is_default = (moprow[3]>0)
+        mop_type = moprow[4]
+
+        cursor.execute('''SELECT slot.name AS slotname, val, is_func, mop.name AS refmopname
+                               FROM slot LEFT JOIN mop ON slot.ref_mopid=mop.mopid
+                               WHERE slot.mopid=?
+                           ''', (mopid,))
+        slotrows = cursor.fetchall()
+        slotmops = [row[3] for row in slotrows if row[3] is not None]
+        needed_mops.extend(slotmops)
+
+        # Don't love this brute force approach, but it's easy and obviously-working
+        missing_mops = [needed_mopname for needed_mopname in needed_mops if needed_mopname not in new_cbr.mops]
+        if len(missing_mops) > 0:
+            print("Requeueing " + name + " because it needs something not yet loaded")
+            mopqueue.append(moprow)
+            continue
+
+        create_slots = {}
+        for slotrow in slotrows:
+            slotname = slotrow[0]
+            slotval = slotrow[1]
+            is_func = slotrow[2]
+            slot_mopname = slotrow[3]
+
+            if is_func:
+                try:
+                    method_code = compile(slotval, "<string>", "exec")
+                except IndentationError:
+                    # When it came from a method on a class...
+                    method_code = compile(textwrap.dedent(slotval), "<string>", "exec")
+                local_namespace = {}
+                exec(method_code, globals(), local_namespace)
+                method_name = list(local_namespace.keys())[0]
+                method = local_namespace[method_name]
+                bound_method = types.MethodType(method, new_cbr)
+                setattr(new_cbr, method_name, bound_method)
+                create_slots[slotname] = bound_method
+                if method_name == 'adapt_sentence':
+                    print(method_code)
+            elif slot_mopname is not None:
+                # print("Looking up mop " + slot_mopname + " for " + slotname + " on mop " + name)
+                mopref = new_cbr.mops[slot_mopname]
+                create_slots[slotname] = mopref
+            else:
+                create_slots[slotname] = slotval
+
+        new_cbr.add_mop(name, absts=absts, mop_type=mop_type, slots=create_slots,
+                        is_default_mop=is_default, is_core_cbr_mop=is_core)
+        print("Loaded mop " + name + ", there are " + str(len(mopqueue)) + " mops left")
+    return new_cbr
+
+
