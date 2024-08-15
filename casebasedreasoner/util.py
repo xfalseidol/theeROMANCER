@@ -168,5 +168,17 @@ def export_cbr_sqlite(cbrinst, dbfile):
                            " ((SELECT mopid FROM mop WHERE name=?), ?, ?, (SELECT mopid FROM mop WHERE name=?), ?)",
                            (this_mop.mop_name, slotname, val_s, val_s, is_func))
 
+    # For reading into Gephi
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS nodes AS
+            SELECT mopid AS id, name AS label, is_core, is_default, mop_type FROM mop
+    ''')
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS edges AS
+             SELECT mopid AS source, abstmopid AS target, 'abst' AS label, 'abst' AS hier FROM mop_abst
+            UNION ALL
+             SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier FROM mop_spec
+    ''')
+
     conn.commit()
     conn.close()
