@@ -98,7 +98,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cbr_methods (
-            name TEXT NOT NULL UNIQUE,
+            methodname TEXT NOT NULL UNIQUE,
             code TEXT NOT NULL
         )
     ''')
@@ -111,16 +111,16 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS mop (
             mopid INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
+            mopname TEXT NOT NULL,
             is_core BOOLEAN NOT NULL,
             is_default BOOLEAN NOT NULL,
             mop_type TEXT NOT NULL REFERENCES mop_type(mop_type),
-            UNIQUE(name)
+            UNIQUE(mopname)
         )
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS mop_abst (
-            id INTEGER PRIMARY KEY,
+            mopabstid INTEGER PRIMARY KEY,
             mopid INTEGER NOT NULL REFERENCES mop(mopid),
             abstmopid INTEGER NOT NULL REFERENCES mop(mopid),
             UNIQUE(mopid, abstmopid)
@@ -128,7 +128,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS mop_spec (
-            id INTEGER PRIMARY KEY,
+            mopspecid INTEGER PRIMARY KEY,
             mopid INTEGER NOT NULL REFERENCES mop(mopid),
             specmopid INTEGER NOT NULL REFERENCES mop(mopid),
             UNIQUE(mopid, specmopid)
@@ -137,9 +137,9 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     # Take advantage of SQLite's type system. Can insert things of any type into the value column
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS slot (
-            id INTEGER PRIMARY KEY,
+            slotid INTEGER PRIMARY KEY,
             mopid INTEGER NOT NULL REFERENCES mop(mopid),
-            name TEXT NOT NULL,
+            slotname TEXT NOT NULL,
             val NUMBER NOT NULL,
             ref_mopid INTEGER REFERENCES mop(mopid),
             is_func BOOLEAN NOT NULL
@@ -149,13 +149,13 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     for methodname in extramethodnames:
         method = getattr(cbrinst, methodname)
         source = inspect.getsource(method)
-        cursor.execute("INSERT INTO cbr_methods (name, code) VALUES (?, ?)", (methodname, source))
+        cursor.execute("INSERT INTO cbr_methods (methodname, code) VALUES (?, ?)", (methodname, source))
 
     # Insert all MOPs first. Relationships will be set up later
     for mopname in cbrinst.mops:
         # print("Nodes for " + str(mopname))
         this_mop = cbrinst.mops[mopname]
-        cursor.execute("INSERT INTO mop(name, is_core, is_default, mop_type) VALUES (?, ?, ?, ?)",
+        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type) VALUES (?, ?, ?, ?)",
                        (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type))
     conn.commit()
 
@@ -164,11 +164,11 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
         this_mop = cbrinst.mops[mopname]
         abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
         cursor.executemany("INSERT INTO mop_abst(mopid, abstmopid) VALUES"
-                           " ((SELECT mopid FROM mop WHERE name=?), (SELECT mopid FROM mop WHERE name=?))", abstrows)
+                           " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", abstrows)
 
         specrows = [(this_mop.mop_name, spec.mop_name) for spec in this_mop.specs]
         cursor.executemany("INSERT INTO mop_spec(mopid, specmopid) VALUES"
-                           " ((SELECT mopid FROM mop WHERE name=?), (SELECT mopid FROM mop WHERE name=?))", specrows)
+                           " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", specrows)
 
         for slotname in this_mop.slots:
             val = this_mop.slots[slotname]
@@ -182,18 +182,18 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
                     val_s = None
                 is_func = True
 
-            cursor.execute("INSERT INTO slot(mopid, name, val, ref_mopid, is_func) VALUES"
-                           " ((SELECT mopid FROM mop WHERE name=?), ?, ?, (SELECT mopid FROM mop WHERE name=?), ?)",
+            cursor.execute("INSERT INTO slot(mopid, slotname, val, ref_mopid, is_func) VALUES"
+                           " ((SELECT mopid FROM mop WHERE mopname=?), ?, ?, (SELECT mopid FROM mop WHERE mopname=?), ?)",
                            (this_mop.mop_name, slotname, val_s, val_s, is_func))
 
     # Indices
     cursor.execute('''
-        CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, name)
+        CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, slotname)
     ''')
     # For reading into Gephi
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS nodes AS
-            SELECT mopid AS id, name AS label, is_core, is_default, mop_type FROM mop
+            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type FROM mop
     ''')
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS edges AS
@@ -209,7 +209,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     #   May make sense to include "... and others that specialise those ones" in future?
     cursor.execute('''
         CREATE VIEW mop_peers AS
-            SELECT mop.mopid AS mopid, mop.name AS mopname, peer.mopid AS peermopid, peer.name AS peermopname
+            SELECT mop.mopid AS mopid, mop.mopname AS mopname, peer.mopid AS peermopid, peer.mopname AS peermopname
                 FROM mop INNER JOIN mop_abst ma on mop.mopid=ma.mopid
                     INNER JOIN mop_spec ms ON ms.mopid=ma.abstmopid
                     INNER JOIN mop peer ON peer.mopid=ms.specmopid
@@ -219,14 +219,14 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS all_slot_vals AS
         WITH RECURSIVE all_slot_vals AS (
-            SELECT mop.mopid AS mopid, mop.name AS mopname, slot.name AS slotname,
+            SELECT mop.mopid AS mopid, mop.mopname AS mopname, slot.slotname AS slotname,
                    slot.val AS slot_val, typeof(slot.val) AS slot_val_type,
-                   slot.ref_mopid, slot.is_func, 0 AS depth, mop.name || ':' || slot.name AS path
+                   slot.ref_mopid, slot.is_func, 0 AS depth, mop.mopname || ':' || slot.slotname AS path
                 FROM mop LEFT JOIN slot ON mop.mopid = slot.mopid
                      UNION ALL
-            SELECT all_slot_vals.mopid, all_slot_vals.mopname, slot.name,
+            SELECT all_slot_vals.mopid, all_slot_vals.mopname, slot.slotname,
                    slot.val, typeof(slot.val),
-                   slot.ref_mopid, slot.is_func, depth+1, path || ' -> ' || refmop.name || ':' || slot.name
+                   slot.ref_mopid, slot.is_func, depth+1, path || ' -> ' || refmop.mopname || ':' || slot.slotname
                 FROM all_slot_vals INNER JOIN mop refmop ON all_slot_vals.ref_mopid=refmop.mopid
                 INNER JOIN slot ON refmop.mopid = slot.mopid
         ), ranked_slot_vals AS (
@@ -310,13 +310,13 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
     conn = sqlite3.connect(f'file:{dbfile}?mode=ro', uri=True)
     cursor = conn.cursor()
 
-    cursor.execute("SELECT name, code FROM cbr_methods")
+    cursor.execute("SELECT methodname, code FROM cbr_methods")
     for methodrow in cursor.fetchall():
         print("Inserting CBR method " + methodrow[0])
         code = methodrow[1]
         __instantiatemethodonclass(new_cbr, code)
 
-    cursor.execute("SELECT mopid, name, is_core, is_default, mop_type FROM mop ORDER BY mopid ASC")
+    cursor.execute("SELECT mopid, mopname, is_core, is_default, mop_type FROM mop ORDER BY mopid ASC")
     mopqueue = cursor.fetchall()
     remaining_insert_attempts = 4 * len(mopqueue)
     while len(mopqueue) > 0:
@@ -334,7 +334,7 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
             continue
 
         cursor.execute('''
-            SELECT m.name FROM mop_abst q
+            SELECT m.mopname FROM mop_abst q
                 INNER JOIN mop m ON q.abstmopid = m.mopid
                 WHERE q.mopid=?
         ''', (mopid,))
@@ -347,7 +347,7 @@ def load_cbr_sqlite(dbfile, env, cbrclass):
         is_default = (moprow[3]>0)
         mop_type = moprow[4]
 
-        cursor.execute('''SELECT slot.name AS slotname, val, is_func, mop.name AS refmopname, TYPEOF(val) AS val_type 
+        cursor.execute('''SELECT slot.slotname AS slotname, val, is_func, mop.mopname AS refmopname, TYPEOF(val) AS val_type 
                                FROM slot LEFT JOIN mop ON slot.ref_mopid=mop.mopid
                                WHERE slot.mopid=?
                            ''', (mopid,))
