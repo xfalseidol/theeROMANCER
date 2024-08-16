@@ -200,6 +200,17 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
              SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier FROM slot WHERE ref_mopid IS NOT NULL
     ''')
 
+    # Rapid inspection
+    # Peers are mops that derive from the same abstraction as this one does
+    #   May make sense to include "... and others that specialise those ones" in future?
+    cursor.execute('''
+        CREATE VIEW mop_peers AS
+            SELECT mop.mopid, mop.name, peer.mopid, peer.name
+                FROM mop INNER JOIN mop_abst ma on mop.mopid=ma.mopid
+                    INNER JOIN mop_spec ms ON ms.mopid=ma.abstmopid
+                    INNER JOIN mop peer ON peer.mopid=ms.specmopid
+    ''')
+
     conn.commit()
     conn.close()
 
