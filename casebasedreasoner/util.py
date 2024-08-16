@@ -186,6 +186,10 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
                            " ((SELECT mopid FROM mop WHERE name=?), ?, ?, (SELECT mopid FROM mop WHERE name=?), ?)",
                            (this_mop.mop_name, slotname, val_s, val_s, is_func))
 
+    # Indices
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, name)
+    ''')
     # For reading into Gephi
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS nodes AS
@@ -205,10 +209,58 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     #   May make sense to include "... and others that specialise those ones" in future?
     cursor.execute('''
         CREATE VIEW mop_peers AS
-            SELECT mop.mopid, mop.name, peer.mopid, peer.name
+            SELECT mop.mopid AS mopid, mop.name AS mopname, peer.mopid AS peermopid, peer.name AS peermopname
                 FROM mop INNER JOIN mop_abst ma on mop.mopid=ma.mopid
                     INNER JOIN mop_spec ms ON ms.mopid=ma.abstmopid
                     INNER JOIN mop peer ON peer.mopid=ms.specmopid
+    ''')
+
+    # Chase slots references from each mop, collecting all the values recursively
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS all_slot_vals AS
+        WITH RECURSIVE all_slot_vals AS (
+            SELECT mop.mopid AS mopid, mop.name AS mopname, slot.name AS slotname,
+                   slot.val AS slot_val, typeof(slot.val) AS slot_val_type,
+                   slot.ref_mopid, slot.is_func, 0 AS depth, mop.name || ':' || slot.name AS path
+                FROM mop LEFT JOIN slot ON mop.mopid = slot.mopid
+                     UNION ALL
+            SELECT all_slot_vals.mopid, all_slot_vals.mopname, slot.name,
+                   slot.val, typeof(slot.val),
+                   slot.ref_mopid, slot.is_func, depth+1, path || ' -> ' || refmop.name || ':' || slot.name
+                FROM all_slot_vals INNER JOIN mop refmop ON all_slot_vals.ref_mopid=refmop.mopid
+                INNER JOIN slot ON refmop.mopid = slot.mopid
+        ), ranked_slot_vals AS (
+            SELECT *, 
+                RANK() OVER (PARTITION BY mopid, slotname ORDER BY depth ASC) AS slot_rank,
+                MIN(slot_val) FILTER (WHERE slot_val_type IN ('integer', 'real')) OVER (PARTITION BY slotname) AS min_slot_val,
+                MAX(slot_val) FILTER (WHERE slot_val_type IN ('integer', 'real')) OVER (PARTITION BY slotname) AS max_slot_val
+            FROM all_slot_vals WHERE 0=is_func
+        )
+        SELECT *,
+             CAST(max_slot_val-min_slot_val AS REAL) AS slot_val_range,
+             CAST(slot_val-min_slot_val AS REAL)/CAST(max_slot_val-min_slot_val AS REAL) AS slot_val_normalised
+          FROM ranked_slot_vals WHERE 1=slot_rank
+    ''')
+
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS mop_distances AS
+        WITH distances AS (
+          SELECT mop1.mopid AS mop1id, mop1.mopname AS mop1name, mop2.mopid AS mop2id, mop2.mopname AS mop2name,
+               SUM(
+                   CASE WHEN mop1.slot_val_type IN ('integer', 'real')
+                           THEN -POW(mop1.slot_val_normalised-mop2.slot_val_normalised, 2)
+                       WHEN mop1.slot_val_type='text'
+                           THEN (mop1.slot_val=mop2.slot_val)
+                    END
+                  ) AS dist
+          FROM all_slot_vals mop1
+              INNER JOIN mop_peers on mop1.mopid=mop_peers.mopid
+            INNER JOIN all_slot_vals mop2 ON mop_peers.peermopid=mop2.mopid AND mop1.slotname=mop2.slotname
+            GROUP BY mop1.mopid, mop_peers.peermopid),
+        matchordering AS (SELECT *,
+                           ROW_NUMBER() OVER (PARTITION BY mop1id ORDER BY dist DESC, mop1name!=mop2name) AS ordering
+                            FROM distances)
+        SELECT * FROM matchordering
     ''')
 
     conn.commit()
