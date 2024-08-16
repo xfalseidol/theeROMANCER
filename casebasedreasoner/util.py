@@ -263,6 +263,28 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
         SELECT * FROM matchordering
     ''')
 
+    # Check the model for self-consistency
+
+    # Anything other than M-ROOT here is an indicator something is wrong
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS check_mop_spec_missing AS
+        SELECT * FROM mop LEFT JOIN mop_spec ms on mop.mopid=ms.specmopid WHERE ms.mopid IS NULL;
+    ''')
+
+    # Specialisations and Abstractions should be completely symmetric. Anything returned by this is a problem
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS check_abst_spec_assymmetry AS
+        SELECT ms.mopid AS spec_mopid, ms.specmopid AS spec_specmopid, ma.mopid AS abs_mopid, ma.abstmopid AS abst_absmopid, 'abst' AS symmetry
+            FROM mop_spec ms
+            LEFT JOIN mop_abst ma ON ma.abstmopid=ms.mopid AND ma.mopid=ms.specmopid
+            WHERE ma.mopid IS NULL
+        UNION ALL
+        SELECT ms.mopid AS spec_mopid, ms.specmopid AS spec_specmopid, ma.mopid AS abs_mopid, ma.abstmopid AS abst_absmopid, 'spec' AS symmetry
+            FROM mop_abst ma
+            LEFT JOIN mop_spec ms ON ma.abstmopid=ms.mopid AND ma.mopid=ms.specmopid
+            WHERE ms.mopid IS NULL
+    ''')
+
     conn.commit()
     conn.close()
 
