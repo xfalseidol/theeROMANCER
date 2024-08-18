@@ -1,3 +1,10 @@
+import sqlite3
+import sys
+
+from casebasedreasoner import cbr, mop
+import inspect
+import types
+import textwrap
 
 def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_edges=True):
     ''' Given a CBR, returns a representation of this in graphviz format '''
@@ -81,3 +88,309 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
 
     g.append('}')
     return "\n".join(g)
+
+# Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
+def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
+    # extramethodnames is a list of methods that should also be put in database, from the cbrinst class
+    conn = sqlite3.connect(dbfile)
+    cursor = conn.cursor()
+    # Because slots vary wildly, using an E-A-V style antipattern
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS cbr_methods (
+            methodname TEXT NOT NULL UNIQUE,
+            code TEXT NOT NULL
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop_type (
+            mop_type TEXT UNIQUE NOT NULL
+        )
+    ''')
+    cursor.execute("INSERT INTO mop_type (mop_type) VALUES ('instance'), ('mop')")
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop (
+            mopid INTEGER PRIMARY KEY,
+            mopname TEXT NOT NULL,
+            is_core BOOLEAN NOT NULL,
+            is_default BOOLEAN NOT NULL,
+            mop_type TEXT NOT NULL REFERENCES mop_type(mop_type),
+            UNIQUE(mopname)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop_abst (
+            mopabstid INTEGER PRIMARY KEY,
+            mopid INTEGER NOT NULL REFERENCES mop(mopid),
+            abstmopid INTEGER NOT NULL REFERENCES mop(mopid),
+            UNIQUE(mopid, abstmopid)
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS mop_spec (
+            mopspecid INTEGER PRIMARY KEY,
+            mopid INTEGER NOT NULL REFERENCES mop(mopid),
+            specmopid INTEGER NOT NULL REFERENCES mop(mopid),
+            UNIQUE(mopid, specmopid)
+        )
+    ''')
+    # Take advantage of SQLite's type system. Can insert things of any type into the value column
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS slot (
+            slotid INTEGER PRIMARY KEY,
+            mopid INTEGER NOT NULL REFERENCES mop(mopid),
+            slotname TEXT NOT NULL,
+            val NUMBER NOT NULL,
+            ref_mopid INTEGER REFERENCES mop(mopid),
+            is_func BOOLEAN NOT NULL
+        )
+    ''')
+
+    for methodname in extramethodnames:
+        method = getattr(cbrinst, methodname)
+        source = inspect.getsource(method)
+        cursor.execute("INSERT INTO cbr_methods (methodname, code) VALUES (?, ?)", (methodname, source))
+
+    # Insert all MOPs first. Relationships will be set up later
+    for mopname in cbrinst.mops:
+        # print("Nodes for " + str(mopname))
+        this_mop = cbrinst.mops[mopname]
+        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type) VALUES (?, ?, ?, ?)",
+                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type))
+    conn.commit()
+
+    for mopname in cbrinst.mops:
+        # Yes, all the subselects are slow. If it turns out to matter, can grab the lot later
+        this_mop = cbrinst.mops[mopname]
+        abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
+        cursor.executemany("INSERT INTO mop_abst(mopid, abstmopid) VALUES"
+                           " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", abstrows)
+
+        specrows = [(this_mop.mop_name, spec.mop_name) for spec in this_mop.specs]
+        cursor.executemany("INSERT INTO mop_spec(mopid, specmopid) VALUES"
+                           " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", specrows)
+
+        for slotname in this_mop.slots:
+            val = this_mop.slots[slotname]
+            val_s = str(val)
+            is_func = False
+            if callable(val):
+                try:
+                    val_s = inspect.getsource(val)
+                except OSError as e:
+                    print(f"Source for {slotname} unavailable")
+                    val_s = None
+                is_func = True
+
+            cursor.execute("INSERT INTO slot(mopid, slotname, val, ref_mopid, is_func) VALUES"
+                           " ((SELECT mopid FROM mop WHERE mopname=?), ?, ?, (SELECT mopid FROM mop WHERE mopname=?), ?)",
+                           (this_mop.mop_name, slotname, val_s, val_s, is_func))
+
+    # Indices
+    cursor.execute('''
+        CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, slotname)
+    ''')
+    # For reading into Gephi
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS nodes AS
+            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type FROM mop
+    ''')
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS edges AS
+             SELECT mopid AS source, abstmopid AS target, 'abst' AS label, 'abst' AS hier FROM mop_abst
+            UNION ALL
+             SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier FROM mop_spec
+            UNION ALL
+             SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier FROM slot WHERE ref_mopid IS NOT NULL
+    ''')
+
+    # Rapid inspection
+    # Peers are mops that derive from the same abstraction as this one does
+    #   May make sense to include "... and others that specialise those ones" in future?
+    cursor.execute('''
+        CREATE VIEW mop_peers AS
+            SELECT mop.mopid AS mopid, mop.mopname AS mopname, peer.mopid AS peermopid, peer.mopname AS peermopname
+                FROM mop INNER JOIN mop_abst ma on mop.mopid=ma.mopid
+                    INNER JOIN mop_spec ms ON ms.mopid=ma.abstmopid
+                    INNER JOIN mop peer ON peer.mopid=ms.specmopid
+    ''')
+
+    # Chase slots references from each mop, collecting all the values recursively
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS all_slot_vals AS
+        WITH RECURSIVE all_slot_vals AS (
+            SELECT mop.mopid AS mopid, mop.mopname AS mopname, slot.slotname AS slotname,
+                   slot.val AS slot_val, typeof(slot.val) AS slot_val_type,
+                   slot.ref_mopid, slot.is_func, 0 AS depth, mop.mopname || ':' || slot.slotname AS path
+                FROM mop LEFT JOIN slot ON mop.mopid = slot.mopid
+                     UNION ALL
+            SELECT all_slot_vals.mopid, all_slot_vals.mopname, slot.slotname,
+                   slot.val, typeof(slot.val),
+                   slot.ref_mopid, slot.is_func, depth+1, path || ' -> ' || refmop.mopname || ':' || slot.slotname
+                FROM all_slot_vals INNER JOIN mop refmop ON all_slot_vals.ref_mopid=refmop.mopid
+                INNER JOIN slot ON refmop.mopid = slot.mopid
+        ), ranked_slot_vals AS (
+            SELECT *, 
+                RANK() OVER (PARTITION BY mopid, slotname ORDER BY depth ASC) AS slot_rank,
+                MIN(slot_val) FILTER (WHERE slot_val_type IN ('integer', 'real')) OVER (PARTITION BY slotname) AS min_slot_val,
+                MAX(slot_val) FILTER (WHERE slot_val_type IN ('integer', 'real')) OVER (PARTITION BY slotname) AS max_slot_val
+            FROM all_slot_vals WHERE 0=is_func
+        )
+        SELECT *,
+             CAST(max_slot_val-min_slot_val AS REAL) AS slot_val_range,
+             CAST(slot_val-min_slot_val AS REAL)/CAST(max_slot_val-min_slot_val AS REAL) AS slot_val_normalised
+          FROM ranked_slot_vals WHERE 1=slot_rank
+    ''')
+
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS mop_distances AS
+        WITH distances AS (
+          SELECT mop1.mopid AS mop1id, mop1.mopname AS mop1name, mop2.mopid AS mop2id, mop2.mopname AS mop2name,
+               SUM(
+                   CASE WHEN mop1.slot_val_type IN ('integer', 'real')
+                           THEN -POW(mop1.slot_val_normalised-mop2.slot_val_normalised, 2)
+                       WHEN mop1.slot_val_type='text'
+                           THEN (mop1.slot_val=mop2.slot_val)
+                    END
+                  ) AS dist
+          FROM all_slot_vals mop1
+              INNER JOIN mop_peers on mop1.mopid=mop_peers.mopid
+            INNER JOIN all_slot_vals mop2 ON mop_peers.peermopid=mop2.mopid AND mop1.slotname=mop2.slotname
+            GROUP BY mop1.mopid, mop_peers.peermopid),
+        matchordering AS (SELECT *,
+                           ROW_NUMBER() OVER (PARTITION BY mop1id ORDER BY dist DESC, mop1name!=mop2name) AS ordering
+                            FROM distances)
+        SELECT * FROM matchordering
+    ''')
+
+    # Check the model for self-consistency
+
+    # Anything other than M-ROOT here is an indicator something is wrong
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS check_mop_spec_missing AS
+        SELECT * FROM mop LEFT JOIN mop_spec ms on mop.mopid=ms.specmopid WHERE ms.mopid IS NULL;
+    ''')
+
+    # Specialisations and Abstractions should be completely symmetric. Anything returned by this is a problem
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS check_abst_spec_assymmetry AS
+        SELECT ms.mopid AS spec_mopid, ms.specmopid AS spec_specmopid, ma.mopid AS abs_mopid, ma.abstmopid AS abst_absmopid, 'abst' AS symmetry
+            FROM mop_spec ms
+            LEFT JOIN mop_abst ma ON ma.abstmopid=ms.mopid AND ma.mopid=ms.specmopid
+            WHERE ma.mopid IS NULL
+        UNION ALL
+        SELECT ms.mopid AS spec_mopid, ms.specmopid AS spec_specmopid, ma.mopid AS abs_mopid, ma.abstmopid AS abst_absmopid, 'spec' AS symmetry
+            FROM mop_abst ma
+            LEFT JOIN mop_spec ms ON ma.abstmopid=ms.mopid AND ma.mopid=ms.specmopid
+            WHERE ms.mopid IS NULL
+    ''')
+
+    conn.commit()
+    conn.close()
+
+# For the code-based activities, we're attaching methods to classes
+def __instantiatemethodonclass(instance, code):
+    # Exceptionally not-robust
+    try:
+        method_code = compile(code, "<string>", "exec")
+    except IndentationError:
+        # When it came from a method on a class...
+        method_code = compile(textwrap.dedent(code), "<string>", "exec")
+    local_namespace = {}
+    exec(method_code, globals(), local_namespace)
+    method_name = list(local_namespace.keys())[0]
+    method = local_namespace[method_name]
+    bound_method = types.MethodType(method, instance)
+    setattr(instance, method_name, bound_method)
+    return method_name
+
+# Construct a new case based reasoner given a sqlite database created by export_cbr_sqlite
+def load_cbr_sqlite(dbfile, env, cbrclass):
+    new_cbr = cbrclass(env, env.time)
+    conn = sqlite3.connect(f'file:{dbfile}?mode=ro', uri=True)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT methodname, code FROM cbr_methods")
+    for methodrow in cursor.fetchall():
+        print("Inserting CBR method " + methodrow[0])
+        code = methodrow[1]
+        __instantiatemethodonclass(new_cbr, code)
+
+    cursor.execute("SELECT mopid, mopname, is_core, is_default, mop_type FROM mop ORDER BY mopid ASC")
+    mopqueue = cursor.fetchall()
+    remaining_insert_attempts = 4 * len(mopqueue)
+    while len(mopqueue) > 0:
+        remaining_insert_attempts -= 1
+        if 0 == remaining_insert_attempts:
+            print("Bailing. Failed to insert all mops before running out of chances")
+            break
+
+        moprow = mopqueue.pop(0)
+        mopid = moprow[0]
+        name = moprow[1]
+
+        if name in new_cbr.mops:
+            print("Rejecting " + name + " because it has already been loaded")
+            continue
+
+        cursor.execute('''
+            SELECT m.mopname FROM mop_abst q
+                INNER JOIN mop m ON q.abstmopid = m.mopid
+                WHERE q.mopid=?
+        ''', (mopid,))
+
+        needed_mops = []
+        absts = {row[0] for row in cursor.fetchall()}
+        needed_mops.extend(absts)
+
+        is_core = (moprow[2]>0)
+        is_default = (moprow[3]>0)
+        mop_type = moprow[4]
+
+        cursor.execute('''SELECT slot.slotname AS slotname, val, is_func, mop.mopname AS refmopname, TYPEOF(val) AS val_type 
+                               FROM slot LEFT JOIN mop ON slot.ref_mopid=mop.mopid
+                               WHERE slot.mopid=?
+                           ''', (mopid,))
+        slotrows = cursor.fetchall()
+        slotmops = [row[3] for row in slotrows if row[3] is not None]
+        needed_mops.extend(slotmops)
+
+        # Don't love this brute force approach, but it's easy and obviously-working
+        missing_mops = [needed_mopname for needed_mopname in needed_mops if needed_mopname not in new_cbr.mops]
+        if len(missing_mops) > 0:
+            print("Requeueing " + name + " because it needs something not yet loaded")
+            mopqueue.append(moprow)
+            continue
+
+        create_slots = {}
+        for slotrow in slotrows:
+            slotname = slotrow[0]
+            slotval = slotrow[1]
+            is_func = slotrow[2]
+            slot_mopname = slotrow[3]
+            slot_valtype = slotrow[4]
+
+            if is_func:
+                methodname = __instantiatemethodonclass(new_cbr, slotval)
+                create_slots[slotname] = getattr(new_cbr, methodname)
+            elif slot_mopname is not None:
+                # print("Looking up mop " + slot_mopname + " for " + slotname + " on mop " + name)
+                mopref = new_cbr.mops[slot_mopname]
+                create_slots[slotname] = mopref
+            else:
+                # SQLite's type system lets us get away with this
+                if slot_valtype == 'text':
+                    create_slots[slotname] = slotval
+                elif slot_valtype == 'integer':
+                    create_slots[slotname] = int(slotval)
+                elif slot_valtype == 'real':
+                    create_slots[slotname] = float(slotval)
+                else:
+                    sys.stderr.write(f"Error! Do not know how to interpret \"{slotval}\" as a {slot_valtype}\n")
+
+        new_cbr.add_mop(name, absts=absts, mop_type=mop_type, slots=create_slots,
+                        is_default_mop=is_default, is_core_cbr_mop=is_core)
+        print("Loaded mop " + name + ", there are " + str(len(mopqueue)) + " mops left")
+    return new_cbr
+
+

@@ -1,8 +1,10 @@
 from context import *
-from casebasedreasoner.util import make_graphviz_graph
+from casebasedreasoner import cbr
+from casebasedreasoner.util import make_graphviz_graph, export_cbr_sqlite, load_cbr_sqlite
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
+import os
 
 import romancer.supervisor.singlethreadsupervisor
 
@@ -445,6 +447,30 @@ judge.judge_case(case_3_slots)
 #         sibling = judge.get_sibling(None, 'I-M-FIGHT-EVENT.102')
 #         tests.append(sibling.mop_name)
 #     print(f"Decision Making={q}, results={tests}")
+
+sqlite3_db = "judge.sqlite"
+os.unlink(sqlite3_db)
+export_cbr_sqlite(judge, sqlite3_db, ['judge', 'judge_case'])
+
+#
+# newsup = romancer.supervisor.singlethreadsupervisor.SingleThreadSupervisor()
+# newenv = romancer.environment.singlethreadenvironment.SingleThreadEnvironment(sup, None, None)
+# reloaded_judge = load_cbr_sqlite(sqlite3_db, newenv, cbr.CaseBasedReasoner)
+#
+# reload_case_slots = {
+#     'crime_type': reloaded_judge.mops['I-M-HOMICIDE'],
+#     'defendant': reloaded_judge.mops['I-M-TIM'],
+#     'victim': reloaded_judge.mops['I-M-DAVID'],
+#     'events': reloaded_judge.mops['I-M-EVENT-GROUP.128'],
+#     'outcomes': reloaded_judge.mops['I-M-OUTCOME-GROUP.133'],
+#     'escalations': reloaded_judge.mops['I-M-ESCALATION-GROUP.140'],
+#     'motives': reloaded_judge.mops['I-M-MOTIVE-GROUP.145'],
+#     'old': reloaded_judge.mops['I-M-CRIME.123'],
+#     'sentence': 30
+# }
+#
+# print("Judge me judge me judge me")
+# reloaded_judge.judge_case(reload_case_slots)
 
 dot = make_graphviz_graph(judge, include_slot_edges=False)
 with open("judge.dot", "w") as out_dot:
