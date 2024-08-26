@@ -5,10 +5,11 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import os
+import subprocess
 
 import romancer.supervisor.singlethreadsupervisor
 
-class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
+class Judge(cbr.CaseBasedReasoner):
     def judge(self, case_slots): # in book, this takes slots, turns them into a mop, and installs it
         instance = self.slots_to_mop(slots=case_slots, absts={'M-CRIME'}, mop_type='instance', must_work=True)
         defendant = instance.role_filler('defendant')
@@ -55,16 +56,13 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         motives_mop = self.slots_to_mop(slots=motives, absts={'M-MOTIVE-GROUP'}, mop_type='instance')
         return motives_mop
 
-    def adapt_sentence(self, pattern, mop):
+    def adapt_sentence(self, pattern, mop): # compares each event in the new and old crimes, adjusting sentence if it can 
         old_mop = mop.get_filler('old')
         old_size = old_mop.get_filler('events').group_size()
         old_sentence = old_mop.get_filler('sentence')
         size = mop.get_filler('events').group_size()
-
         print("---------------------------")
         print(f"Adapting sentence in {old_mop}")
-
-        # for old_pos, pos in zip(range(1, old_size + 1), range(1, size + 1)):
         for pos in range(0, min(old_size, size)):
             old_index = old_size - pos
             index = size - pos
@@ -78,8 +76,6 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         print("No major difference found")
         print("Using old sentence")
         return old_sentence
-# trace, compare Case 3 (new) with Case 2 (old):
-# 1) old_action: stab, old_motive: , old_severity: 5 (dead)
 
 
     def mop_calc(self, slots):
@@ -130,6 +126,29 @@ class Judge(casebasedreasoner.cbr.CaseBasedReasoner):
         if above is not None:
             return filler > above
         return False
+    
+    def check_for_mops_not_in_specs(self):
+        calc_mops_missing_from_specs = []
+        calc_mops_in_specs = []
+        print()
+        print("Checking for MOPs missing from specs...")
+        for mop in self.mops:
+            in_some_spec = False
+            for candidate_mop in self.mops:
+                candidate_specs = self.name_mop(candidate_mop).specs
+                if self.name_mop(mop) in candidate_specs:
+                    in_some_spec = True
+            if not in_some_spec and "CALC" in mop:
+                calc_mops_missing_from_specs.append(self.name_mop(mop))
+            if in_some_spec and "CALC" in mop:
+                calc_mops_in_specs.append(self.name_mop(mop))
+
+        print("CALC MOPs missing from specs:")
+        print(calc_mops_missing_from_specs)
+        print("CALC MOPs in specs:")
+        print(calc_mops_in_specs)
+
+
 
 sup = romancer.supervisor.singlethreadsupervisor.SingleThreadSupervisor()
 env = romancer.environment.singlethreadenvironment.SingleThreadEnvironment(sup, None, None)
@@ -256,16 +275,32 @@ judge.add_mop(mop_name='M-CALC', mop_type='mop', is_default_mop=True)
 judge.add_mop(mop_name='M-CALC-MOTIVE', absts={'M-CALC'}, slots={'role': motive, 'value': None}, mop_type='mop', is_default_mop=True)
 # (DEFMOP M-CALC-ESCALATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (ABOVE 0))
     # (VALUE I-M-RETALIATION))
-judge.add_mop(mop_name='M-CALC-ESCALATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}, is_default_mop=True) , 'value': retaliation}, mop_type='mop', is_default_mop=True)
+judge.add_mop(mop_name='M-CALC-ESCALATION-MOTIVE',
+              absts={'M-CALC-MOTIVE'},
+              slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}, is_default_mop=True) ,
+                     'value': retaliation},
+              mop_type='mop',
+              is_default_mop=True)
 # (DEFMOP M-CALC-SELF-DEFENSE-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
     # (PREV-MOTIVE M-UNJUSTIFIED)
     # (VALUE I-M-SELF-DEFENSE))
-judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'below': 1}, is_default_mop=True), 'prev_motive': unjustified, 'value': self_defense}, mop_type='mop', is_default_mop=True)
+judge.add_mop(mop_name='M-CALC-SELF-DEFENSE-MOTIVE',
+              absts={'M-CALC-MOTIVE'},
+              slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'below': 1}, is_default_mop=True),
+                     'prev_motive': unjustified,
+                     'value': self_defense},
+              mop_type='mop',
+              is_default_mop=True)
 # (DEFMOP M-CALC-RETALIATION-MOTIVE (M-CALC-MOTIVE) (ESCALATION M-RANGE (BELOW 1))
     # (PREV-MOTIVE M-JUSTIFIED)
     # (VALUE I-M-RETALIATION))
-judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE', absts={'M-CALC-MOTIVE'}, slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'above': 0}, is_default_mop=True), 'prev_motive': justified, 'value': retaliation}, mop_type='mop', is_default_mop=True)
-
+judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE',
+              absts={'M-CALC-MOTIVE'},
+              slots={'escalation': judge.add_mop(absts={"M-RANGE"}, slots={'below': 1}, is_default_mop=True),
+                     'prev_motive': justified,
+                     'value': retaliation},
+              mop_type='mop',
+              is_default_mop=True)
 
 judge.add_mop(mop_name='M-COMPARE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': judge.compare_constraint, 'to': 
             judge.name_mop('M-ROLE'), 'compare_fn': judge.name_mop('M-FUNCTION')}, is_default_mop=True)
@@ -438,8 +473,10 @@ case_3_slots = {
 # Judge the case
 
 # judge.judge_case(case_3_slots)
-# judge.set_stochastic_decision_making(0.0)
+judge.set_stochastic_decision_making(0.0)
 judge.judge_case(case_3_slots)
+
+judge.check_for_mops_not_in_specs()
 # for q in range(11):
 #     judge.set_stochastic_intelligence(q / 10.0)
 #     tests = []
@@ -449,9 +486,36 @@ judge.judge_case(case_3_slots)
 #     print(f"Decision Making={q}, results={tests}")
 
 sqlite3_db = "judge.sqlite"
-os.unlink(sqlite3_db)
-export_cbr_sqlite(judge, sqlite3_db, ['judge', 'judge_case'])
 
+# Print the current working directory
+print(f"Current working directory: {os.getcwd()}")
+
+# Verify that the file has been created
+if os.path.exists(sqlite3_db):
+    print(f"File {sqlite3_db} successfully created.")
+else:
+    print(f"Failed to create file {sqlite3_db}.")
+
+dot = make_graphviz_graph(judge, include_slot_edges=False)
+with open("judge.dot", "w") as out_dot:
+    out_dot.write(dot)
+
+
+fmt = "svg"
+dot_command = f"dot -Kfdp -T{fmt} -ojudge.{fmt} judge.dot"
+print(f"Running command: {dot_command}")
+os.system(dot_command)
+
+# Open the generated SVG file
+svg_file = f"judge.{fmt}"
+if os.path.exists(svg_file):
+    print(f"Opening file: {svg_file}")
+    subprocess.run(f"start {svg_file}", shell=True, check=True)
+else:
+    print(f"Failed to create SVG file: {svg_file}")
+
+# Export the CBR data to the SQLite database
+# export_cbr_sqlite(judge, sqlite3_db, ['judge', 'judge_case'])
 #
 # newsup = romancer.supervisor.singlethreadsupervisor.SingleThreadSupervisor()
 # newenv = romancer.environment.singlethreadenvironment.SingleThreadEnvironment(sup, None, None)
@@ -472,9 +536,9 @@ export_cbr_sqlite(judge, sqlite3_db, ['judge', 'judge_case'])
 # print("Judge me judge me judge me")
 # reloaded_judge.judge_case(reload_case_slots)
 
-dot = make_graphviz_graph(judge, include_slot_edges=False)
-with open("judge.dot", "w") as out_dot:
-    out_dot.write(dot)
-fmt = "svg"
-os.system(f"dot -Kfdp -T{fmt} -ojudge.{fmt} judge.dot 2>/dev/null && xdg-open judge.{fmt}")
+# dot = make_graphviz_graph(judge, include_slot_edges=False)
+# with open("judge.dot", "w") as out_dot:
+#     out_dot.write(dot)
+# fmt = "svg"
+# os.system(f"dot -Kfdp -T{fmt} -ojudge.{fmt} judge.dot 2>/dev/null && xdg-open judge.{fmt}")
  #the aggressor is the one that is killed so sentence is less bad and 30 years

@@ -47,6 +47,8 @@ def is_satisfied(constraint, filler, slots):
 
 def mop_equal(mop1, mop2):
     '''Returns mop1 if mop1 and mop2 are the same.'''
+    if len(mop1.slots) == 0 and len(mop2.slots) == 0:
+        return
     if mop1.includes(mop2) and mop2.includes(mop1):
         return mop1
     
@@ -161,7 +163,7 @@ class MOP(ImprovedRomancerObject):
 
 
     def link_abst(self, abst): # self.link_abst(other)
-        assert abst.is_abstract_mop() # equivilent of "insist" macro in Schank/Riesbeck code
+        assert abst.is_abstract_mop(), f"{abst} is not abstract MOP" # equivilent of "insist" macro in Schank/Riesbeck code
         assert not self.is_abstraction(abst), f"Circular reference with abst:{abst}, spec:{self}" # don't create circular reference
         # if not self.is_abstraction(other): # abst is not currently abstract of self
         self.absts.add(abst) # make abst abstraction of self
@@ -246,6 +248,8 @@ class MOP(ImprovedRomancerObject):
         '''Returns self if it is of the same mop_type and includes every slot in mop2. Self can have slots not in mop2.'''
         if self.mop_type == mop2.mop_type:
             for role in mop2.slots.keys():
+                if role not in self.slots:
+                    return False
                 if self.get_filler(role) != mop2.slots[role]:
                     return False
             return self

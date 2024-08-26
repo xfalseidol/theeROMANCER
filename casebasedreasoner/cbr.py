@@ -1,3 +1,5 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP, is_satisfied
 import networkx as nx
@@ -62,10 +64,10 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         for abst in absts_as_mops:
             new_mop.link_abst(abst) # link absts
         ## this ought not happen and may be redundant, it results in abstractless mops
-        if mop_type == 'mop':
-            self.install_abstraction(new_mop)
-        elif mop_type == 'instance':
-            self.install_instance(new_mop, check_legal=False)
+        # if mop_type == 'mop':
+        #     self.install_abstraction(new_mop)
+        # elif mop_type == 'instance':
+        #     self.install_instance(new_mop, check_legal=False)
         ##
         return new_mop
 
@@ -101,16 +103,16 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         super().rewind(time)
 
     
-    def install_instance(self, instance, check_legal=True):
+    def install_instance(self, instance):
         instance.refine_instance()
         twin = instance.get_twin()
         if twin:
-            self.remove_mop(instance)
+            self.remove_mop(instance.mop_name)
             return twin
-        elif check_legal and instance.has_legal_absts():
+        elif instance.has_legal_absts():
             return instance
         else:
-            self.remove_mop(instance)
+            self.remove_mop(instance.mop_name)
             return None
         
 
@@ -118,7 +120,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         ''''''
         twin = mop.get_twin()
         if twin:
-            self.remove_mop(mop)
+            self.remove_mop(mop.mop_name)
             return twin
         else:
             return mop.reindex_siblings()
@@ -156,7 +158,6 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             return self.install_instance(mop)
         elif mop_type == 'mop':
             return self.install_abstraction(mop)
-        ##
         if must_work:
             raise CBRError(f"Failed to convert slots {slots} to MOP of type {mop_type} with absts {absts}.")
     
@@ -325,7 +326,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         absts = mop.absts
         for abst in absts:  # goes up one layer in abstraction
             for spec in abst.specs:  # looks at all specializations
-                if isinstance(spec, MOP) and spec.is_instance_mop() and not spec.is_abstraction(
+                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
                         self.name_mop('M-FAILED-SOLUTION')):
                     siblings.append(spec.mop_name)
         return siblings

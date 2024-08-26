@@ -50,11 +50,12 @@ class Amygdala(ImprovedRomancerObject):
         self.capture_plot()
 
     def capture_plot(self):
+        params = self.current_amygdala_parameters()
         self.plot_time.append(self.time)
-        self.plot_fight.append(self.fight)
-        self.plot_flight.append(self.flight)
-        self.plot_freeze.append(self.freeze)
-        self.plot_pbf.append(self.pbf)
+        self.plot_fight.append(params.current_fight)
+        self.plot_flight.append(params.current_flight)
+        self.plot_freeze.append(params.current_freeze)
+        self.plot_pbf.append(params.current_pbf)
 
     def export_plot(self, filename=None, title=None):
         if filename is None:
@@ -92,8 +93,13 @@ class Amygdala(ImprovedRomancerObject):
             dominant_response = dominant_response[0]
         else: # otherwise, not srtressed
             dominant_response = None
-        return CurrentAmygdalaParameters(current_pbf = cur_pbf, current_fight = self.fight * self.fight_weight, current_flight = self.flight * self.flight_weight, current_freeze = self.freeze * self.freeze_weight, current_dominant_response = dominant_response)
-        
+        current_fight = self.fight * self.fight_weight
+        current_flight = self.flight * self.flight_weight
+        current_freeze = self.freeze * self.freeze_weight
+        params = CurrentAmygdalaParameters(current_pbf = cur_pbf, current_fight = self.fight * self.fight_weight, current_flight = self.flight * self.flight_weight, current_freeze = self.freeze * self.freeze_weight, current_dominant_response = dominant_response)
+        # self.capture_plot(params)
+        return params
+
         
     def anticipated_parameters_at_time(self, time):
         '''As part of the agent's deliberation process, it needs to be able to anticipate the state of the amygdala at arbitrary points in the future prsuming no additional outside influences in the interim. This method returns a CurrentAmygdalaParameters object reflecting anticipated parameters at the future time, but leaves the Amygdala object at the same state as when it was called.'''
@@ -133,7 +139,6 @@ class Amygdala(ImprovedRomancerObject):
             self.flight += update_parameters.delta_flight
         if update_parameters.delta_freeze > 0:
             self.freeze += update_parameters.delta_freeze
-
         self.capture_plot()
         self.last_pbf_update_time = self.time # update last pbf update time
 
