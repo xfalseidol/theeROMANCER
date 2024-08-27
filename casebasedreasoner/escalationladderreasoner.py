@@ -1,4 +1,4 @@
-from .cbr import CaseBasedReasoner
+from cbr import CaseBasedReasoner
 from dill import dump, load
 from pathlib import Path
 
@@ -26,6 +26,7 @@ class EscalationLadderReasoner(CaseBasedReasoner):
         else:
             super().__init__(env, time)
             ## percepts only track weapon and target class
+            self.add_mop(mop_name='M-CALC', mop_type='mop', is_default_mop=True)
             self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, slots={'weapon_class': 0, 'target_class': 0}, mop_type = 'mop')
             self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')})
             self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop')
@@ -110,6 +111,9 @@ class EscalationLadderReasoner(CaseBasedReasoner):
         print("Using old outcome")
         return old_outcome
 
+
+    def adjust_outcome(self, pattern, mop): 
+        pass
 
     def mop_calc(self, slots):
         instance = self.slots_to_mop(slots=slots, absts={'M-CALC'}, mop_type='instance')

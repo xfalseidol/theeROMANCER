@@ -54,7 +54,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         # is_default_mop are the rest of the mops that are populated by default for a given use case
         if mop_name and mop_name in self.mops.keys():
             raise ValueError('MOP with name already exists: ', mop_name)
-        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts}#if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects 
+        absts_as_mops = {self.name_mop(n) if isinstance(n, str) else n for n in absts} # if isinstance(n, str) or isinstance(n, MOP)} # this should accept string names *or* MOP objects 
         if mop_type == None:
             # raise MOPError("Do not add MOPs with mop_type=None.")
             mop_type = self.calc_type(absts, slots)

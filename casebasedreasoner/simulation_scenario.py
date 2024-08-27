@@ -151,4 +151,4 @@ rung5 = MatchAllRung(match_attributes = {'weapon': '5', 'target': '5'},
                             name = "Angry")
 
 
-red_escalation_ladder = EscalationLadder([rung1, rung2, rung3, rung4, rung5)]
+red_escalation_ladder = EscalationLadder([rung1, rung2, rung3, rung4, rung5])
