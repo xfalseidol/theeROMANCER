@@ -1,6 +1,6 @@
 import context
-from casebasedreasoner.escalationladderreasoner import EscalationLadderReasoner
+from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 
 if __name__ == '__main__':
-    elr = EscalationLadderReasoner()
+    elr = EscalationLadderCBR()
     elr.serialize()

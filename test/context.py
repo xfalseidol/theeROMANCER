@@ -6,6 +6,6 @@ import romancer
 import romancer.environment
 import romancer.supervisor
 from casebasedreasoner import cbr
-from casebasedreasoner.escalationladderreasoner import EscalationLadderReasoner
+from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor

@@ -2,6 +2,13 @@ from cbr import CaseBasedReasoner
 from dill import dump, load
 from pathlib import Path
 
+## CB-ELR Design Model:
+# 1. The ELR inherits from the CBR, so that it can perform case-based reasoning like the Judge.
+# 2. Like the Judge, it needs its own set of "domain-specific" MOPs, like "percepts", "ladder rungs", "amygdala data", and "outcomes".
+# 3. Like the Judge, it creates a specialization of M-CASE, M_ELRScenario (I've changed naming convention to M_... for ease of typing).
+# 4. Like the Judge, it uses make_decision, adapt_outcome, and mop_calc to fill missing roles (ie, "outcome") based on prior cases and its own knowledge.
+# 5. "percepts" and "ladder rungs" are purely abstract: their form is inferred from the external caller/trainer, although we do assume a single percept is a single dictionary of data
+
 
 ## Proposed CB-ELR Model/Process:
 ### An ELRScenario is defined by {percepts, amygdala_data, current_rung, next_rung, outcome} (do we need current_rung? why?)
@@ -18,20 +25,19 @@ from pathlib import Path
 ## Should the CB-ELR be able to decide what the outcome of a scenario "should" be? Eg, compare percepts to current_rung and conclude "I should escalate"
 ## Should the CB-ELR *not* calculate the "correct" outcome and only make conclusions based on past memories?
 ## If we do calculate the "correct" outcome, then that means we're only using memories to decide whether our amygdala overrides our outcome. Is this what we want?
-class EscalationLadderReasoner(CaseBasedReasoner):
+class EscalationLadderCBR(CaseBasedReasoner):
     def __init__(self, env, time, load_memory_from = None):
         if load_memory_from:
             super().__init__(env, time)
             self.load(load_memory_from)
         else:
             super().__init__(env, time)
-            ## percepts only track weapon and target class
             self.add_mop(mop_name='M-CALC', mop_type='mop', is_default_mop=True)
-            self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, slots={'weapon_class': 0, 'target_class': 0}, mop_type = 'mop')
+            self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop')
             self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')})
             self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop')
-            ## ladder rungs only look for weapon and target class
-            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, slots={'weapon_class': 0, 'target_class': 0}, mop_type = 'mop')
+            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, mop_type = 'mop')
+            self.add_mop(mop_name='M_escalation_ladder', absts={'M-GROUP'}, slots={1:self.name_mop('M_ladder_rung')})
             ## potential outcomes
             outcome = self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop')
             self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
@@ -133,15 +139,29 @@ class EscalationLadderReasoner(CaseBasedReasoner):
         with open(filepath, 'rb') as f:
             self.mops = load(f)
 
+    def add_escalation_ladder(self, rungs):
+        # assume rungs is a list of match_attribute dictionaries
+        if len(self.name_mop("M_escalation_ladder").specs) > 0:
+            for spec in self.name_mop("M_escalation_ladder").specs:
+                self.remove_mop(spec)
+
+        rung_group = {}
+        counter = 1
+        for rung in rungs:
+            rung_mop = self.add_mop(absts={'M_ladder_rung'}, slots=rung, mop_type='instance')
+            rung_group[counter] = rung_mop
+            counter += 1
+        self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance')
+
 
     def add_ELRScenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
         # percepts
         slots={}
         counter = 1
-        for percept in percepts:
-            for event in percept.events_list:
-                slots[counter] = self.add_mop(mop_type='instance', absts={'M_percept'}, slots={'weapon_class': event['weapon'], 'target_class': event['target']})
-                counter += 1
+        for percept in percepts: # we assume the percept is a dictionary of data
+            assert isinstance(percept, dict), f"EscalationLadderCBR requires percept {percept} is a dictionary"
+            slots[counter] = self.add_mop(mop_type='instance', absts={'M_percept'}, slots=percept)
+            counter += 1
         percept_group = self.add_mop(absts={'M_percept_group'}, mop_type='instance', slots=slots)
 
         # amygdala data
@@ -152,9 +172,8 @@ class EscalationLadderReasoner(CaseBasedReasoner):
         amygdala_data = self.add_mop(slots=amygdala_data_slots, absts={'M_amygdala_data'}, mop_type='instance')
        
         # current rung
-        current_rung_slots = {'weapon_class': current_rung_match_attributes['weapon'], 'target_class': current_rung_match_attributes['target']}
-        current_rung = self.add_mop(slots=current_rung_slots, absts={'M_ladder_rung'}, mop_type='instance')
-       
+        current_rung = self.add_mop(slots=current_rung_match_attributes, absts={'M_ladder_rung'}, mop_type='instance')
+
         # outcome
         if outcome == 'deescalate':
             outcome = self.name_mop('I_M_deescalate_outcome')
@@ -168,3 +187,23 @@ class EscalationLadderReasoner(CaseBasedReasoner):
         self.add_mop(absts={'M_ELRScenario'},
                      mop_type='instance',
                      slots=slots)
+
+
+    def display_memory(self):
+        ## show escalation ladder
+        print("------------------")
+        print("Displaying escalation ladder:")
+        for spec in self.name_mop("M_escalation_ladder").specs:
+            # ladder = self.name_mop(spec)
+            print(spec.mop_name)
+            for rung_number, rung in spec.slots.items():
+                print(rung_number, rung)
+
+        ## show known ELRScenarios
+        print("------------------")
+        print("Displaying ELRScenarios:")
+        for spec in self.name_mop("M_ELRScenario").specs:
+            print(spec.mop_name)
+            print(spec.slots['percepts'])
+            print(spec.slots['outcome'])
+            print()

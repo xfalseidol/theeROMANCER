@@ -75,7 +75,7 @@ class EscalationLadderRung():
     '''Much of the logic of the EscalationLadderReasoner is stored in EscalationLadderRung instances. This permits these rungs to exhibit custom behavior if necessary.'''
     rung_id = 1
 
-    def __init__(self, match_attributes, blue_actions, red_actions, blue_deescalation_actions, red_deescalation_actions, pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name=""):
+    def __init__(self, match_attributes=None, blue_actions=[], red_actions=[], blue_deescalation_actions=[], red_deescalation_actions=[], pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name=""):
         self.match_attributes = match_attributes # a sequence of patterns that are used to check whether agent believes that this rung has been reached
         self.pbf_threshold = pbf_threshold # what stress level would trigger this rung regardless of match_attributes
         self.red_actions = red_actions # collection of actions that reasoner believes Red will take at this rung, associated with amount of time that must pass before/between those actions
@@ -282,12 +282,15 @@ class EscalationLadderReasoner(Reasoner):
                 # create a new WatchlistItem at future match time
                 self._push_empty_action(match_time)
             self.max_deliberation_time = max_time
-
         # self.rewind(pres_time)
     
     def _remember_scenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
-        if self.cbr:
-            self.cbr.add_ELRScenario(percepts, amygdala_parameters, current_rung_match_attributes, outcome)
+            # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
+            ## percepts has attribute events_list, which is a list of percept dictionaries
+            percepts_as_list_of_dict = []
+            for percept in percepts:
+                percepts_as_list_of_dict.append(percept.events_list)
+            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
 
 
     def _push_empty_action(self, time):
