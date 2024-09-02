@@ -1,8 +1,6 @@
-import context
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.location import GeographicLocation
-from environment.dispositiontree import GeographicDispositionStump
+from romancer.environment.dispositiontree import GeographicDispositionStump
 from romancer.commandpe.watchlist import CommandPEWatchlist, CommandPEWatchlistItem
 from CommandPEscenarios import scenarios, scenario_names
 from romancer.commandpe.perceptionengine import CommandPEPerceptionEngine, CommandPEPerceptionFilter
@@ -54,7 +52,8 @@ def plot_amygdalas(times, stress_levels):
     plt.show()
 
 
-cpeoutputfolder = cpeinputfolder = "data/orwaca_sample" 
+cpeinputfolder = "data/commandpe_input"
+cpeoutputfolder = "data/commandpe_output"
 
 
 
