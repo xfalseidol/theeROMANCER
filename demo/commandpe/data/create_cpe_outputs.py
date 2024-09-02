@@ -37,6 +37,9 @@ scenario_end_time = 360 * 60
 # Convert meters per second to knots
 m_s_to_kts = 1.943844
 
+# Convert meters to nm
+m_to_nm = 0.000539957
+
 # Target file data read
 target_file = "targets.csv"
 # Create the ROMANCER-CPEReader input file automatically
@@ -55,6 +58,11 @@ weapon_input_file = "weaponClass.csv"
 shooter_lat = 35.5
 shooter_lon = -130.3
 shooter_name = "SSGN"
+shooter_type = "SSGN"
+shooter_platform_index = 1
+
+shooter_side = "BLUE"
+target_side = "RED"
 
 # All weapons are cruise missiles and fly at approx same speed
 wpn_speed_m_s = 250
@@ -131,6 +139,46 @@ weaponfired_headers2 = [
     "CountermeasuresRemaining"
 ]
 
+weaponendgame_headers1 = [
+    "TimelineID",
+    "Time",
+    "WeaponID",
+    "WeaponName",
+    "WeaponSide",
+    "ParentFiringUnitID",
+    "ParentFiringUnitName",
+    "TargetID",
+    "TargetName",
+    "TargetSide",
+    "TargetLongitude",
+    "TargetLatitude",
+    "TargetAltitude_ASL_m",
+    "TargetAltitude_AGL_m",
+    "DistanceFromFiringUnit_Horiz",
+    "Result",
+    "EndgameMessage "
+]
+
+weaponendgame_headers2 = [
+    "The unique ID of the simulation run under which the event occured",
+    "The scenario time at which the event occured",
+    "WeaponID",
+    "WeaponName",
+    "WeaponSide",
+    "The unique ID of the unit that fired the weapon",
+    "The actual name of the unit that fired the weapon",
+    "The unique ID of the target unit at which the weapon is attacking",
+    "The actual name of the target unit which the weapon is attacking",
+    "The name of the side to which the attacked unit belongs",
+    "The longitude of the target unit",
+    "The latitude of the target unit",
+    "\"The barometric (above mean surface level) altitude of the attacked unit in meters\"",
+    "\"The actual above-ground altitude in meters of the attacked unit\"",
+    "\"The horizontal range from the weapon's firing unit to the endgame location in nautical miles\"",
+    "\"The result of the endgame sequence: Direct hit miss or defeated by point defences\"",
+    "The generated logged message that describes the endgame sequence"
+]
+
 # Approximate distance between pairs of points on earths surface, in m
 def haversine_m(lat1_dd, lon1_dd, lat2_dd, lon2_dd):
     d2r = math.pi/180
@@ -145,13 +193,25 @@ def haversine_m(lat1_dd, lon1_dd, lat2_dd, lon2_dd):
     c = 2.0 * math.asin(math.sqrt(a))
     return R * c
 
+def time_to_hms(t_s):
+    t_s_int = math.floor(t_s)
+    h = t_s_int // 3600
+    m = (t_s_int % 3600) // 60
+    s = t_s_int % 60
+    return f"{h}:{m:02}:{s:02}"
+
 if __name__ == "__main__":
     output_folder = "commandpe_output"
     input_folder = "commandpe_input"
 
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    if not os.path.exists(input_folder):
+        os.makedirs(input_folder)
+
     rng = Random()
 
-    # Parse weapon and target CSV input files
+    # Parse weapon CSV input file
     with open(weapon_file, "r") as wpn_file:
         csv_reader = csv.DictReader(wpn_file)
         wpn_list = {}
@@ -159,7 +219,15 @@ if __name__ == "__main__":
             wpn_list[row['Name']] = { "Name" : row['Name'],
                               "WeaponValue" : int(row['WeaponValue']),
                               "SSPK" : float(row['SSPK']) }
+    # Create ROMANCER CPE Reader input file for weapon classification
+    with open(os.path.join(input_folder, weapon_input_file), "w") as f:
+        f.write("WeaponClass,WeaponCategory\n")
+        for wpn in wpn_list.values():
+            f.write(f"{wpn['Name']},{wpn['WeaponValue']}\n")
 
+    global_unique_id = 10 # Manufacture  global ids
+
+    # Parse target CSV input file
     with open(target_file, "r") as tgt_file:
         csv_reader = csv.DictReader(tgt_file)
         tgt_list = {}
@@ -170,18 +238,28 @@ if __name__ == "__main__":
                              "Lon" : float(row['Lon']),
                              "TargetValue" : int(row['TargetValue']) }
             tgt_list[row['Name']] = filtered_row
+        # Give indices to targets
+        for tgt in tgt_list.values():
+            tgt['idx'] = global_unique_id
+            global_unique_id += 1
 
-    with open(target_input_file, "w") as f:
+    # Create ROMANCER CPE Reader input file for target classification
+    with open(os.path.join(input_folder, target_input_file), "w") as f:
         f.write("TargetClass,TargetCategory\n")
         f.write(f"{target_typename},3\n")
-    with open(target_unit_input_file, "w") as f:
+    # Create ROMANCER CPE Reader input file for target classification by specific unit
+    with open(os.path.join(input_folder, target_unit_input_file), "w") as f:
         f.write("TargetUnit,TargetCategory\n")
         for tgt in tgt_list.values():
             f.write(f"{tgt['Name']},{tgt['TargetValue']}\n")
 
-    with open(os.path.join(output_folder, "WeaponFired.csv"), "w") as f_fired:
+    with (open(os.path.join(output_folder, "WeaponFired.csv"), "w") as f_fired,
+          open(os.path.join(output_folder, "WeaponEndgame.csv"), "w") as f_endgame):
         f_fired.write(",".join(weaponfired_headers1) + "\n")
         f_fired.write(",".join(weaponfired_headers2) + "\n")
+
+        f_endgame.write(",".join(weaponendgame_headers1) + "\n")
+        f_endgame.write(",".join(weaponendgame_headers2) + "\n")
 
         # As weapons are fired, they go into this queue, for popping off at the moment they arrive
         weapon_arrival_queue = []
@@ -189,7 +267,7 @@ if __name__ == "__main__":
         # Main Loop. Time moves forward
         t_now = 0.0
         while t_now < scenario_end_time:
-            t_now += avg_fire_time_s + rng.uniform(-2.0, 2.0)
+            t_now += avg_fire_time_s + rng.uniform(-60.0, 60.0)
 
             # Deal with weapons that have arrived
             while len(weapon_arrival_queue)>0 and weapon_arrival_queue[0][0] < t_now:
@@ -197,6 +275,8 @@ if __name__ == "__main__":
                 t_arrival = event[0]
                 wpn = event[1]
                 tgt = event[2]
+                wpn_idx = event[3]
+                track_idx = event[4]
                 print(f"Boom @ T={t_arrival:.2f}, {wpn['Name']} hit {tgt['Name']}")
 
                 if tgt['Name'] not in tgt_list:
@@ -204,9 +284,31 @@ if __name__ == "__main__":
                     continue
 
                 is_kill = (rng.uniform(0.0, 1.0) < wpn['SSPK'])
-                if is_kill:
-                    print("Killshot")
-                    tgt_list.pop(tgt['Name'])
+
+                msg = f"Wpn {wpn['Name']} hit {tgt['Name']}. Kill: {is_kill}"
+
+                line = [
+                    42,
+                    time_to_hms(t_arrival),
+                    # Shooter
+                    wpn_idx,
+                    wpn['Name'],
+                    shooter_side,
+                    shooter_platform_index,
+                    shooter_name,
+                    # Target
+                    tgt['idx'],
+                    tgt['Name'],
+                    target_side,
+                    tgt['Lon'],
+                    tgt['Lat'],
+                    1, # Altitude
+                    1,
+                    m_to_nm * haversine_m(shooter_lat, shooter_lon, tgt['Lat'], tgt['Lon']),
+                    "HIT" if is_kill else "MISS",
+                    msg
+                ]
+                f_endgame.write(",".join(str(el) for el in line) + "\n")
 
 
 
@@ -223,12 +325,61 @@ if __name__ == "__main__":
 
             chosen_wpn = rng.choice(viable_wpns)
             chosen_tgt = rng.choice(viable_tgts)
+            # Asign some IDs
+            weapon_id = global_unique_id
+            global_unique_id += 1
+            track_id = global_unique_id
+            global_unique_id += 1
 
             # Plan for weapon arrival
             flight_dist_m = haversine_m(shooter_lat, shooter_lon, chosen_tgt["Lat"], chosen_tgt["Lon"])
             flight_time_s = flight_dist_m / wpn_speed_m_s
-            heapq.heappush(weapon_arrival_queue, (t_now + flight_time_s, chosen_wpn, chosen_tgt))
+            heapq.heappush(weapon_arrival_queue, (t_now + flight_time_s, chosen_wpn, chosen_tgt, weapon_id, track_id))
 
             print(f"T={t_now}, Firing {chosen_wpn['Name']} at {chosen_tgt['Name']}, flight time {flight_time_s:.2f}s")
+            line = [
+                42, # Simulation ID
+                time_to_hms(t_now),
+
+                # Shooter information
+                shooter_platform_index,
+                shooter_platform_index,
+                shooter_name,
+                shooter_type,
+                shooter_type,
+                shooter_side,
+                shooter_lon,
+                shooter_lat,
+                90.0, # Heading due East
+                0.0, # Speed=0
+                0.0, # SSGN is at sea level
+                0.0,  # SSGN is at sea level
+
+                # Weapon Information
+                weapon_id,
+                weapon_id,
+                chosen_wpn['Name'],
+                chosen_wpn['Name'],
+                chosen_wpn['Name'],
+
+                # Track information
+                chosen_tgt['idx'],
+                chosen_tgt['Lon'],
+                chosen_tgt['Lat'],
+                0.0, # Heading nowhere
+                0.0, # Not moving
+                1.0, # 1m off ground
+                flight_dist_m * m_to_nm, # Ground range
+                flight_dist_m * m_to_nm, # Slant range - same as ground range, approx
+
+                # Target information
+                chosen_tgt['idx'],
+                chosen_tgt['Name'],
+                target_typename,
+                target_side,
+                1, # Salvo
+                0 # Countermeasures remaining
+            ]
+            f_fired.write(",".join(str(el) for el in line) + "\n")
 
 
