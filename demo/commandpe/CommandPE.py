@@ -11,6 +11,7 @@ from pathlib import Path
 from numpy import deg2rad
 from collections import namedtuple
 import matplotlib.pyplot as plt
+import os
 
 
 def plot_escalations(times, rungs):
@@ -52,10 +53,10 @@ def plot_amygdalas(times, stress_levels):
     plt.show()
 
 
-cpeinputfolder = "data/commandpe_input"
-cpeoutputfolder = "data/commandpe_output"
-
-
+thisdir = os.path.dirname(os.path.realpath(__file__))
+datadir = os.path.join(thisdir, "data")
+cpeinputfolder = os.path.join(datadir, "commandpe_input")
+cpeoutputfolder = os.path.join(datadir, "commandpe_output")
 
 plot_times = []
 plot_rungs = []
