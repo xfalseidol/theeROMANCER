@@ -213,18 +213,41 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
         CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, slotname)
     ''')
     # For reading into Gephi
+
+    # Gephi defaults to "SELECT * FROM nodes" and "SELECT * FROM edges", so these should be sensible defaults
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS nodes AS
-            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type FROM mop
+            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type,
+                   create_seq AS "start", CASE WHEN delete_seq IS NULL THEN MAX(create_seq) OVER () ELSE delete_seq END AS "end"
+                FROM mop
     ''')
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS edges AS
-             SELECT mopid AS source, abstmopid AS target, 'abst' AS label, 'abst' AS hier FROM mop_abst
-            UNION ALL
-             SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier FROM mop_spec
-            UNION ALL
-             SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier FROM slot WHERE ref_mopid IS NOT NULL
+            WITH alledges AS (SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier, 0.1 AS weight
+                                  FROM mop_spec
+                              UNION ALL
+                              SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier, 1.0 AS weight
+                                  FROM slot
+                                  WHERE ref_mopid IS NOT NULL)
+            SELECT e.source, e.target, e.label, e.hier, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
+               FROM alledges e
+                   INNER JOIN nodes n_s ON e.source=n_s.id
+                   INNER JOIN nodes n_t ON e.target=n_t.id
     ''')
+
+    # You can adjust gephi's SQL queries. Selecting nodes_hier and edges_hier is for viewing just the inheritance hierarchy
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS nodes_hier AS
+            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type
+                FROM mop;
+    ''')
+
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS edges_hier AS
+            SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier
+                  FROM mop_spec;
+    ''')
+
 
     # Rapid inspection
     # Peers are mops that derive from the same abstraction as this one does
