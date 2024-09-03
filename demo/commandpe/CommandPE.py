@@ -1,8 +1,6 @@
-import context
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
-from environment.location import GeographicLocation
-from environment.dispositiontree import GeographicDispositionStump
+from romancer.environment.dispositiontree import GeographicDispositionStump
 from romancer.commandpe.watchlist import CommandPEWatchlist, CommandPEWatchlistItem
 from CommandPEscenarios import scenarios, scenario_names
 from romancer.commandpe.perceptionengine import CommandPEPerceptionEngine, CommandPEPerceptionFilter
@@ -13,6 +11,7 @@ from pathlib import Path
 from numpy import deg2rad
 from collections import namedtuple
 import matplotlib.pyplot as plt
+import os
 
 
 def plot_escalations(times, rungs):
@@ -54,9 +53,10 @@ def plot_amygdalas(times, stress_levels):
     plt.show()
 
 
-cpeoutputfolder = cpeinputfolder = "data/orwaca_sample" 
-
-
+thisdir = os.path.dirname(os.path.realpath(__file__))
+datadir = os.path.join(thisdir, "data")
+cpeinputfolder = os.path.join(datadir, "commandpe_input")
+cpeoutputfolder = os.path.join(datadir, "commandpe_output")
 
 plot_times = []
 plot_rungs = []

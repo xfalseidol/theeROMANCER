@@ -290,7 +290,8 @@ class EscalationLadderReasoner(Reasoner):
             percepts_as_list_of_dict = []
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.events_list)
-            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
+            if self.cbr is not None:
+                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
 
 
     def _push_empty_action(self, time):
