@@ -79,6 +79,7 @@ class MOP(ImprovedRomancerObject):
         if not mop_name:
             mop_name = self.make_name(list(absts), mop_type)
 
+        self.create_seq = parent.get_next_mop_seq()
         self.unlogged_attrs.append('parent')
         self.parent = parent # parent is case-based reasoner containing collection of associated MOPs
         self.unlogged_attrs.append('mop_name')

@@ -1,3 +1,4 @@
+import os.path
 import sqlite3
 import sys
 
@@ -90,7 +91,13 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
     return "\n".join(g)
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
-def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
+def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):
+    if os.path.exists(dbfile):
+        if deleteifexists:
+            os.unlink(dbfile)
+        else:
+            print(f"Error! File {dbfile} exists and deleteifexists is False")
+            return
     # extramethodnames is a list of methods that should also be put in database, from the cbrinst class
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
@@ -114,6 +121,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
             mopname TEXT NOT NULL,
             is_core BOOLEAN NOT NULL,
             is_default BOOLEAN NOT NULL,
+            create_seq INTEGER NOT NULL DEFAULT 0,
+            delete_seq INTEGER DEFAULT NULL,
             mop_type TEXT NOT NULL REFERENCES mop_type(mop_type),
             UNIQUE(mopname)
         )
@@ -155,8 +164,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     for mopname in cbrinst.mops:
         # print("Nodes for " + str(mopname))
         this_mop = cbrinst.mops[mopname]
-        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type) VALUES (?, ?, ?, ?)",
-                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type))
+        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type, create_seq) VALUES (?, ?, ?, ?, ?)",
+                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type, this_mop.create_seq))
     conn.commit()
 
     for mopname in cbrinst.mops:
