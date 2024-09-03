@@ -4,6 +4,7 @@ from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.agent.escalationladderreasoner import EscalationLadderReasoner, MatchAllRung, EscalationLadder
 from romancer.agent.amygdala import Amygdala
 from romancer.environment.percept import Percept
+from casebasedreasoner.util import  export_cbr_sqlite
 import random
 
 
@@ -67,9 +68,13 @@ for i in range(amygdala_scenarios):
 
 ELCBR.display_memory()
 
+export_cbr_sqlite(ELCBR, "trainedELCBR.sqlite")
+
 # serialize it
+print(f"Pickling trained ELCBR, with {len(ELCBR.mops)} mops")
 ELCBR.serialize("trainedELCBR.pkl")
 
 # create a new CB-ELR and load the old one's memories into it
+print("Verify-Loading trained ELCBR")
 new_ELCBR = EscalationLadderCBR(env, env.time, load_memory_from="trainedELCBR.pkl")
-print(new_ELCBR.mops)
+print(f"Reloaded CBR has {len(new_ELCBR.mops)} mops")
