@@ -1,3 +1,4 @@
+import os.path
 import sqlite3
 import sys
 
@@ -90,12 +91,21 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
     return "\n".join(g)
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
-def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
+def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):
+    if os.path.exists(dbfile):
+        if deleteifexists:
+            os.unlink(dbfile)
+        else:
+            print(f"Error! File {dbfile} exists and deleteifexists is False")
+            return
+
+    print(f"Beginning SQLite write to {dbfile}")
     # extramethodnames is a list of methods that should also be put in database, from the cbrinst class
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
     # Because slots vary wildly, using an E-A-V style antipattern
 
+    cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cbr_methods (
             methodname TEXT NOT NULL UNIQUE,
@@ -114,6 +124,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
             mopname TEXT NOT NULL,
             is_core BOOLEAN NOT NULL,
             is_default BOOLEAN NOT NULL,
+            create_seq INTEGER NOT NULL DEFAULT 0,
+            delete_seq INTEGER DEFAULT NULL,
             mop_type TEXT NOT NULL REFERENCES mop_type(mop_type),
             UNIQUE(mopname)
         )
@@ -155,13 +167,23 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
     for mopname in cbrinst.mops:
         # print("Nodes for " + str(mopname))
         this_mop = cbrinst.mops[mopname]
-        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type) VALUES (?, ?, ?, ?)",
-                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type))
+        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type, create_seq, delete_seq)"
+                                  " VALUES (?, ?, ?, ?, ?, ?)",
+                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type,
+                                     this_mop.create_seq, this_mop.delete_seq))
     conn.commit()
 
-    for mopname in cbrinst.mops:
+    n_mops = len(cbrinst.mops)
+    progress_every = int(n_mops/5)
+    progress = 0
+    allmops = []
+    allmops.extend(cbrinst.mops.values())
+    allmops.extend(cbrinst.deleted_mops)
+    for this_mop in allmops:
+        if 0 == progress%progress_every:
+            print(f" ... {progress}/{n_mops}")
+        progress += 1
         # Yes, all the subselects are slow. If it turns out to matter, can grab the lot later
-        this_mop = cbrinst.mops[mopname]
         abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
         cursor.executemany("INSERT INTO mop_abst(mopid, abstmopid) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", abstrows)
@@ -191,18 +213,41 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
         CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, slotname)
     ''')
     # For reading into Gephi
+
+    # Gephi defaults to "SELECT * FROM nodes" and "SELECT * FROM edges", so these should be sensible defaults
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS nodes AS
-            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type FROM mop
+            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type,
+                   create_seq AS "start", CASE WHEN delete_seq IS NULL THEN MAX(create_seq) OVER () ELSE delete_seq END AS "end"
+                FROM mop
     ''')
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS edges AS
-             SELECT mopid AS source, abstmopid AS target, 'abst' AS label, 'abst' AS hier FROM mop_abst
-            UNION ALL
-             SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier FROM mop_spec
-            UNION ALL
-             SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier FROM slot WHERE ref_mopid IS NOT NULL
+            WITH alledges AS (SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier, 0.1 AS weight
+                                  FROM mop_spec
+                              UNION ALL
+                              SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier, 1.0 AS weight
+                                  FROM slot
+                                  WHERE ref_mopid IS NOT NULL)
+            SELECT e.source, e.target, e.label, e.hier, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
+               FROM alledges e
+                   INNER JOIN nodes n_s ON e.source=n_s.id
+                   INNER JOIN nodes n_t ON e.target=n_t.id
     ''')
+
+    # You can adjust gephi's SQL queries. Selecting nodes_hier and edges_hier is for viewing just the inheritance hierarchy
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS nodes_hier AS
+            SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type
+                FROM mop;
+    ''')
+
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS edges_hier AS
+            SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier
+                  FROM mop_spec;
+    ''')
+
 
     # Rapid inspection
     # Peers are mops that derive from the same abstraction as this one does
@@ -287,6 +332,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[]):
 
     conn.commit()
     conn.close()
+    print(f"SQLite write complete")
 
 # For the code-based activities, we're attaching methods to classes
 def __instantiatemethodonclass(instance, code):

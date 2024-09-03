@@ -24,11 +24,17 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
     def __init__(self, environment, time):
         super().__init__(environment, time)
+        self.mop_seq = 0 # Increasing with every addition/deletion
         self.unlogged_attrs.append('mops')
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
         self.clear_memory(True) # install basic MOPs
         self.decision_making_ability = None  # A number in the range 0..1. If None, use normal get_sibling
         self.rng = random.Random()  # Used by the stochastic mop selector
+        self.deleted_mops = [] # Capture mops that are deleted for logging to database later
+
+    def get_next_mop_seq(self):
+        self.mop_seq += 1
+        return self.mop_seq
 
     def set_stochastic_decision_making(self, decision_making_ability):
         # Setting this turns on the stochastic reasoner
@@ -86,7 +92,10 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             for spec in mop.specs:
                 self.remove_mop(spec.mop_name)
             # delete the MOP from our lsit of MOPs
-            self.mops.pop(name)
+            mop = self.mops.pop(name)
+            mop.update_delete_seq()
+            self.deleted_mops.append(mop)
+            # print(f"Deleted a mop {mop.name}")
         # else:
         #     raise ValueError(f"MOP {name} does not exist.")
 
