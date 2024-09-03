@@ -176,12 +176,14 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     n_mops = len(cbrinst.mops)
     progress_every = int(n_mops/5)
     progress = 0
-    for mopname in cbrinst.mops:
+    allmops = []
+    allmops.extend(cbrinst.mops.values())
+    allmops.extend(cbrinst.deleted_mops)
+    for this_mop in allmops:
         if 0 == progress%progress_every:
             print(f" ... {progress}/{n_mops}")
         progress += 1
         # Yes, all the subselects are slow. If it turns out to matter, can grab the lot later
-        this_mop = cbrinst.mops[mopname]
         abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
         cursor.executemany("INSERT INTO mop_abst(mopid, abstmopid) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", abstrows)
