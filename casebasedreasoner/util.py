@@ -105,6 +105,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     cursor = conn.cursor()
     # Because slots vary wildly, using an E-A-V style antipattern
 
+    cursor.execute("PRAGMA foreign_keys=ON")
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS cbr_methods (
             methodname TEXT NOT NULL UNIQUE,
