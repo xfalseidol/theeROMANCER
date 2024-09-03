@@ -98,6 +98,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
         else:
             print(f"Error! File {dbfile} exists and deleteifexists is False")
             return
+
+    print(f"Beginning SQLite write to {dbfile}")
     # extramethodnames is a list of methods that should also be put in database, from the cbrinst class
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
@@ -164,11 +166,19 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     for mopname in cbrinst.mops:
         # print("Nodes for " + str(mopname))
         this_mop = cbrinst.mops[mopname]
-        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type, create_seq) VALUES (?, ?, ?, ?, ?)",
-                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type, this_mop.create_seq))
+        cursor.execute("INSERT INTO mop(mopname, is_core, is_default, mop_type, create_seq, delete_seq)"
+                                  " VALUES (?, ?, ?, ?, ?, ?)",
+                       (this_mop.mop_name, this_mop.is_core_cbr, this_mop.is_default, this_mop.mop_type,
+                                     this_mop.create_seq, this_mop.delete_seq))
     conn.commit()
 
+    n_mops = len(cbrinst.mops)
+    progress_every = int(n_mops/5)
+    progress = 0
     for mopname in cbrinst.mops:
+        if 0 == progress%progress_every:
+            print(f" ... {progress}/{n_mops}")
+        progress += 1
         # Yes, all the subselects are slow. If it turns out to matter, can grab the lot later
         this_mop = cbrinst.mops[mopname]
         abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
@@ -296,6 +306,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
 
     conn.commit()
     conn.close()
+    print(f"SQLite write complete")
 
 # For the code-based activities, we're attaching methods to classes
 def __instantiatemethodonclass(instance, code):
