@@ -80,6 +80,7 @@ class MOP(ImprovedRomancerObject):
             mop_name = self.make_name(list(absts), mop_type)
 
         self.create_seq = parent.get_next_mop_seq()
+        self.delete_seq = None
         self.unlogged_attrs.append('parent')
         self.parent = parent # parent is case-based reasoner containing collection of associated MOPs
         self.unlogged_attrs.append('mop_name')
@@ -93,6 +94,8 @@ class MOP(ImprovedRomancerObject):
         self.is_default = is_default_mop
         self.is_core_cbr = is_core_cbr_mop
 
+    def update_delete_seq(self):
+        self.delete_seq = self.parent.get_next_mop_seq()
 
     def is_abstract_mop(self):
         '''Returns True if this MOP is an abstraction MOP.'''
