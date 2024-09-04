@@ -44,13 +44,17 @@ def _get_amygdala_archetypes(env):
     ]
     return archetype_amygs
 
+### EVENT CONSTRUCTION
+weapon_classes = 5
+target_classes = 5
+hit_counts = 1
+
 ### ESCALATION LADDER DEFINITION
-rung1 = MatchAllRung(match_attributes = {'weapon': '1', 'target': '1'})
-rung2 = MatchAllRung(match_attributes = {'weapon': '2', 'target': '2'})
-rung3 = MatchAllRung(match_attributes = {'weapon': '3', 'target': '3'})
-rung4 = MatchAllRung(match_attributes = {'weapon': '4', 'target': '4'})
-rung5 = MatchAllRung(match_attributes = {'weapon': '5', 'target': '5'})
-rungs = [rung1, rung2, rung3, rung4, rung5]
+rungs = []
+for i in range(weapon_classes):
+    eventclass = i+1
+    rung = MatchAllRung(match_attributes = {'weapon': str(eventclass), 'target': str(eventclass)})
+    rungs.append(rung)
 escalation_ladder = EscalationLadder(rungs)
 
 ### TRAINING
@@ -68,9 +72,6 @@ ELCBR.add_escalation_ladder(match_attributes)
 amygdala_scenarios = 100
 # amygdalas = _get_amygdala_random(env, amygdala_scenarios)
 amygdalas = _get_amygdala_archetypes(env)
-weapon_classes = 5
-target_classes = 5
-hit_counts = 1
 amygdala_cnt = 0
 for amygdala in amygdalas:
     amygdala_cnt += 1
