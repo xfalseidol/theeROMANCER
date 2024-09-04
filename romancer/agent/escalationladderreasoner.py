@@ -214,6 +214,10 @@ class EscalationLadderReasoner(Reasoner):
         self.cbr = cbr
         self.capture_plot()
 
+    def reset_reasoner(self, rung_num=0):
+        self.rewind(0)
+        self.current_rung = self.escalation_ladder[rung_num]
+
     def enqueue_digested_percept(self, digested_percept, percept_time):
         '''This method is used to update the EscalationLadderReasoner's internal state on the basis of the output of the egent's perception filter. What this does is enque the digested percept in the history of percepts digested by the reasoner, and update the reasoner's max_deliberation_time so that the next time that its deliberate method is called, its planned future actions will be recalculated if necessary.'''
         if percept_time < self.most_recent_percept_time:
