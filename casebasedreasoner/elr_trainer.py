@@ -24,9 +24,9 @@ def _get_next_amygdala():
 red_fight_weight = 1.0
 red_flight_weight = 1.0
 red_freeze_weight = 1.0
-red_initial_fight = 0.0
-red_initial_flight = 0.0
-red_initial_freeze = 0.0
+red_initial_fight = 1.0
+red_initial_flight = 1.0
+red_initial_freeze = 1.0
 red_initial_pbf = 0.0001
 red_pbf_halflife = 100.0
 red_max_pbf = 1.0
@@ -62,7 +62,7 @@ for i in range(amygdala_scenarios):
     for weapon in range(1, weapon_classes + 1):
         for target in range(1, target_classes + 1):
             for hit_count in range(hit_counts):
-                percept = Percept(events_list={'weapon': weapon, 'target': target, 'count': hit_count})
+                percept = Percept(events_list=[{'weapon': str(weapon), 'target': str(target), 'count': str(hit_count)}])
                 ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
                 ELR.deliberate(0, amygdala) # this will log ELRscenario memories into the attached CBR
 
