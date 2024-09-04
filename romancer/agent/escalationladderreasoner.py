@@ -289,6 +289,7 @@ class EscalationLadderReasoner(Reasoner):
         # self.rewind(pres_time)
     
     def _remember_scenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
+        if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
             ## percepts has attribute events_list, which is a list of percept dictionaries
             percepts_as_list_of_dict = []
