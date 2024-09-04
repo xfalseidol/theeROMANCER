@@ -93,7 +93,7 @@ class Judge(cbr.CaseBasedReasoner):
         return slots
 
 
-    def adjust_sentence(self, pattern, mop):
+    def adjust_sentence(self, mop):
         print("~---------------------------~")
         print(f"{mop} applied, {mop.get_filler('index')} events from the end")
         old_sentence = mop.get_filler('old_sentence')

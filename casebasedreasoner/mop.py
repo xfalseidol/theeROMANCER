@@ -374,8 +374,8 @@ class MOP(ImprovedRomancerObject):
         return name
 
     
-    def equals(a, b):
+    def equals(a,b):
         return a == b
     
-    def less_than(a, b):
+    def less_than(a,b):
         return a < b
