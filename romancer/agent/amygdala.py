@@ -25,9 +25,10 @@ class Amygdala(ImprovedRomancerObject):
     To represent 'lizard brain' types of responses, the Amygdala object provides proxies for fight, flight, or freeze responses. The agent's reasoner can either act on the basis of these responses or not as it sees fit. The reasoner also needs to incorporate funtionality to update these parameters on the basis of its evolving state--otherwise, they are ignored.
     '''
 
-    fight_str = "fight"
-    flight_str = "flight"
-    freeze_str = "freeze"
+    # Constants.
+    FIGHT_STR = "fight"
+    FLIGHT_STR = "flight"
+    FREEZE_STR = "freeze"
 
     def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 100, max_pbf = 1.0, response_threshhold = 1.0):
         super().__init__(environment, time)
@@ -90,9 +91,9 @@ class Amygdala(ImprovedRomancerObject):
         self.pbf = cur_pbf
         self.last_pbf_update_time = self.time
         # determine dominant response, if any
-        responses = [(self.fight_str, self.fight * self.fight_weight),
-                     (self.flight_str, self.flight * self.flight_weight),
-                     (self.freeze_str, self.freeze * self.freeze_weight)]
+        responses = [(self.FIGHT_STR, self.fight * self.fight_weight),
+                     (self.FLIGHT_STR, self.flight * self.flight_weight),
+                     (self.FREEZE_STR, self.freeze * self.freeze_weight)]
         dominant_response = max(responses, key = lambda n: n[1])
         if cur_pbf > self.response_threshhold: # if too stressed
             dominant_response = dominant_response[0]
@@ -172,7 +173,7 @@ class Amygdala_Fight(Amygdala):
         self.response_threshhold = -1.0
 
     def dominant_response(self):
-        return self.fight_str
+        return self.FIGHT_STR
 
 ''' Runner archetype '''
 class Amygdala_Flight(Amygdala):
@@ -187,7 +188,7 @@ class Amygdala_Flight(Amygdala):
         self.response_threshhold = -1.0
 
     def dominant_response(self):
-        return self.flight_str
+        return self.FLIGHT_STR
 
 
 ''' Runner archetype '''
@@ -203,7 +204,7 @@ class Amygdala_Freeze(Amygdala):
         self.response_threshhold = -1.0
 
     def dominant_response(self):
-        return self.freeze_str
+        return self.FREEZE_STR
 
 ''' Purely Analytic brain feels no emotion '''
 class Amygdala_StoneCold(Amygdala):

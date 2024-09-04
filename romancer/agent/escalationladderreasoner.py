@@ -89,11 +89,11 @@ class EscalationLadderRung():
 
     def rung_matched(self, reasoner, amygdala):
         dominant_response = amygdala.dominant_response()
-        if dominant_response == "freeze": # never escalate
+        if dominant_response == amygdala.FREEZE_STR: # never escalate
             return False
-        if dominant_response == "fight": # always escalate
+        if dominant_response == amygdala.FIGHT_STR: # always escalate
             return True
-        if dominant_response == "flight": # try to de-escalate
+        if dominant_response == amygdala.FLIGHT_STR: # try to de-escalate
             return False
         
         # ANY attribute in match_attributes matches a digested percept
@@ -144,9 +144,9 @@ class EscalationLadderRung():
         # It seems reasonable that deescalation will usually be associated with *special* percepts (explicit messages) that will be easy to test for, but for a general solution it will be necessary to consider the whole percept history somehow
         # Also return True if dominant amygdala response is currently 'flight'
         parameters = amygdala.current_amygdala_parameters()
-        if parameters.current_dominant_response == 'flight':
+        if parameters.current_dominant_response == amygdala.FLIGHT_STR:
             return True, False
-        elif parameters.current_dominant_response == 'freeze' or parameters.current_dominant_response == 'fight':
+        elif parameters.current_dominant_response == amygdala.FREEZE_STR or parameters.current_dominant_response == amygdala.FIGHT_STR:
             return False, False
         else:                  
             return False, False
@@ -157,11 +157,11 @@ class EscalationLadderRung():
 class MatchAllRung(EscalationLadderRung):
     def rung_matched(self, reasoner, amygdala):
         dominant_response = amygdala.dominant_response()
-        if dominant_response == "freeze": # never escalate
+        if dominant_response == amygdala.FREEZE_STR: # never escalate
             return False
-        if dominant_response == "fight": # always escalate
+        if dominant_response == amygdala.FIGHT_STR: # always escalate
             return True
-        if dominant_response == "flight": # try to de-escalate
+        if dominant_response == amygdala.FLIGHT_STR: # try to de-escalate
             return False
 
         # if any digested percept's singular event matches all attributes, the rung is matched
