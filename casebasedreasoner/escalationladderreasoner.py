@@ -189,7 +189,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
                      slots=slots)
 
 
-    def display_memory(self):
+    def display_memory(self, include_scenario_details=False):
         ## show escalation ladder
         print("------------------")
         print("Displaying escalation ladder:")
@@ -199,11 +199,19 @@ class EscalationLadderCBR(CaseBasedReasoner):
             for rung_number, rung in spec.slots.items():
                 print(rung_number, rung)
 
-        ## show known ELRScenarios
         print("------------------")
-        print("Displaying ELRScenarios:")
+        print("ELRScenarios:")
+        outcome_totals = {}
         for spec in self.name_mop("M_ELRScenario").specs:
-            print(spec.mop_name)
-            print(spec.slots['percepts'])
-            print(spec.slots['outcome'])
-            print()
+            outcome = spec.slots['outcome']
+            outcome_totals[outcome] = outcome_totals.get(outcome, 0) + 1
+        print("Outcomes: " + str(outcome_totals))
+        print()
+
+        if include_scenario_details:
+            ## show known ELRScenarios
+            for spec in self.name_mop("M_ELRScenario").specs:
+                print(spec.mop_name)
+                print(spec.slots['percepts'])
+                print(spec.slots['outcome'])
+                print()

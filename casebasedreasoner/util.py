@@ -207,6 +207,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
             cursor.execute("INSERT INTO slot(mopid, slotname, val, ref_mopid, is_func) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), ?, ?, (SELECT mopid FROM mop WHERE mopname=?), ?)",
                            (this_mop.mop_name, slotname, val_s, val_s, is_func))
+    else:
+        print(f" ... {progress}/{n_mops}")
 
     # Indices
     cursor.execute('''
@@ -218,7 +220,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS nodes AS
             SELECT mopid AS id, mopname AS label, is_core, is_default, mop_type,
-                   create_seq AS "start", CASE WHEN delete_seq IS NULL THEN MAX(create_seq) OVER () ELSE delete_seq END AS "end"
+                   CAST(create_seq AS REAL) AS "start",
+                    CASE WHEN delete_seq IS NULL THEN CAST(MAX(create_seq) OVER () AS REAL) ELSE CAST(delete_seq AS REAL) END AS "end"
                 FROM mop
     ''')
     cursor.execute('''
@@ -229,7 +232,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
                               SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier, 1.0 AS weight
                                   FROM slot
                                   WHERE ref_mopid IS NOT NULL)
-            SELECT e.source, e.target, e.label, e.hier, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
+            SELECT e.source, e.target, e.label, e.hier, e.weight, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
                FROM alledges e
                    INNER JOIN nodes n_s ON e.source=n_s.id
                    INNER JOIN nodes n_t ON e.target=n_t.id
@@ -330,6 +333,19 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
             WHERE ms.mopid IS NULL
     ''')
 
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS elr_cbr_outcomes AS
+        WITH data AS (SELECT mopname, slotname, slot_val FROM all_slot_vals
+                     WHERE slotname IN ('fight_level', 'flight_level', 'freeze_level', 'outcome')
+                         AND mopname LIKE 'I-M_ELRScenario%'),
+                pivoted AS (SELECT mopname, -- sqlite lacks PIVOT()
+                       MIN(CASE WHEN slotname='fight_level' THEN slot_val ELSE NULL END) AS fight,
+                       MIN(CASE WHEN slotname='flight_level' THEN slot_val ELSE NULL END) AS flight,
+                       MIN(CASE WHEN slotname='freeze_level' THEN slot_val ELSE NULL END) AS freeze,
+                       MIN(CASE WHEN slotname='outcome' THEN slot_val ELSE NULL END) AS outcome
+                FROM data GROUP BY mopname)
+              SELECT fight, flight, freeze, outcome, COUNT(*) AS n_obs FROM pivoted GROUP BY fight, flight, freeze, outcome
+    ''')
     conn.commit()
     conn.close()
     print(f"SQLite write complete")
