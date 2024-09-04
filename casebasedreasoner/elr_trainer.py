@@ -70,20 +70,39 @@ ELCBR.add_escalation_ladder(match_attributes)
 
 # train on random amygdalas and systematic percepts
 amygdala_scenarios = 100
+stochastic_train_scenarios = 10 # Train on this many stochastic scenarios, in addition to the non-stochastic cross section
+percepts_per_stochastic_train = 5 # Every stochastic scenario includes this many random percepts
 # amygdalas = _get_amygdala_random(env, amygdala_scenarios)
 amygdalas = _get_amygdala_archetypes(env)
 amygdala_cnt = 0
 for amygdala in amygdalas:
     amygdala_cnt += 1
-    print(f"Training {weapon_classes*target_classes*hit_counts} percepts on {len(ELR.escalation_ladder)} rungs for Random Amygdala Scenario {amygdala_cnt}/{len(amygdalas)} ...")
-    for weapon in range(1, weapon_classes + 1):
-        for target in range(1, target_classes + 1):
-            for hit_count in range(hit_counts):
-                for rungnum in range(len(ELR.escalation_ladder)):
+    print(f"Training Amygdala {amygdala_cnt}/{len(amygdalas)} with {len(ELR.escalation_ladder)} rungs")
+
+    print()
+    for rungnum in range(len(ELR.escalation_ladder)):
+        print(f"    ... Deliberate Training: rung {rungnum} with {weapon_classes * target_classes * hit_counts} percepts")
+        for weapon in range(1, weapon_classes + 1):
+            for target in range(1, target_classes + 1):
+                for hit_count in range(hit_counts):
                     ELR.reset_reasoner(rungnum)
                     percept = Percept(events_list={'weapon': weapon, 'target': target, 'count': hit_count})
                     ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
                     ELR.deliberate(0, amygdala) # this will log ELRscenario memories into the attached CBR
+
+    print()
+    for rungnum in range(len(ELR.escalation_ladder)):
+        print(f"    ... Stochastic Training: rung {rungnum} with {percepts_per_stochastic_train * stochastic_train_scenarios} compound percepts")
+        for _ in range(stochastic_train_scenarios):
+            ELR.reset_reasoner(rungnum)
+            for _ in range(percepts_per_stochastic_train):
+                percept = Percept(events_list={'weapon': 1+random.randint(0, weapon_classes),
+                                               'target': 1+random.randint(0, target_classes),
+                                               'count': random.randint(1, 3)})
+                ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
+            ELR.deliberate(0, amygdala)
+
+    print()
 
 ELCBR.display_memory()
 
