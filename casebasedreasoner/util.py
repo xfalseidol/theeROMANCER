@@ -207,6 +207,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
             cursor.execute("INSERT INTO slot(mopid, slotname, val, ref_mopid, is_func) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), ?, ?, (SELECT mopid FROM mop WHERE mopname=?), ?)",
                            (this_mop.mop_name, slotname, val_s, val_s, is_func))
+    else:
+        print(f" ... {progress}/{n_mops}")
 
     # Indices
     cursor.execute('''
