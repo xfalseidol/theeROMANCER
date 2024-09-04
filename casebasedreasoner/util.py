@@ -330,6 +330,19 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
             WHERE ms.mopid IS NULL
     ''')
 
+    cursor.execute('''
+    CREATE VIEW IF NOT EXISTS elr_cbr_outcomes AS
+        WITH data AS (SELECT mopname, slotname, slot_val FROM all_slot_vals
+                     WHERE slotname IN ('fight_level', 'flight_level', 'freeze_level', 'outcome')
+                         AND mopname LIKE 'I-M_ELRScenario%'),
+                pivoted AS (SELECT mopname, -- sqlite lacks PIVOT()
+                       MIN(CASE WHEN slotname='fight_level' THEN slot_val ELSE NULL END) AS fight,
+                       MIN(CASE WHEN slotname='flight_level' THEN slot_val ELSE NULL END) AS flight,
+                       MIN(CASE WHEN slotname='freeze_level' THEN slot_val ELSE NULL END) AS freeze,
+                       MIN(CASE WHEN slotname='outcome' THEN slot_val ELSE NULL END) AS outcome
+                FROM data GROUP BY mopname)
+              SELECT fight, flight, freeze, outcome, COUNT(*) AS n_obs FROM pivoted GROUP BY fight, flight, freeze, outcome
+    ''')
     conn.commit()
     conn.close()
     print(f"SQLite write complete")
