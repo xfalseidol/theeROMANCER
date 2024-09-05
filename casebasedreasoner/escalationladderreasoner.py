@@ -153,15 +153,34 @@ class EscalationLadderCBR(CaseBasedReasoner):
             counter += 1
         self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance')
 
+    ''' Given some percepts, recursively create groups for as long as some of the things are lists or dicts.
+     Eventually return a mop'''
+    def create_mop_percepts_slots_r(self, percepts):
+        slots_dict = {}
+        if isinstance(percepts, dict):
+            for k, v in percepts.items():
+                if isinstance(v, dict) or isinstance(v, list):
+                    slots_dict[k] = self.create_mop_percepts_slots_r(v)
+                else:
+                    slots_dict[k] = v
+        elif isinstance(percepts, list):
+            if 0 == len(percepts):
+                return None
+            elif 1 == len(percepts):
+                return self.create_mop_percepts_slots_r(percepts[0])
+            else:
+                group_slots = {}
+                for i in range(len(percepts)):
+                    group_slots[i] = self.create_mop_percepts_slots_r(percepts[i])
+                return self.add_mop(absts={'M_percept_group'}, mop_type='instance', slots=group_slots)
+        else:
+            print("Percepts is neither dict nor list")
+            slots_dict["percept"] = percepts
+        return self.add_mop(mop_type='instance', absts={'M_percept'}, slots=slots_dict)
+
+
     def add_ELRScenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
-        # percepts
-        slots={}
-        counter = 1
-        for percept in percepts: # we assume the percept is a dictionary of data
-            assert isinstance(percept, dict), f"EscalationLadderCBR requires percept {percept} is a dictionary"
-            slots[counter] = self.add_mop(mop_type='instance', absts={'M_percept'}, slots=percept)
-            counter += 1
-        percept_group = self.add_mop(absts={'M_percept_group'}, mop_type='instance', slots=slots)
+        percept_mop = self.create_mop_percepts_slots_r(percepts)
 
         # amygdala data
         amygdala_data_slots = {'pbf_level': amygdala_parameters.current_pbf,
@@ -183,7 +202,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
             outcome = self.name_mop('I_M_no_change_outcome')
        
         ## create the new scenario
-        slots = {'percepts': percept_group, 'amygdala_data': amygdala_data, 'current_rung': current_rung, 'outcome': outcome}
+        slots = {'percepts': percept_mop, 'amygdala_data': amygdala_data, 'current_rung': current_rung, 'outcome': outcome}
         self.add_mop(absts={'M_ELRScenario'},
                      mop_type='instance',
                      slots=slots)
