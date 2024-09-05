@@ -72,6 +72,7 @@ ELCBR.add_escalation_ladder(match_attributes)
 amygdala_scenarios = 100
 stochastic_train_scenarios = 10 # Train on this many stochastic scenarios, in addition to the non-stochastic cross section
 percepts_per_stochastic_train = 5 # Every stochastic scenario includes this many random percepts
+items_per_stochastic_percept = 3 # Every stochastic percept includes this many items
 # amygdalas = _get_amygdala_random(env, amygdala_scenarios)
 amygdalas = _get_amygdala_archetypes(env)
 amygdala_cnt = 0
@@ -92,15 +93,36 @@ for amygdala in amygdalas:
 
     print()
     for rungnum in range(len(ELR.escalation_ladder)):
-        print(f"    ... Stochastic Training: rung {rungnum} with {percepts_per_stochastic_train * stochastic_train_scenarios} compound percepts")
+        print(f"    ... Stochastic Training: rung {rungnum} with {percepts_per_stochastic_train} compound percepts in {stochastic_train_scenarios} scenarios")
         for _ in range(stochastic_train_scenarios):
             ELR.reset_reasoner(rungnum)
             for _ in range(percepts_per_stochastic_train):
-                percept = Percept(events_list={'weapon': 1+random.randint(0, weapon_classes),
+                events_list = []
+                for _ in range(items_per_stochastic_percept):
+                    events_list.append({'weapon': 1+random.randint(0, weapon_classes),
                                                'target': 1+random.randint(0, target_classes),
-                                               'count': random.randint(1, 3)})
+                                               'count': random.randint(0, 3)})
+                if 1 == len(events_list):
+                    events_list = events_list[0]
+                percept = Percept(events_list=events_list)
                 ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
             ELR.deliberate(0, amygdala)
+
+    # print()
+    # for depth in range(5):
+    #     for breadth in range(5):
+    #         print(f"Depth {depth} breath {breadth}")
+    #         ELR.reset_reasoner(0)
+    #         events_list = []
+    #         for _ in range(depth):
+    #             for _ in range(breadth):
+    #                 events_list.append({'weapon': 1+random.randint(0, weapon_classes),
+    #                                                'target': 1+random.randint(0, target_classes),
+    #                                                'count': random.randint(0, 3)})
+    #             percept = Percept(events_list=events_list)
+    #             ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
+    #         ELR.deliberate(0, amygdala)
+
 
     print()
 
