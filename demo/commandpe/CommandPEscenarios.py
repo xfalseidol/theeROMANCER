@@ -13,7 +13,7 @@ def rational_scenario(env):
     red_actions_taken = None # change to give Red NCA history of actions taken
     red_digested_percepts = None # change to give Red NCA history of digested percepts
     red_reasoner = EscalationLadderReasoner(environment = env, time = env.time, escalation_ladder = red_escalation_ladder, identity = 'red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
-    return red_amygdala, red_reasoner
+    return red_amygdala, red_reasoner, "Rational"
 
 def normal_stress_scenario(env):
     red_response_threshhold = 0.7
@@ -45,7 +45,7 @@ def normal_stress_scenario(env):
     red_actions_taken = None # change to give Red NCA history of actions taken
     red_digested_percepts = None # change to give Red NCA history of digested percepts
     red_reasoner = EscalationLadderReasoner(environment = env, time = env.time, escalation_ladder = red_escalation_ladder, identity = 'red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
-    return red_amygdala, red_reasoner
+    return red_amygdala, red_reasoner, "Normal"
 
 def sensitive_amygdala_scenario(env):
     red_response_threshhold = 0.2
@@ -58,7 +58,7 @@ def sensitive_amygdala_scenario(env):
     red_actions_taken = None # change to give Red NCA history of actions taken
     red_digested_percepts = None # change to give Red NCA history of digested percepts
     red_reasoner = EscalationLadderReasoner(environment = env, time = env.time, escalation_ladder = red_escalation_ladder, identity = 'red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
-    return red_amygdala, red_reasoner
+    return red_amygdala, red_reasoner, "Sensitive"
 
 red_fight_weight = 1.0
 red_flight_weight = 1.0
