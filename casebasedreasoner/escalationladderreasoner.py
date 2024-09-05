@@ -1,4 +1,4 @@
-from cbr import CaseBasedReasoner
+from casebasedreasoner import CaseBasedReasoner
 from dill import dump, load
 from pathlib import Path
 
@@ -153,7 +153,6 @@ class EscalationLadderCBR(CaseBasedReasoner):
             counter += 1
         self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance')
 
-
     def add_ELRScenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
         # percepts
         slots={}
@@ -168,7 +167,8 @@ class EscalationLadderCBR(CaseBasedReasoner):
         amygdala_data_slots = {'pbf_level': amygdala_parameters.current_pbf,
                                'fight_level': amygdala_parameters.current_fight,
                                'flight_level': amygdala_parameters.current_flight,
-                               'freeze_level': amygdala_parameters.current_freeze}
+                               'freeze_level': amygdala_parameters.current_freeze,
+                               'dominant_response': amygdala_parameters.current_dominant_response}
         amygdala_data = self.add_mop(slots=amygdala_data_slots, absts={'M_amygdala_data'}, mop_type='instance')
        
         # current rung
