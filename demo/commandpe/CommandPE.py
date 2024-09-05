@@ -77,10 +77,11 @@ for scenario in scenarios:
 
     sup.watchlist = watchlist # replace default SingleThreadSupervisor watchlist with populated CommandPE watchlist
 
-    sup.watchlist.data = sup.watchlist.data[0:3] # make this manageably short for debugging purposes
+    max_num_events = 20 # Process at most this many events
+    sup.watchlist.data = sup.watchlist.data[0:max_num_events]
     WeaponEvent = namedtuple('WeaponEvent', ['event_type', 'weapon', 'target'])
     # sup.watchlist.push(CommandPEWatchlistItem(time=1810, events_list=[WeaponEvent('other', '5', '3')])) # third eventful watchlist item
-    sup.watchlist.push(CommandPEWatchlistItem(time=3000, events_list=[])) # arbitrary end of sim
+    sup.watchlist.push(CommandPEWatchlistItem(time=21000, events_list=[])) # arbitrary end of sim
 
     # Step 1.2: Configure logger
 
