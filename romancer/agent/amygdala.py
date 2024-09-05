@@ -161,7 +161,7 @@ class FixedAmgydala(Amygdala):
         super().update_parameters(nothingupdate)
 
 ''' Fighter archetype '''
-class Amygdala_Fight(Amygdala):
+class Amygdala_Fight(FixedAmgydala):
     def __init__(self, environment, time):
         super().__init__(environment, time)
         self.fight_weight = 1.0
@@ -176,7 +176,7 @@ class Amygdala_Fight(Amygdala):
         return self.FIGHT_STR
 
 ''' Runner archetype '''
-class Amygdala_Flight(Amygdala):
+class Amygdala_Flight(FixedAmgydala):
     def __init__(self, environment, time):
         super().__init__(environment, time)
         self.fight_weight = 0.0
@@ -192,7 +192,7 @@ class Amygdala_Flight(Amygdala):
 
 
 ''' Runner archetype '''
-class Amygdala_Freeze(Amygdala):
+class Amygdala_Freeze(FixedAmgydala):
     def __init__(self, environment, time):
         super().__init__(environment, time)
         self.fight_weight = 0.0
@@ -207,7 +207,7 @@ class Amygdala_Freeze(Amygdala):
         return self.FREEZE_STR
 
 ''' Purely Analytic brain feels no emotion '''
-class Amygdala_StoneCold(Amygdala):
+class Amygdala_StoneCold(FixedAmgydala):
     def __init__(self, environment, time):
         super().__init__(environment, time)
         self.fight_weight = 0.0
