@@ -219,7 +219,7 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
         CREATE TABLE IF NOT EXISTS gephi_weights(edgetype TEXT NOT NULL, weight REAL NOT NULL, UNIQUE(edgetype))
     ''')
     cursor.execute('''
-        INSERT OR IGNORE INTO gephi_weights(edgetype, weight) VALUES ('spec', 0.1), ('abst', 0.1), ('mop', 1.0)
+        INSERT OR IGNORE INTO gephi_weights(edgetype, weight) VALUES ('spec', 0.1), ('abst', 0.1), ('slot', 1.0)
     ''')
 
     # Gephi defaults to "SELECT * FROM nodes" and "SELECT * FROM edges", so these should be sensible defaults
@@ -238,11 +238,12 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
                               SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier
                                   FROM slot
                                   WHERE ref_mopid IS NOT NULL)
-            SELECT e.source, e.target, e.label, e.hier, w.weight, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
+            SELECT e.source, e.target, e.label, e.hier, COALESCE(w.weight, 1.0) AS weight,
+                   MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
                FROM alledges e
                    INNER JOIN nodes n_s ON e.source=n_s.id
                    INNER JOIN nodes n_t ON e.target=n_t.id
-                   INNER JOIN gephi_weights w ON w.edgetype=e.hier 
+                   LEFT JOIN gephi_weights w ON w.edgetype=e.hier 
     ''')
 
     # You can adjust gephi's SQL queries. Selecting nodes_hier and edges_hier is for viewing just the inheritance hierarchy
