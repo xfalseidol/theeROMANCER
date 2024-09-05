@@ -215,6 +215,12 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
         CREATE INDEX IF NOT EXISTS idx_slot_mop ON slot(mopid, slotname)
     ''')
     # For reading into Gephi
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gephi_weights(edgetype TEXT NOT NULL, weight REAL NOT NULL, UNIQUE(edgetype))
+    ''')
+    cursor.execute('''
+        INSERT OR IGNORE INTO gephi_weights(edgetype, weight) VALUES ('spec', 0.1), ('abst', 0.1), ('mop', 1.0)
+    ''')
 
     # Gephi defaults to "SELECT * FROM nodes" and "SELECT * FROM edges", so these should be sensible defaults
     cursor.execute('''
@@ -226,16 +232,17 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     ''')
     cursor.execute('''
         CREATE VIEW IF NOT EXISTS edges AS
-            WITH alledges AS (SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier, 0.1 AS weight
+            WITH alledges AS (SELECT mopid AS source, specmopid AS target, 'spec' AS label, 'spec' AS hier
                                   FROM mop_spec
                               UNION ALL
-                              SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier, 1.0 AS weight
+                              SELECT mopid AS source, ref_mopid AS target, 'slot' AS label, 'slot' AS hier
                                   FROM slot
                                   WHERE ref_mopid IS NOT NULL)
-            SELECT e.source, e.target, e.label, e.hier, e.weight, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
+            SELECT e.source, e.target, e.label, e.hier, w.weight, MAX(n_s.start, n_t.start) AS start, MIN(n_s.end, n_t.end) AS end
                FROM alledges e
                    INNER JOIN nodes n_s ON e.source=n_s.id
                    INNER JOIN nodes n_t ON e.target=n_t.id
+                   INNER JOIN gephi_weights w ON w.edgetype=e.hier 
     ''')
 
     # You can adjust gephi's SQL queries. Selecting nodes_hier and edges_hier is for viewing just the inheritance hierarchy
