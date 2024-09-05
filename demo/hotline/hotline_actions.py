@@ -1,4 +1,7 @@
 import csv
+from typing import NamedTuple
+from functools import reduce
+from operator import add
 from romancer.supervisor.watchlist import WatchlistItem
 from hotline_percept import HotlineActionROMANCERMessage
 
@@ -21,7 +24,7 @@ def _make_translation_dictionary():
         elif action % 6 in [5, 0]:
             description += "VoluntaryConcession"
         # which
-        description += str(current_action)
+        description += str(current_action) + "(" + str(action) + ")"
         if action % 6 == 0:
             current_action += 1
         actions_to_names[action] = description
@@ -36,6 +39,98 @@ def _save_translation_dictionary():
             writer.writerow([key, value])
 
 
+class DeterrentThreat(NamedTuple): # "Don't Do (provocation) or else I'll (threat) until (deadline??)"
+    provocation: int # action adversary could take that threatener wants to deter
+    threat: int # threatened action if recipient takes provocative action
+    deadline: any # float representing future time or None if no deadline given
+
+    def evaluate(self, reasoner, amygdala):
+        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
+
+        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
+        submessages = reduce(add, [message.contents for message in messages])
+        deterrent_threats = filter(lambda m: isinstance(m, DeterrentThreat), submessages)
+
+        for dt in deterrent_threats:
+            if self.provocation == dt.provocation and self.threat == dt.threat:
+                if dt.deadline:
+                    if reasoner.time <= self.deadline:
+                        return True
+                elif not dt.deadline:
+                    return True   
+
+        return False 
+    
+    
+    def __str__(self):
+        script_version = f"Don't take {translation_dictionary[self.provocation]} or else I'll take {translation_dictionary[self.threat]}"
+        if self.deadline:
+            script_version += f", until {self.deadline}"
+        script_version += "."
+        return script_version
+
+
+class CompellentThreat(NamedTuple): # "You must do {demanded_action} or else I'll do {threat}; you have until {deadline}"
+    demanded_action: int # action adversary could take that threatener wants to compel (i.e., a concession)
+    threat: int # threatened action if recipient fails to take demanded action
+    deadline: any # float representing future time or None if no deadline given
+
+    def evaluate(self, reasoner, amygdala):
+        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
+
+        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
+        submessages = reduce(add, [message.contents for message in messages])
+        compellent_threats = filter(lambda m: isinstance(m, CompellentThreat), submessages)
+
+        for ct in compellent_threats:
+            if self.demanded_action == ct.demanded_action and self.threat == ct.threat:
+                if ct.deadline:
+                    if reasoner.time <= ct.deadline:
+                        return True
+                elif not ct.deadline:
+                    return True    
+        
+        return False
+    
+
+    def __str__(self):
+        script_version = f"You must take {translation_dictionary[self.demanded_action]} or else I'll take {translation_dictionary[self.threat]}"
+        if self.deadline:
+            script_version += f"; you have until {self.deadline}"
+        script_version += "."
+        return script_version
+
+class ConcessionOffer(NamedTuple): # "If you do {quid}, I'll do {quo}, until {deadline}"
+    quid: int # offered concession
+    quo: int # expected counter-concession
+    deadline: any # float representing future time or None if no deadline given
+
+    def evaluate(self, reasoner, amygdala):
+        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
+
+        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
+        submessages = reduce(add, [message.contents for message in messages])
+        concession_offers = filter(lambda m: isinstance(m, ConcessionOffer), submessages)
+
+        for co in concession_offers:
+            if self.quid == co.quid and self.quo == co.quo:
+                if co.deadline:
+                    if reasoner.time <= co.deadline:
+                        return True
+                elif not co.deadline:
+                    return True   
+                
+        return False
+
+
+    def __str__(self):
+        script_version = f"If you do {translation_dictionary[self.quid]}, I'll do {translation_dictionary[self.quo]}"
+        if self.deadline:
+            script_version += f", until {self.deadline}"
+        script_version += "."
+        return script_version
+
+
 class HotlineAction(WatchlistItem):
     def __init__(self, time, actor_id, action_id): # defined by an actor and an action
         super().__init__(time)
@@ -44,14 +139,21 @@ class HotlineAction(WatchlistItem):
 
 
     def process(self, supervisor): # needs to force an ActionPercept?
+        agent = supervisor.environment.message_dispatch_table[self.actor_id]
+        # take next action on agent's reasoner's action queue
+        agent.reasoner.take_next_action()
         supervisor.environment.perception_engine.force_action_percept(self.time, self.actor_id, self.action_id)
         supervisor.check_for_percepts = True # actions likely to trigger percepts
 
 
     def __repr__(self):
+        return f"HotlineAction(actor_id={self.actor_id}, action_id={self.action_id})"
+    
+    
+    def __str__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         readable_time = _sim_time_to_days(self.time)
-        script_version = f"(Day {readable_time}) RED agent takes action: "
+        script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
         script_version += translation_dictionary[self.action_id]
         return script_version
 
@@ -62,8 +164,11 @@ class HotlineMessage(WatchlistItem):
         self.sender = sender
         self.message = message
         self.public = public
-
+    
     def process(self, supervisor):
+        agent = supervisor.environment.message_dispatch_table[self.sender]
+        # take next action on agent's reasoner's action queue
+        agent.reasoner.take_next_action()
         if self.public:
             supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[], public_messages=[self.message])
         else:
@@ -71,18 +176,57 @@ class HotlineMessage(WatchlistItem):
         supervisor.check_for_percepts = True # actions likely to trigger percepts
 
 
+    def __repr__(self):
+        return f"HotlineMessage(sender={self.sender}, message={self.message}, public={self.public})"
+
+
+    def __str__(self):
+        '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
+        readable_time = _sim_time_to_days(self.time)
+        script_version = f"(Day {readable_time}) {agents_to_names[self.sender]}: {self.message.submessage}"
+        return script_version
+    
+
+class HotlineRungChange(WatchlistItem):
+    def __init__(self, time, who, old_rung, new_rung):
+        super().__init__(time)
+        self.who = who
+        self.old_rung = old_rung
+        self.new_rung = new_rung
+
+
+    def process(self, supervisor):
+        agent = supervisor.environment.message_dispatch_table[self.who]
+        agent.reasoner.take_next_action()
+
+
+    def __repr__(self):
+        return f"HotlineRungChange(previous_rung={self.old_rung}, next_rung={self.new_rung})"
+    
+
+    def __str__(self):
+        readable_time = _sim_time_to_days(self.time)
+        script_version = f"(Day {readable_time}) {agents_to_names[self.who]}: "
+        if self.old_rung.id < self.new_rung.id:
+            script_version += f"I'm escalating from {self.old_rung} to {self.new_rung}."
+        else:
+            script_version += f"I'm deescalating from {self.old_rung} to {self.new_rung}."
+        return script_version
+
+
+# dispatchers create and return a watchlist item
 def hotline_action_dispatcher(sup, message):
-    item = HotlineAction(sup.time, message.sender, message.action_id)
+    item = HotlineAction(message.time, message.sender[1], message.action_id)
     return item
 
 
 def hotline_public_message_dispatcher(sup, message):
-    item = HotlineMessage(message.time, message.sender, message, public=True)
+    item = HotlineMessage(message.time, message.sender[1], message, public=True)
     return item
 
 
 def hotline_private_message_dispatcher(sup, message):
-    item = HotlineMessage(message.time, message.sender, message, public=False)
+    item = HotlineMessage(message.time, message.sender[1], message, public=False)
     return item
 
 
@@ -93,9 +237,8 @@ def get_scenario_watchlist_items(red_id, blue_id):
 
 
 def hotline_deterministic_action(o, m):
-    '''This method sends a message to the supervisor indicating the time of the next deterministic action that the agent will take. This can be an arbitrary action. The PersonLikeAgent might invoke either its reasoner or amygdala to determine this action, but it can also represent non-cognitive processes associated with the "person."'''
+    '''A HotlineAgent has no non-autonomous deterministic actions (they are strictly autonomous agents)'''
     hotline_deliberate_action(o, m)
-    # pass
 
 
 def hotline_deliberate_action(o, m):
@@ -104,12 +247,19 @@ def hotline_deliberate_action(o, m):
     if not next_action_time or next_action_time > m.time:
         return None
     else:
-        action = o.reasoner.next_deliberate_action
-        message = action[0]
-        if isinstance(message, HotlineActionROMANCERMessage):
+        action = o.reasoner.next_deliberate_action # action could be an integer or a Threat/Concession
+        # message = PersonlikeActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', actions=tuple(action), time=next_action_time, most_recent_percept_time=o.most_recent_percept_time)
+        if isinstance(action, int):
+            message = HotlineActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='HotlineActionROMANCERMessage', action_id=action, time=next_action_time)
             o.outbox.append(message)
-        # message = HotlineActionROMANCERMessage(uid=o.new_message_index, sender=(o.environment.uid, o.uid), recipient=(1, 1), messagetype='PersonlikeActionROMANCERMessage', action_id=tuple(action), time=next_action_time, most_recent_percept_time=o.most_recent_percept_time)
-        # o.outbox.append(message)
+        else:
+            # print("I'm sending a message!!")
+            o.outbox.append(action)
+
+
+def hotline_rung_change_dispatcher(sup, message):
+    item = HotlineRungChange(message.time, message.sender[1], message.old_rung, message.new_rung)
+    return item
 
 
 def _sim_time_to_days(time):
@@ -117,4 +267,4 @@ def _sim_time_to_days(time):
 
 
 translation_dictionary = _make_translation_dictionary()
-
+agents_to_names = {6: 'RED', 10: 'BLUE'}

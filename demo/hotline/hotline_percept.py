@@ -16,74 +16,6 @@ class PrivateMessage(NamedTuple):
     recipient: int # uid of recipient agent
 
 
-class DeterrentThreat(NamedTuple): # Don't Do (provocation) or else I'll (threat) until (deadline?)""
-    provocation: int # action adversary could take that threatener wants to deter
-    threat: int # threatened action if recipient takes provocative action
-    deadline: any # float representing future time or None if no deadline given
-
-    def evaluate(self, reasoner, amygdala):
-        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
-
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
-        deterrent_threats = filter(lambda m: isinstance(m, DeterrentThreat), submessages)
-
-        for dt in deterrent_threats:
-            if self.provocation == dt.provocation and self.threat == dt.threat:
-                if dt.deadline:
-                    if reasoner.time <= self.deadline:
-                        return True
-                elif not dt.deadline:
-                    return True    
-                
-        return False
-    
-
-class CompellentThreat(NamedTuple): # "If you do {quid}, I'll do {quo} until {deadline}"
-    demanded_action: int # action adversary could take that threatener wants to compel (i.e., a concession)
-    threat: int # threatened action if recipient fails to take demanded action
-    deadline: any # float representing future time or None if no deadline given
-
-    def evaluate(self, reasoner, amygdala):
-        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
-
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
-        compellent_threats = filter(lambda m: isinstance(m, CompellentThreat), submessages)
-
-        for ct in compellent_threats:
-            if self.demanded_action == ct.demanded_action and self.threat == ct.threat:
-                if ct.deadline:
-                    if reasoner.time <= ct.deadline:
-                        return True
-                elif not ct.deadline:
-                    return True    
-    
-        return False
-
-
-class ConcessionOffer(NamedTuple):
-    quid: int # offered concession
-    quo: int # expected counter-concession
-    deadline: any # float representing future time or None if no deadline given
-
-    def evaluate(self, reasoner, amygdala):
-        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
-
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
-        concession_offers = filter(lambda m: isinstance(m, ConcessionOffer), submessages)
-
-        for co in concession_offers:
-            if self.quid == co.quid and self.quo == co.quo:
-                if co.deadline:
-                    if reasoner.time <= co.deadline:
-                        return True
-                elif not co.deadline:
-                    return True   
-
-        return False
-
 class HotlineActionROMANCERMessage(NamedTuple):
     uid: int # unique identifier used for routing message and confirming receipt
     recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
@@ -118,6 +50,16 @@ class HotlinePrivateROMANCERMessage(NamedTuple):
     amygdala_params: dict = {'delta_pbf': 0.0, 'delta_fight': 0.0, 'delta_flight': 0.0, 'delta_freeze': 0.0}
     confirmReceipt: bool = False # can be ignored if there isn't a good reason to check if messages were received (e.g., in a single-threaded environment)
     target_uid: int = 0 # target object if needed, 0 means 'none'
+
+
+class HotlineRungChangeMessage(NamedTuple):
+    uid: int # unique identifier used for routing message and confirming receipt
+    recipient: tuple[int, int] # recipient can be specific object, category of possible recipients, etc.
+    sender: tuple[int, int] # specific object sending message, presumed to have taken action
+    messagetype: str # this string can be employed to dispatch messages
+    time: float # simulation time
+    old_rung: int # the rung we changed from
+    new_rung: int # the rung we changed to
 
 
 class SendPublicMessage(NamedTuple):
@@ -164,7 +106,7 @@ class HotlineActionPercept(Percept):
 
 
 class HotlinePerceptionEngine(PerceptionEngine):
-    '''The HotlinePerceptionEngine works like the CommandPEPerceptionEngine, except that it can force two kinds of Percepts--HotlineMessagePercepts that send messages to either specific recipients or everyone, or HotlineActionPercepts that broacast to all agents that a specific agent has taken an action. Like the CommandPEPerceptionEngine, these forced percepts can be mixed with observers generating percepts based upon the simulated environment.'''
+    '''The HotlinePerceptionEngine works like the CommandPEPerceptionEngine, except that it can force two kinds of Percepts--HotlineMessagePercepts that send messages to either specific recipeints or everyone, or HotlineActionPercepts that broacast to all agents that a specific agent has taken an action. Like the CommandPEPerceptionEngine, these forced percepts can be mixed with observers generating percepts based upon the simulated environment.'''
 
     
     def __init__(self, environment=None):
@@ -212,10 +154,11 @@ class HotlinePerceptionEngine(PerceptionEngine):
         '''Action messages automatically broadcast to all agents.'''
         recipients = {agent.uid for agent in self.environment.agents}
         percept = HotlineActionPercept(actor = agent_id, action_taken = action_taken) # public messages only
-        if agent_id in self.queued_percepts:
-            self.queued_percepts[agent_id] += [percept]
-        else:
-            self.queued_percepts[agent_id] = [percept]
+        for recipient in recipients:
+            if recipient in self.queued_percepts:
+                self.queued_percepts[recipient] += [percept]
+            else:
+                self.queued_percepts[recipient] = [percept]
         self.queued_percepts_time = time
     
 

@@ -1,6 +1,7 @@
 from romancer.agent.escalationladderreasoner import EscalationLadderRung, EscalationLadderReasoner
 from typing import NamedTuple
-from hotline_percept import DeterrentThreat, CompellentThreat, ConcessionOffer, SendPublicMessage, SendPrivateMessage, HotlineActionPercept, HotlineMessagePercept, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage 
+from hotline_percept import SendPrivateMessage, SendPublicMessage, HotlineMessagePercept, HotlineActionPercept, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage, HotlineRungChangeMessage
+from hotline_actions import DeterrentThreat, CompellentThreat, ConcessionOffer
 from functools import reduce
 from heapq import heappush, heappop
 
@@ -39,6 +40,7 @@ class any_of(tuple):
         # return any(actions_taken)
         # returns true if any action m has been taken or if any other behavior m evaluates to true
         return any((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self if isinstance(m, int)))
+
 
 class all_of(tuple):
     
@@ -118,6 +120,22 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
             self.most_recent_percept_time = percept_time
 
 
+    def take_next_action(self):
+        '''This method is meant to be called when a WatchListItem reflecting the agent's planned action is processed by the Supervisor. It should be an internal implementation detail which is called via a method on the PersonLikeAgent, which uses the values it returns to update the Amygdala state.'''
+        action_time, action, params = heappop(self.planned_actions) # This should return an iterable of messages 
+        self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
+        # send messages to supervisor reflecting actions, if necessary
+        # actions = []
+        # for message in messages:
+        #     actions.append(message.actions)
+        # if len(messages) > 0:
+        #     self.environment.supervisor.inbox.clear() # should already be empty
+        #     self.environment.supervisor.deliver_messages(messages)
+        #     self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
+        #     self.environment.supervisor.inbox.clear() # remove action messages
+        self.actions_taken.append((action_time, action))
+    
+
     def update_resolve(self):
         '''This method uses the reasoner's history of digested percepts to update its estimates of its own and its opponent's resolve.
 
@@ -168,7 +186,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         # Fight responses increase resolve, Flight and Freeze responses reduce it
         # Higher pbf exaggerates these effects
         most_recent_params = self.digested_percepts[-1].amygdala_params
-        delta_self_resolve = (most_recent_params.current_fight * 0.3 - most_recent_params.current_flight * 0.3 - most_recent_params.current_freeze * 0.2) / most_recent_params.current_pbf
+        delta_self_resolve = (most_recent_params.current_fight * 0.3 - most_recent_params.current_flight * 0.3 - most_recent_params.current_freeze * 0.2) * most_recent_params.current_pbf
         if delta_self_resolve != 0:
             self.resolve = self.resolve + delta_self_resolve
             if self.resolve > self.max_resolve:
@@ -176,6 +194,31 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
             elif self.resolve < 0:
                 self.resolve = 0
 
+    
+    def _escalate(self, next_rung, amygdala):
+        super()._escalate(next_rung, amygdala)
+        previous_rung = self.escalation_ladder.previous_rung(self.current_rung)
+        message = HotlineRungChangeMessage(uid=self.new_message_index(),
+                                               time = self.time,
+                                               sender=(self.environment.uid, self.compute_self_uid()),
+                                               recipient=(1,1),
+                                               messagetype='HotlineRungChangeMessage',
+                                               old_rung=previous_rung,
+                                               new_rung=self.current_rung)
+        heappush(self.planned_actions, (self.time, message, None))
+
+
+    def _deescalate(self, amygdala):
+        super()._deescalate(amygdala)
+        next_rung = self.escalation_ladder.next_rung(self.current_rung)
+        message = HotlineRungChangeMessage(uid=self.new_message_index(),
+                                               time = self.time,
+                                               sender=(self.environment.uid, self.compute_self_uid()),
+                                               recipient=(1,1),
+                                               messagetype='HotlineRungChangeMessage',
+                                               old_rung=next_rung,
+                                               new_rung=self.current_rung)
+        heappush(self.planned_actions, (self.time, message, None))
 
     def _enqueue_actions(self):
         '''Need to override this to account for more compact action descriptions.'''
@@ -186,23 +229,23 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
         # Loop through actions
         for action in actions:
-            action_messages = list()
+            # action_messages = list()
             delta_t, action_or_message, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
             if isinstance(action_or_message, int): # Convert integers to actions
-                action_messages.append(HotlineActionROMANCERMessage(uid=self.new_message_index(),
+                action_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
                                                                     time=action_time,
-                                                                    sender=(self.environment.uid, self.uid),
+                                                                    sender=(self.environment.uid, self.compute_self_uid()),
                                                                     recipient=(1, 1),
-                                                                    messagetype = 'HotlinePublicROMANCERMessage',
-                                                                    action_id = action_or_message)) # send action message to supervisor
+                                                                    messagetype = 'HotlineActionROMANCERMessage',
+                                                                    action_id = action_or_message) # send action message to supervisor
             elif isinstance(action_or_message, SendPrivateMessage):
-                action_messages.append(action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1), addressee=self.compute_opponent_uid()))
+                action_message = action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1), addressee=self.compute_opponent_uid())
             elif isinstance(action_or_message, SendPublicMessage):
-                action_messages.append(action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1)))
+                action_message = action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1))
             # action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
             # action_messages = self.untaken_actions(action_messages, reasoner)
-            heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
+            heappush(self.planned_actions, (action_time, action_message, update_params))
     
 
     def _enqueue_deescalation_actions(self):
@@ -235,5 +278,3 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         for agent in self.environment.agents:
             if agent.reasoner.identity == self.identity:
                 return agent.uid
-
-    

@@ -69,7 +69,7 @@ for rung in rungs:
 ELCBR.add_escalation_ladder(match_attributes)
 
 # train on random amygdalas and systematic percepts
-amygdala_scenarios = 100
+amygdala_scenarios = 10
 stochastic_train_scenarios = 10 # Train on this many stochastic scenarios, in addition to the non-stochastic cross section
 percepts_per_stochastic_train = 5 # Every stochastic scenario includes this many random percepts
 items_per_stochastic_percept = 3 # Every stochastic percept includes this many items

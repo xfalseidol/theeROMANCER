@@ -4,12 +4,14 @@ from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.location import GeographicLocation
 from romancer.environment.dispositiontree import GeographicDispositionStump
 from romancer.agent.amygdala import UpdateAmygdalaParameters, Amygdala
+from romancer.agent.personlikeagent import push_personlike_action
 from romancer.agent.escalationladderreasoner import EscalationLadder
 from romancer.agent.escalationladderagent import EscalationLadderAgent
 from hotline_reasoner import HotlineLadderRung, HotlineLadderReasoner, any_of, all_of, min_adversary_resolve
-from hotline_percept import DeterrentThreat, CompellentThreat, ConcessionOffer, HotlinePerceptionEngine, HotlinePerceptionFilter, SendPrivateMessage, SendPublicMessage, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage, HotlinePrivateROMANCERMessage
-from hotline_actions import hotline_action_dispatcher, hotline_public_message_dispatcher, hotline_private_message_dispatcher, hotline_deliberate_action, hotline_deterministic_action, get_scenario_watchlist_items
+from hotline_percept import HotlinePerceptionEngine, HotlinePerceptionFilter, SendPrivateMessage, SendPublicMessage, HotlineActionROMANCERMessage, HotlinePrivateROMANCERMessage, HotlinePublicROMANCERMessage
+from hotline_actions import DeterrentThreat, CompellentThreat, ConcessionOffer, hotline_action_dispatcher, hotline_public_message_dispatcher, hotline_private_message_dispatcher, hotline_deliberate_action, hotline_deterministic_action, hotline_rung_change_dispatcher
 from numpy import deg2rad, rad2deg
+
 
 # TODO: 
 # 1. and test implement SendPublicMessage, SendPrivateMessage
@@ -46,14 +48,14 @@ red_rung_1 = HotlineLadderRung(match_attributes = any_of([1, 2, 7, 8,
                                                           all_of((DeterrentThreat(19, 20, None), min_adversary_resolve(0.85))),
                                                           all_of((CompellentThreat(4, 1, None), min_adversary_resolve(0.5))),
                                                           all_of((CompellentThreat(10, 7, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
-                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(14, 13, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
-                                               (2000, 2, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
-                                               (10000, SendPrivateMessage(DeterrentThreat(20, 19, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                               (20000, 8, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
-                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(13, 14, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(14, 13, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                (2000, 1, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
+                                               (10000, SendPrivateMessage(DeterrentThreat(20, 19, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
+                                               (20000, 7, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
+                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(13, 14, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                               (2000, 2, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                (10000, SendPrivateMessage(DeterrentThreat(19, 20, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                               (20000, 7, UpdateAmygdalaParameters(0.2, 0.3, 0, 0)),], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                                               (20000, 8, UpdateAmygdalaParameters(0.2, 0.3, 0, 0)),], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                                 blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(6, 5, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (25000, 6, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (35000, SendPrivateMessage(ConcessionOffer(12, 11, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
@@ -68,6 +70,7 @@ red_rung_1 = HotlineLadderRung(match_attributes = any_of([1, 2, 7, 8,
 blue_rung_1 = red_rung_1 # mirror-imaged rung can literally be same object!
 
 
+# here's the flow when an agent takes 
 red_rung_2 = HotlineLadderRung(match_attributes = any_of([13, 14, 19, 20,
                                                           DeterrentThreat(26, 25, None),
                                                           all_of((DeterrentThreat(31, 32, None), min_adversary_resolve(0.85))),
@@ -77,14 +80,14 @@ red_rung_2 = HotlineLadderRung(match_attributes = any_of([13, 14, 19, 20,
                                                           all_of((DeterrentThreat(32, 31, None), min_adversary_resolve(0.85))),
                                                           all_of((CompellentThreat(16, 13, None), min_adversary_resolve(0.5))),
                                                           all_of((CompellentThreat(22, 19, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
-                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(26, 25, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
-                                                (2000, 14, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
+                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(26, 25, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                                (2000, 13, UpdateAmygdalaParameters(0.1, 0.2, 0.2, 0)),
                                                 (10000, SendPrivateMessage(DeterrentThreat(32, 31, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                                (20000, 20, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
-                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(25, 26, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
-                                                (2000, 13, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
+                                                (20000, 19, UpdateAmygdalaParameters(0.6, 0.3, 0.3, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
+                                blue_actions = [(1100, SendPublicMessage(DeterrentThreat(25, 26, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                                (2000, 14, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                 (10000, SendPrivateMessage(DeterrentThreat(31, 32, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                                (20000, 19, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                                                (20000, 20, UpdateAmygdalaParameters(0.6, 0.3, 0.3, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                                 blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(18, 17, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (25000, 18, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (35000, SendPrivateMessage(ConcessionOffer(24, 23, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
@@ -109,14 +112,14 @@ red_rung_3 = HotlineLadderRung(match_attributes = any_of([25, 26, 31, 32,
                                                           all_of((DeterrentThreat(44, 43, None), min_adversary_resolve(0.85))),
                                                           all_of((CompellentThreat(28, 25, None), min_adversary_resolve(0.5))),
                                                           all_of((CompellentThreat(34, 31, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
-                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(38, 37, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
-                                                (2000, 26, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
-                                                (10000, SendPrivateMessage(DeterrentThreat(44, 43, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                                (20000, 32, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
-                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(37, 38, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(38, 37, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                 (2000, 25, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
+                                                (10000, SendPrivateMessage(DeterrentThreat(44, 43, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
+                                                (20000, 31, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
+                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(37, 38, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                                (2000, 26, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                 (10000, SendPrivateMessage(DeterrentThreat(43, 44, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                                (20000, 31, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                                                (20000, 32, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
                                 blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(30, 29, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (25000, 30, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (35000, SendPrivateMessage(ConcessionOffer(36, 35, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
@@ -140,15 +143,15 @@ red_rung_4 = HotlineLadderRung(match_attributes = any_of([37, 38, 43, 44,
                                                           all_of((DeterrentThreat(56, 55, None), min_adversary_resolve(0.5))),
                                                           all_of((CompellentThreat(40, 37, None), min_adversary_resolve(0.5))),
                                                           all_of((CompellentThreat(46, 43, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
-                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(50, 49, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
-                                                (2000, 38, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
-                                                (10000, SendPrivateMessage(DeterrentThreat(56, 55, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                                (20000, 44, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
-                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(49, 50, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                red_actions = [(1000, SendPublicMessage(DeterrentThreat(50, 49, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                 (2000, 37, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
+                                                (10000, SendPrivateMessage(DeterrentThreat(56, 55, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
+                                                (20000, 43, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
+                                blue_actions = [(1000, SendPublicMessage(DeterrentThreat(49, 50, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
+                                                (2000, 38, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                 (10000, SendPrivateMessage(DeterrentThreat(55, 56, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
-                                                (20000, 43, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
-                                blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(42, 41, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
+                                                (20000, 44, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
+                                blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(42 ,41, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (25000, 42, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (35000, SendPrivateMessage(ConcessionOffer(48, 47, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                              (45000, 48, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2))], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
@@ -199,7 +202,7 @@ blue_ladder_1 = EscalationLadder([blue_rung_1, blue_rung_2, blue_rung_3, blue_ru
 start_time = 0.0
 
 sup = SingleThreadSupervisor()
-# Step1.2: Configure logger
+# Step 1.2: Configure logger
 def hotline_logger(s):
     print(s)
     # print()
@@ -215,8 +218,9 @@ sup.logger = hotline_logger
 sup.dispatch_table['HotlineActionROMANCERMessage'] = hotline_action_dispatcher
 sup.dispatch_table['HotlinePublicROMANCERMessage'] = hotline_public_message_dispatcher
 sup.dispatch_table['HotlinePrivateROMANCERMessage'] = hotline_private_message_dispatcher
-
-sup.watchlist.push(Stop(time=1.21e6))  # Stop at 1.21e6 seconds (about two weeks)
+sup.dispatch_table['HotlineRungChangeMessage'] = hotline_rung_change_dispatcher
+# sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
+sup.watchlist.push(Stop(time=1.21e6)) # Stop at 1.21e6 seconds (about two weeks)
 
 min_lat = deg2rad(-180)
 max_lat = deg2rad(180)
@@ -248,7 +252,7 @@ red_amygdala = Amygdala(environment = env, time = env.time, fight_weight = red_f
                         max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
 
 red_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
-red_planned_actions = None # change to force planned red actions, this will be heapified so it needs to be (time, action) tuples
+red_planned_actions = [(1000, 13, None), (25000, 31, None)] # change to force planned red actions, this will be heapified so it needs to be (time, action) tuples
 red_actions_taken = None # change to give Red NCA history of actions taken
 red_digested_percepts = None # change to give Red NCA history of digested percepts
 
@@ -258,20 +262,20 @@ red_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in 
 
 red_nca = EscalationLadderAgent(environment = env, time = start_time, perception_filter = red_perception_filter, amygdala = red_amygdala, reasoner = red_reasoner, name="Red NCA")
 # red_nca.dispatch_table['NextDeliberateAction'] = hotline_deliberate_action
-# red_nca.dispatch_table['DeterministicActionsBeforeTime'] = hotline_deterministic_action
+red_nca.dispatch_table['DeterministicActionsBeforeTime'] = hotline_deterministic_action
 red_perception_filter.agent = red_nca
 env.register_object(red_nca)
 env.add_agent(red_nca)
 
 
 blue_fight_weight = 1.0
-blue_flight_weight = 1.0
+blue_flight_weight = 2.0
 blue_freeze_weight = 1.0
 blue_initial_fight = 0.0
 blue_initial_flight = 0.0
 blue_initial_freeze = 0.0
 blue_initial_pbf = 0.0001
-blue_pbf_halflife = 100.0
+blue_pbf_halflife = 100000.0
 blue_max_pbf = 1.0
 blue_response_threshhold = 0.2 # this is the *only* difference between Red and Blue NCAs!  
 
@@ -281,7 +285,7 @@ blue_amygdala = Amygdala(environment = env, time = env.time, fight_weight = blue
                         max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold)
 
 blue_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
-blue_planned_actions = None # change to force planned blue actions, this will be heapified so it needs to be (time, action) tuples
+blue_planned_actions = [] # change to force planned blue actions, this will be heapified so it needs to be (time, action) tuples
 blue_actions_taken = None # change to give Blue NCA history of actions taken
 blue_digested_percepts = None # change to give Blue NCA history of digested percepts
 
@@ -291,16 +295,13 @@ blue_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in
 
 blue_nca = EscalationLadderAgent(environment = env, time = start_time, perception_filter = blue_perception_filter, amygdala = blue_amygdala, reasoner = blue_reasoner, name="Blue NCA")
 # blue_nca.dispatch_table['NextDeliberateAction'] = hotline_deliberate_action
-# blue_nca.dispatch_table['DeterministicActionsBeforeTime'] = hotline_deterministic_action
+blue_nca.dispatch_table['DeterministicActionsBeforeTime'] = hotline_deterministic_action
 blue_perception_filter.agent = blue_nca
 env.register_object(blue_nca)
 env.add_agent(blue_nca)
 
-# get scenario watchlist items
-watchlist_items_to_add = get_scenario_watchlist_items(red_nca.uid, blue_nca.uid)
-for watchlist_item in watchlist_items_to_add:
-    sup.watchlist.push(watchlist_item)
 
+# an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
 sup.run(verbose = True)
 
 # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
@@ -328,3 +329,4 @@ red_rung_1a = HotlineLadderRung(match_attributes = any_of([2, 8,
                                 name = "Low-level theater conventional conflict") # with this rung, Red will engage in blustering private threat that should make Blue believe significant escalation has occured
 
 red_ladder_2 = EscalationLadder([red_rung_1a, red_rung_2, red_rung_3, red_rung_4, red_rung_5])
+
