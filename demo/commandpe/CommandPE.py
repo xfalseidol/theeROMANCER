@@ -1,3 +1,5 @@
+from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
+from casebasedreasoner.util import export_cbr_sqlite
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.dispositiontree import GeographicDispositionStump
@@ -120,6 +122,9 @@ for scenario in scenarios:
     red_amygdala, red_reasoner, scenario_name = scenario(env)
     _scenario_names.append(scenario_name)
 
+    elcbr = EscalationLadderCBR(env, env.time)
+    red_reasoner.cbr = elcbr
+
     # Step 3.2: Create perception filter
     # The pre-processed percepts generated from the Command PE output files may require little/no filtering, so this is just a pass-through except for maybe accessing amygdala parameters
     red_perception_filter = CommandPEPerceptionFilter(agent = None)
@@ -151,4 +156,6 @@ for scenario in scenarios:
     plot_stress_levels.append(red_nca.amygdala.plot_pbf)
     plot_escalations(plot_times, plot_rungs)
     plot_amygdalas(plot_stress_times, plot_stress_levels)
+
+    export_cbr_sqlite(elcbr, f"elcbr_{scenario_name}.sqlite")
 
