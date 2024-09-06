@@ -100,7 +100,8 @@ class CaseBasedReasoner(ImprovedRomancerObject):
             # delete the MOP from our lsit of MOPs
             mop = self.mops.pop(name)
             mop.update_delete_seq()
-            self.deleted_mops.append(mop)
+            # self.deleted_mops.append(mop)
+
             # print(f"Deleted a mop {mop.name}")
         # else:
         #     raise ValueError(f"MOP {name} does not exist.")
