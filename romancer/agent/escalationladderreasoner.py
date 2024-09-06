@@ -216,6 +216,9 @@ class EscalationLadderReasoner(Reasoner):
 
     def reset_reasoner(self, rung_num=0):
         self.rewind(0)
+        self.digested_percepts.clear()
+        self.actions_taken.clear()
+        self.planned_actions.clear()
         self.current_rung = self.escalation_ladder[rung_num]
 
     def enqueue_digested_percept(self, digested_percept, percept_time):
