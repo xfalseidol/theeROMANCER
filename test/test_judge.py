@@ -487,16 +487,12 @@ judge.check_for_mops_not_in_specs()
 #     print(f"Decision Making={q}, results={tests}")
 
 sqlite3_db = "judge.sqlite"
+export_cbr_sqlite(judge, sqlite3_db)
 
 # Print the current working directory
 print(f"Current working directory: {os.getcwd()}")
 
 # Verify that the file has been created
-if os.path.exists(sqlite3_db):
-    print(f"File {sqlite3_db} successfully created.")
-else:
-    print(f"Failed to create file {sqlite3_db}.")
-
 dot = make_graphviz_graph(judge, include_slot_edges=False)
 with open("judge.dot", "w") as out_dot:
     out_dot.write(dot)
