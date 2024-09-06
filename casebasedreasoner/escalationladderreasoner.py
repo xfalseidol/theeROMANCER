@@ -28,9 +28,47 @@ import copy
 ## If we do calculate the "correct" outcome, then that means we're only using memories to decide whether our amygdala overrides our outcome. Is this what we want?
 
 class ELRPerceptMOPComparer(MOPComparerSorter):
+    def __init__(self, keycols=None, valcols=None):
+        if keycols is None:
+            keycols = ["weapon", "target"]
+        if valcols is None:
+            valcols = ["count"]
+        self.keycols = keycols
+        self.valcols = valcols
+
     def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names):
         pivot_percepts = self.get_percept_list(cbr, mop_name)
+        compare_percepts = { comp_mopname : self.get_percept_list(cbr, comp_mopname) for comp_mopname in compare_mop_names }
+        distances = { comp_mopname : self.compare_two_percept_lists(pivot_percepts, compare_percepts[comp_mopname]) for comp_mopname in compare_mop_names }
+        sorted_mopnames = sorted(distances, key=lambda k: distances[k])
+        print("For mop " + mop_name + " " + str(pivot_percepts))
+        for i in range(min(len(sorted_mopnames), 10)):
+            print(f"#{i}: {sorted_mopnames[i]} = {distances[sorted_mopnames[i]]}")
         return super().compare_mops_and_sort(cbr, mop_name, compare_mop_names)
+
+    def compare_two_percept_lists(self, pl1, pl2):
+        # For each item in pl1, Find the closest item in p2, then add that to the cumulative distance
+        # Does not need to be symmetric; comp(pl1, pl2) does not need to equal comp(pl2, pl1)
+        total_dist = 0
+        for p1 in pl1:
+            data = {}
+            for i in range(len(pl2)):
+                p2 = pl2[i]
+                data[i] = self.singlepercept_dist(p1, p2)
+            min_dist_idx = min(data, key=lambda k: data[k])
+            total_dist += data[min_dist_idx]
+        return total_dist
+
+    def singlepercept_dist(self, p1, p2):
+        # What's the distance between a pair of single percepts
+        dist = 0.0
+        # Use taxicab distance on keycols, multiply by 100, add taxicab on valcols
+        for k in self.keycols:
+            dist += abs(p1[k] - p2[k])
+        dist *= 100
+        for k in self.valcols:
+            dist += abs(p1[k] - p2[k])
+        return dist
 
     def get_percept_list(self, cbr, mop_name):
         flattened_percepts = self.get_flattened_percept_list(cbr, mop_name)
@@ -41,8 +79,6 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
         # We may have percepts that need combining [eg same weapon/target pairing should have their counts summed]
         # This is destructive on the passed list. Pass a deepcopy if you don't want that
         combined_percept_list = []
-        keycols = [ "weapon", "target" ]
-        valcol = "count"
 
         while len(percept_list) > 0:
             percept = percept_list.pop(0)
@@ -50,13 +86,14 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
             while i < len(percept_list):
                 p_test = percept_list[i]
                 is_match = True
-                for k in keycols:
+                for k in self.keycols:
                     if p_test[k] != percept[k]:
                         is_match = False
                         break
                 if is_match:
-                    print("Combining " + str(percept) + " and " + str(p_test))
-                    percept[valcol] += p_test[valcol]
+                    # print("Combining " + str(percept) + " and " + str(p_test))
+                    for valcol in self.valcols:
+                        percept[valcol] += p_test[valcol]
                     percept_list.pop(i)
                 else:
                     i+=1
@@ -75,13 +112,12 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
 
     def get_flattened_percept_list_r(self, cbr, percept_mop, group_mop, depth=0):
         retval = []
-        dots = ".".join(["" for _ in range(depth+1)])
         if group_mop.is_abstraction(percept_mop):
             for next_mop in percept_mop.slots.values():
                 retval.extend(self.get_flattened_percept_list_r(cbr, next_mop, group_mop, depth+1))
         else:
             retval.append(copy.deepcopy(percept_mop.slots.data))
-        print(dots + " " + str(len(retval)))
+        # print(".".join(["" for _ in range(depth+1)]) + " " + str(len(retval)))
         return retval
 
 
