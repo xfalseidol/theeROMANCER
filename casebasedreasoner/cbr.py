@@ -55,6 +55,12 @@ class CaseBasedReasoner(ImprovedRomancerObject):
 
 
     def add_mop(self, mop_name=None, absts={'M-ROOT'}, mop_type=None, slots={}, is_default_mop=False, is_core_cbr_mop=False):
+        # Hardcoding to attach more useful name to mops that are just functions
+        if mop_name is None and 1 == len(slots):
+            val1 = next(iter(slots.values()))
+            if callable(val1):
+                mop_name = val1.__name__.upper()
+
         '''The equivilent of DEFMOP in Schank/Riesbeck. absts is a set of valid MOP names which are used to look up existing MOPs when creating this new MOP or direct references to abstraction MOPs.'''
         # is_core_cbr_mop is the set of mops that are set up by default in all CBRs, per the book [implied to be a default]
         # is_default_mop are the rest of the mops that are populated by default for a given use case
