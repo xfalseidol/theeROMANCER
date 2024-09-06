@@ -33,6 +33,7 @@ class Judge(cbr.CaseBasedReasoner):
         counter = 1
         escalations = {}
         for event in mop.get_filler('events').group_to_list():
+            severity = event.path_filler('action', 'severity')
             severity = event.path_filler(('action', 'severity'))
             escalation = severity - previous_severity
             previous_severity = severity
@@ -93,7 +94,7 @@ class Judge(cbr.CaseBasedReasoner):
         return slots
 
 
-    def adjust_sentence(self, pattern, mop):
+    def adjust_sentence(self, mop):
         print("~---------------------------~")
         print(f"{mop} applied, {mop.get_filler('index')} events from the end")
         old_sentence = mop.get_filler('old_sentence')

@@ -5,6 +5,7 @@ from operator import add
 from romancer.supervisor.watchlist import WatchlistItem
 from hotline_percept import HotlineActionROMANCERMessage
 
+pad = 60
 def _make_translation_dictionary():
     actions = 60
     actions_to_names = {}
@@ -37,6 +38,15 @@ def _save_translation_dictionary():
         writer.writerow(["Action", "Name"])
         for key, value in translation_dictionary.items():
             writer.writerow([key, value])
+
+
+def _get_amygdala_display(params):
+    if params:
+        pbf = str(round(params.current_pbf, 2))
+        fight = str(round(params.current_fight, 2))
+        flight = str(round(params.current_flight, 2))
+        freeze = str(round(params.current_freeze, 2))
+        return "stress: (" + pbf + ", " + fight + ", " + flight + ", " + freeze + ")"
 
 
 class DeterrentThreat(NamedTuple): # "Don't Do (provocation) or else I'll (threat) until (deadline??)"
@@ -136,12 +146,17 @@ class HotlineAction(WatchlistItem):
         super().__init__(time)
         self.actor_id = actor_id
         self.action_id = action_id
+        self.params = None
 
 
     def process(self, supervisor): # needs to force an ActionPercept?
         agent = supervisor.environment.message_dispatch_table[self.actor_id]
         # take next action on agent's reasoner's action queue
-        agent.reasoner.take_next_action()
+        params = agent.reasoner.take_next_action()
+        # self.amygdala_update_parameters = params
+        if params:
+            agent.amygdala.update_parameters(params)
+        self.params = agent.amygdala.current_amygdala_parameters()
         supervisor.environment.perception_engine.force_action_percept(self.time, self.actor_id, self.action_id)
         supervisor.check_for_percepts = True # actions likely to trigger percepts
 
@@ -155,7 +170,8 @@ class HotlineAction(WatchlistItem):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
         script_version += translation_dictionary[self.action_id]
-        return script_version
+        stress =_get_amygdala_display(self.params)
+        return f"{script_version:<75} {stress}"
 
 
 class HotlineMessage(WatchlistItem):
@@ -164,11 +180,14 @@ class HotlineMessage(WatchlistItem):
         self.sender = sender
         self.message = message
         self.public = public
+        self.params = None
+
     
     def process(self, supervisor):
         agent = supervisor.environment.message_dispatch_table[self.sender]
         # take next action on agent's reasoner's action queue
-        agent.reasoner.take_next_action()
+        params = agent.reasoner.take_next_action()
+        self.params = agent.amygdala.current_amygdala_parameters()
         if self.public:
             supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[], public_messages=[self.message])
         else:
@@ -184,7 +203,8 @@ class HotlineMessage(WatchlistItem):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.sender]}: {self.message.submessage}"
-        return script_version
+        stress =_get_amygdala_display(self.params)
+        return f"{script_version:<75} {stress}"
     
 
 class HotlineRungChange(WatchlistItem):
@@ -193,11 +213,13 @@ class HotlineRungChange(WatchlistItem):
         self.who = who
         self.old_rung = old_rung
         self.new_rung = new_rung
+        self.params = None
 
 
     def process(self, supervisor):
         agent = supervisor.environment.message_dispatch_table[self.who]
-        agent.reasoner.take_next_action()
+        params = agent.reasoner.take_next_action()
+        self.params = agent.amygdala.current_amygdala_parameters()
 
 
     def __repr__(self):
@@ -211,7 +233,8 @@ class HotlineRungChange(WatchlistItem):
             script_version += f"I'm escalating from {self.old_rung} to {self.new_rung}."
         else:
             script_version += f"I'm deescalating from {self.old_rung} to {self.new_rung}."
-        return script_version
+        stress =_get_amygdala_display(self.params)
+        return f"{script_version:<75} {stress}"
 
 
 # dispatchers create and return a watchlist item

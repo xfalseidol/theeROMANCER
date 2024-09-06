@@ -29,7 +29,7 @@ class EscalationLadderAgent(PersonLikeAgent):
                                           'StochasticActionsBeforeTime': lambda o, m: None,
                                           'AdvanceToTime': lambda o, m: o.forward_simulation(m.time),
                                           'NextDeliberateAction': next_deliberate_action,
-                                          'UpdateAmygdalaParameters': lambda o, m: o.amydala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
+                                          'UpdateAmygdalaParameters': lambda o, m: o.amygdala.update_parameters(m)}, parent = self, varname = 'dispatch_table')
 
     def visualise_final(self):
         super().visualise_final()

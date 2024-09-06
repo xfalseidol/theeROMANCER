@@ -755,7 +755,7 @@ class ImprovedRomancerObject():
             if cur != log.oldval:
                 raise ValueError('Mismatch between log and current value')
             else:
-                super().__setattr__(log.attr_name, log.newval)
+                super(ImprovedRomancerObject, self).__setattr__(log.attr_name, log.newval)
 
 
         @reassert_log.register(AttrAdditionLog)

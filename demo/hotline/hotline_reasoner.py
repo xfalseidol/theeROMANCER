@@ -69,6 +69,14 @@ class HotlineLadderRung(EscalationLadderRung):
     
     def rung_matched(self, reasoner, amygdala):
         '''Assumes that self.match_attributes is a statement in the matching DSL.'''
+        dominant_response = amygdala.dominant_response()
+        if dominant_response == "freeze": # never escalate
+            return False
+        if dominant_response == "fight": # always escalate
+            return True
+        if dominant_response == "flight": # try to de-escalate
+            return False
+        
         return self.match_attributes.evaluate(reasoner, amygdala)
 
 
@@ -133,8 +141,8 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         #     self.environment.supervisor.deliver_messages(messages)
         #     self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
         #     self.environment.supervisor.inbox.clear() # remove action messages
-        self.actions_taken.append((action_time, action))
-    
+        # self.actions_taken.append((action_time, action))
+        return params
 
     def update_resolve(self):
         '''This method uses the reasoner's history of digested percepts to update its estimates of its own and its opponent's resolve.
@@ -196,8 +204,8 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
     
     def _escalate(self, next_rung, amygdala):
+        previous_rung = self.current_rung
         super()._escalate(next_rung, amygdala)
-        previous_rung = self.escalation_ladder.previous_rung(self.current_rung)
         message = HotlineRungChangeMessage(uid=self.new_message_index(),
                                                time = self.time,
                                                sender=(self.environment.uid, self.compute_self_uid()),
@@ -243,8 +251,8 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                 action_message = action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1), addressee=self.compute_opponent_uid())
             elif isinstance(action_or_message, SendPublicMessage):
                 action_message = action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1))
-            # action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
-            # action_messages = self.untaken_actions(action_messages, reasoner)
+            else:
+                action_message = action_or_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.compute_self_uid()), 'recipient': (1, 1)})
             heappush(self.planned_actions, (action_time, action_message, update_params))
     
 
@@ -261,10 +269,17 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
             delta_t, action_or_message, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
             if isinstance(action_or_message, int): # Convert integers to actions
-                action_messages.append() # send action message to supervisor
-            elif isinstance(action_or_message, SendPrivateMessage) or isinstance(action_or_message, SendPublicMessage):
-                action_messages.append(action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid())), recipient=(1, 1), addressee=self.compute_opponent_uid())
-            heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
+                action_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
+                                                                    time=action_time,
+                                                                    sender=(self.environment.uid, self.compute_self_uid()),
+                                                                    recipient=(1, 1),
+                                                                    messagetype = 'HotlineActionROMANCERMessage',
+                                                                    action_id = action_or_message) # send action message to supervisor
+                heappush(self.planned_actions, (action_time, action_message, update_params))
+            # else:
+            #     action_message = action_or_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.compute_self_uid()), 'recipient': (1, 1)})
+            # elif isinstance(action_or_message, SendPrivateMessage) or isinstance(action_or_message, SendPublicMessage):
+            #     action_message = action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1), addressee=self.compute_opponent_uid())
 
 
     def compute_opponent_uid(self):
