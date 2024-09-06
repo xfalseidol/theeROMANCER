@@ -36,14 +36,18 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
         self.keycols = keycols
         self.valcols = valcols
 
-    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names):
+    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names, print_top_few=False):
         pivot_percepts = self.get_percept_list(cbr, mop_name)
+        pivot_percepts.sort(key=lambda x: (x['weapon'], x['target']))
         compare_percepts = { comp_mopname : self.get_percept_list(cbr, comp_mopname) for comp_mopname in compare_mop_names }
         distances = { comp_mopname : self.compare_two_percept_lists(pivot_percepts, compare_percepts[comp_mopname]) for comp_mopname in compare_mop_names }
         sorted_mopnames = sorted(distances, key=lambda k: distances[k])
-        print("For mop " + mop_name + " " + str(pivot_percepts))
-        for i in range(min(len(sorted_mopnames), 10)):
-            print(f"#{i}: {sorted_mopnames[i]} = {distances[sorted_mopnames[i]]}")
+        if print_top_few:
+            print("For mop " + mop_name + " " + str(pivot_percepts))
+            for i in range(min(len(sorted_mopnames), 10)):
+                these_percepts = compare_percepts[sorted_mopnames[i]]
+                these_percepts.sort(key=lambda x: (x['weapon'], x['target']))
+                print(f"#{i}: {sorted_mopnames[i]} = {distances[sorted_mopnames[i]]} - {these_percepts}")
         return super().compare_mops_and_sort(cbr, mop_name, compare_mop_names)
 
     def compare_two_percept_lists(self, pl1, pl2):
