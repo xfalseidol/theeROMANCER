@@ -1,6 +1,7 @@
-from casebasedreasoner import CaseBasedReasoner
+from casebasedreasoner import CaseBasedReasoner, MOPComparerSorter
 from dill import dump, load
 from pathlib import Path
+import copy
 
 ## CB-ELR Design Model:
 # 1. The ELR inherits from the CBR, so that it can perform case-based reasoning like the Judge.
@@ -25,6 +26,65 @@ from pathlib import Path
 ## Should the CB-ELR be able to decide what the outcome of a scenario "should" be? Eg, compare percepts to current_rung and conclude "I should escalate"
 ## Should the CB-ELR *not* calculate the "correct" outcome and only make conclusions based on past memories?
 ## If we do calculate the "correct" outcome, then that means we're only using memories to decide whether our amygdala overrides our outcome. Is this what we want?
+
+class ELRPerceptMOPComparer(MOPComparerSorter):
+    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names):
+        pivot_percepts = self.get_percept_list(cbr, mop_name)
+        return super().compare_mops_and_sort(cbr, mop_name, compare_mop_names)
+
+    def get_percept_list(self, cbr, mop_name):
+        flattened_percepts = self.get_flattened_percept_list(cbr, mop_name)
+        combined_percepts = self.combine_percept_list(flattened_percepts)
+        return combined_percepts
+
+    def combine_percept_list(self, percept_list):
+        # We may have percepts that need combining [eg same weapon/target pairing should have their counts summed]
+        # This is destructive on the passed list. Pass a deepcopy if you don't want that
+        combined_percept_list = []
+        keycols = [ "weapon", "target" ]
+        valcol = "count"
+
+        while len(percept_list) > 0:
+            percept = percept_list.pop(0)
+            i = 0
+            while i < len(percept_list):
+                p_test = percept_list[i]
+                is_match = True
+                for k in keycols:
+                    if p_test[k] != percept[k]:
+                        is_match = False
+                        break
+                if is_match:
+                    print("Combining " + str(percept) + " and " + str(p_test))
+                    percept[valcol] += p_test[valcol]
+                    percept_list.pop(i)
+                else:
+                    i+=1
+
+            combined_percept_list.append(percept)
+        return combined_percept_list
+
+    # For a given mop, get all the individual percepts as a single list-of-dicts
+    #  May have to traverse lists mutliple times, recursively
+    def get_flattened_percept_list(self, cbr, mop_name):
+        # Not doing any sanity checking. If you don't pass this a scenario, expect it to break
+        mop = cbr.mops[mop_name]
+        percepts = mop.slots["percepts"]
+        group_mop = cbr.mops["M_percept_group"]
+        return self.get_flattened_percept_list_r(cbr, percepts, group_mop)
+
+    def get_flattened_percept_list_r(self, cbr, percept_mop, group_mop, depth=0):
+        retval = []
+        dots = ".".join(["" for _ in range(depth+1)])
+        if group_mop.is_abstraction(percept_mop):
+            for next_mop in percept_mop.slots.values():
+                retval.extend(self.get_flattened_percept_list_r(cbr, next_mop, group_mop, depth+1))
+        else:
+            retval.append(copy.deepcopy(percept_mop.slots.data))
+        print(dots + " " + str(len(retval)))
+        return retval
+
+
 class EscalationLadderCBR(CaseBasedReasoner):
     def __init__(self, env, time, load_memory_from = None):
         if load_memory_from:
