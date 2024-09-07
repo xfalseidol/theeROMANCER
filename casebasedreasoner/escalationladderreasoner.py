@@ -1,9 +1,12 @@
-from casebasedreasoner import CaseBasedReasoner, MOPComparerSorter
+from casebasedreasoner import CaseBasedReasoner, MOPComparerSorter, MOP
 from dill import dump, load
 from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+
+from romancer.environment.object import LoggedDict
+
 
 ## CB-ELR Design Model:
 # 1. The ELR inherits from the CBR, so that it can perform case-based reasoning like the Judge.
@@ -186,33 +189,34 @@ class EscalationLadderCBR(CaseBasedReasoner):
         else:
             super().__init__(env, time)
             self.add_mop(mop_name='M-CALC', mop_type='mop', is_default_mop=True)
-            self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop')
-            self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')})
-            self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop')
-            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, mop_type = 'mop')
-            self.add_mop(mop_name='M_escalation_ladder', absts={'M-GROUP'}, slots={1:self.name_mop('M_ladder_rung')})
+            self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')}, is_default_mop=True)
+            self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_escalation_ladder', absts={'M-GROUP'}, slots={1:self.name_mop('M_ladder_rung')}, is_default_mop=True)
             ## potential outcomes
-            outcome = self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop')
-            self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
-            self.add_mop(mop_name='I_M_deescalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
-            self.add_mop(mop_name='I_M_no_change_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
+            outcome = self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
+            self.add_mop(mop_name='I_M_deescalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
+            self.add_mop(mop_name='I_M_no_change_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
             ## ELRScenario
             self.add_mop(mop_name='M_ELRScenario',
                         absts={'M-CASE'},
                         mop_type='mop',
-                        is_core_cbr_mop=True,
                         slots={'percepts': self.name_mop('M_percept_group'),
                                 'amygdala_data': self.name_mop('M_amygdala_data'),
                                 'current_rung': self.name_mop('M_ladder_rung'),
-                                'outcome': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adapt_outcome})
-                                }
+                                'outcome': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adapt_outcome}, is_default_mop=True)
+                                },
+                         is_default_mop=True
             )
             ## adaptation MOPs
             self.add_mop(mop_name='M_adapt_outcome',
                          absts={'M-CALC'},
                          slots={'role': outcome,
-                                'value': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adjust_outcome})})
-            self.add_mop(mop_name='M_adapt')
+                                'value': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adjust_outcome}, is_default_mop=True)},
+                         is_default_mop=True)
+            self.add_mop(mop_name='M_adapt', is_default_mop=True)
 
 
     def make_decision(self, scenario_slots): # like judge.judge_case
@@ -301,10 +305,10 @@ class EscalationLadderCBR(CaseBasedReasoner):
         rung_group = {}
         counter = 1
         for rung in rungs:
-            rung_mop = self.add_mop(absts={'M_ladder_rung'}, slots=rung, mop_type='instance')
+            rung_mop = self.add_mop(absts={'M_ladder_rung'}, slots=rung, mop_type='instance', is_default_mop=True)
             rung_group[counter] = rung_mop
             counter += 1
-        self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance')
+        self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance', is_default_mop=True)
 
     ''' Given some percepts, recursively create groups for as long as some of the things are lists or dicts.
      Eventually return a mop'''
