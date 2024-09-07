@@ -8,6 +8,9 @@ import inspect
 import types
 import textwrap
 
+from romancer.environment.object import LoggedDict
+
+
 def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, include_slot_edges=True):
     ''' Given a CBR, returns a representation of this in graphviz format '''
     g = []
@@ -38,8 +41,15 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
         thislabel = [
             f"<table cellspacing=\"0\" bgcolor=\"{thismop_color}\"><tr><td colspan=\"2\" id=\"n\">{str(mopname)}</td></tr>"]
         slotnum = 0
-        for slotname in this_mop.slots:
-            val = this_mop.slots[slotname]
+
+        theseslots = this_mop.slots
+        if isinstance(theseslots, LoggedDict):
+            theseslots = theseslots.data
+        if isinstance(theseslots, tuple):
+            theseslots = { i : theseslots[i] for i in range(len(theseslots)) }
+
+        for slotname in theseslots:
+            val = theseslots[slotname]
             val_s = "lambda" if callable(val) else str(val)
             slotnum = slotnum + 1
             thislabel.append(f"<tr><td>{slotname}</td><td id=\"s{str(slotnum)}\">{val_s}</td></tr>")
@@ -204,21 +214,32 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
         cursor.executemany("INSERT INTO mop_spec(mopid, specmopid) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", specrows)
 
-        for slotname in this_mop.slots:
-            val = this_mop.slots[slotname]
+        theseslots = this_mop.slots
+        if isinstance(theseslots, LoggedDict):
+            theseslots = theseslots.data
+        if isinstance(theseslots, tuple):
+            theseslots = { i : theseslots[i] for i in range(len(theseslots)) }
+
+        for slotname in theseslots:
+            # Just in case the name of the slot is anything other than a string
+            slotname_str = str(slotname)
+            if isinstance(slotname, tuple):
+                print(f"It's a tuple, bob {slotname}")
+                continue
+            val = theseslots[slotname]
             val_s = str(val)
             is_func = False
             if callable(val):
                 try:
                     val_s = inspect.getsource(val)
                 except OSError as e:
-                    print(f"Source for {slotname} unavailable")
+                    print(f"Source for {slotname_str} unavailable")
                     val_s = None
                 is_func = True
 
             cursor.execute("INSERT INTO slot(mopid, slotname, val, ref_mopid, is_func) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), ?, ?, (SELECT mopid FROM mop WHERE mopname=?), ?)",
-                           (this_mop.mop_name, slotname, val_s, val_s, is_func))
+                           (this_mop.mop_name, slotname_str, val_s, val_s, is_func))
     else:
         print(f" ... {progress}/{n_mops}")
 
