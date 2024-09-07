@@ -1,4 +1,4 @@
-from environment.environment import Environment
+from romancer.environment.environment import Environment
 from typing import NamedTuple
 
 
