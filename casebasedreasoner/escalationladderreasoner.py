@@ -176,7 +176,18 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
             for next_mop in percept_mop.slots.values():
                 retval.extend(self.get_flattened_percept_list_r(cbr, next_mop, group_mop, depth+1))
         else:
-            retval.append(copy.deepcopy(percept_mop.slots.data))
+            slots = percept_mop.slots
+            # Sometimes the percept is just a list of things.
+            #  It still gets stored as a key then a value that is a group.
+            #  Throw away the key and start again with the value
+            if 1 == len(slots):
+                slotval = next(iter(slots.values()))
+                if isinstance(slotval, MOP) and group_mop.is_abstraction(slotval):
+                    retval.extend(self.get_flattened_percept_list_r(cbr, slotval, group_mop))
+                    return retval
+            if isinstance(slots, LoggedDict):
+                slots = slots.data
+            retval.append(copy.deepcopy(slots))
         # print(".".join(["" for _ in range(depth+1)]) + " " + str(len(retval)))
         return retval
 
