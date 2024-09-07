@@ -1,6 +1,8 @@
 from casebasedreasoner import CaseBasedReasoner, MOPComparerSorter
 from dill import dump, load
 from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
 import copy
 
 ## CB-ELR Design Model:
@@ -36,19 +38,70 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
         self.keycols = keycols
         self.valcols = valcols
 
-    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names, print_top_few=False):
+    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names, visual=False):
         pivot_percepts = self.get_percept_list(cbr, mop_name)
         pivot_percepts.sort(key=lambda x: (x['weapon'], x['target']))
         compare_percepts = { comp_mopname : self.get_percept_list(cbr, comp_mopname) for comp_mopname in compare_mop_names }
         distances = { comp_mopname : self.compare_two_percept_lists(pivot_percepts, compare_percepts[comp_mopname]) for comp_mopname in compare_mop_names }
         sorted_mopnames = sorted(distances, key=lambda k: distances[k])
-        if print_top_few:
+        if visual:
             print("For mop " + mop_name + " " + str(pivot_percepts))
+            self.visualise(pivot_percepts, compare_percepts, sorted_mopnames, 20)
+            reverse_mopnames = sorted(distances, key=lambda k: distances[k], reverse=True)
+            self.visualise(pivot_percepts, compare_percepts, reverse_mopnames, 20, "rev")
             for i in range(min(len(sorted_mopnames), 10)):
                 these_percepts = compare_percepts[sorted_mopnames[i]]
                 these_percepts.sort(key=lambda x: (x['weapon'], x['target']))
                 print(f"#{i}: {sorted_mopnames[i]} = {distances[sorted_mopnames[i]]} - {these_percepts}")
-        return super().compare_mops_and_sort(cbr, mop_name, compare_mop_names)
+        return sorted_mopnames
+
+    # Return a map of sorted lists, of the possible values for each key
+    def get_possible_keys(self, compare_percepts):
+        retval = { k : [] for k in self.keycols }
+        for percepts in compare_percepts.values():
+            for p in percepts:
+                for k in self.keycols:
+                    retval[k].append(p[k]) if p[k] not in retval[k] else None
+        for lst in retval.values():
+            lst.sort()
+        return retval
+
+    def create_heatmap(self, possible_keys, percepts):
+        k0 = self.keycols[0]
+        k1 = self.keycols[1]
+        heatmap = np.full((len(possible_keys[k0]), len(possible_keys[k1])), np.nan)
+        for p in percepts:
+            idx_a = possible_keys[k0].index(p[k0])
+            idx_b = possible_keys[k1].index(p[k1])
+            cnt = p[self.valcols[0]]
+            if cnt > 0:
+                heatmap[idx_a, idx_b] = cnt
+        return heatmap
+
+    def visualise(self, pivot_percepts, compare_percepts, sorted_keys, n_charts, suffix=""):
+        possible_keys = self.get_possible_keys(compare_percepts)
+
+        heatmap_compare = self.create_heatmap(possible_keys, pivot_percepts)
+        fig, axes = plt.subplots(nrows=n_charts, ncols=2, figsize=(10, 5 * n_charts))
+        for i, percepts in enumerate([compare_percepts[k] for k in sorted_keys]):
+            if i >= n_charts:
+                break
+            cax = axes[i][0].imshow(heatmap_compare, aspect='auto')
+            axes[i][0].set_title(f"Compare_to")
+            axes[i][0].set_xlabel(self.keycols[0])
+            axes[i][0].set_ylabel(self.keycols[1])
+            axes[i][0].set_xticks([])
+            axes[i][0].set_yticks([])
+
+            heatmap = self.create_heatmap(possible_keys, percepts)
+            cax = axes[i][1].imshow(heatmap, aspect='auto')
+            axes[i][1].set_title(f"{i} {suffix}: {sorted_keys[i]}")
+            axes[i][1].set_xlabel(self.keycols[0])
+            axes[i][1].set_ylabel(self.keycols[1])
+            axes[i][1].set_xticks([])
+            axes[i][1].set_yticks([])
+        plt.tight_layout()
+        plt.show()
 
     def compare_two_percept_lists(self, pl1, pl2):
         # For each item in pl1, Find the closest item in p2, then add that to the cumulative distance
