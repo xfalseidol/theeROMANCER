@@ -8,9 +8,13 @@ import inspect
 import types
 import textwrap
 
-def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_edges=True):
+def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, include_slot_edges=True):
     ''' Given a CBR, returns a representation of this in graphviz format '''
-    g = ["digraph G {", "splines=true", "overlap=false"]
+    g = []
+
+    fname = filename if filename else "cbr.dot"
+    g.append(f"// dot -Kfdp -Tpng -o{fname}.png {fname}")
+    g.extend(["digraph G {", "splines=true", "overlap=false"])
     mopname_to_nodename = {}
     curr_nodeid = 0
     moptype_to_color = {"mop": "red", "instance": "green"}
@@ -89,7 +93,13 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
         g.append("\n".join(slot_edges))
 
     g.append('}')
-    return "\n".join(g)
+
+    dot = "\n".join(g)
+    if filename is not None:
+        with open(filename, "w") as out_dot:
+            out_dot.write(dot)
+
+    return dot
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
 def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):
