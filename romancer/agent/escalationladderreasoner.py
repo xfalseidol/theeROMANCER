@@ -293,13 +293,11 @@ class EscalationLadderReasoner(Reasoner):
     
     def _remember_scenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
         if self.cbr:
-            # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
-            ## percepts has attribute events_list, which is a list of percept dictionaries
-            percepts_as_list_of_dict = []
+            all_percepts = []
             for percept in percepts:
-                percepts_as_list_of_dict.append(percept.events_list)
+                all_percepts.append(percept.get_percept_items())
             if self.cbr is not None:
-                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
+                self.cbr.add_ELRScenario(percepts=all_percepts, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
 
 
     def _push_empty_action(self, time):
