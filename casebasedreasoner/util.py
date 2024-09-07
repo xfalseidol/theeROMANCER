@@ -1,4 +1,5 @@
 import os.path
+import time
 import sqlite3
 import sys
 
@@ -92,6 +93,7 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
 def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):
+    t_start = time.time()
     if os.path.exists(dbfile):
         if deleteifexists:
             os.unlink(dbfile)
@@ -358,7 +360,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     ''')
     conn.commit()
     conn.close()
-    print(f"SQLite write complete")
+    t_end = time.time()
+    print(f"SQLite write complete in {t_end-t_start:.2f} seconds")
 
 # For the code-based activities, we're attaching methods to classes
 def __instantiatemethodonclass(instance, code):
