@@ -4,6 +4,7 @@ from hotline_percept import SendPrivateMessage, SendPublicMessage, HotlineMessag
 from hotline_actions import DeterrentThreat, CompellentThreat, ConcessionOffer
 from functools import reduce
 from heapq import heappush, heappop
+import matplotlib.pyplot as plt
 
 
 # First, we define a mini-DSL for rung-matching rules
@@ -93,6 +94,11 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         self._fulfilled_open_ended_threats = 0
         self._no_adversary_concessions = 0
 
+        self._plot_msg_send = []
+        self._plot_msg_rcv = []
+        self._plot_resolve = []
+        self._plot_perceived_resolve = []
+
     def deliberate(self, max_time, amygdala):
         '''This method works mostly like the equivilent from the EscalationLadderReasoner, with the additional handling of updates to the reolve and perceived_adversary_resolve attributes.'''
 
@@ -130,7 +136,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
     def take_next_action(self):
         '''This method is meant to be called when a WatchListItem reflecting the agent's planned action is processed by the Supervisor. It should be an internal implementation detail which is called via a method on the PersonLikeAgent, which uses the values it returns to update the Amygdala state.'''
-        action_time, action, params = heappop(self.planned_actions) # This should return an iterable of messages 
+        action_time, action, params = heappop(self.planned_actions) # This should return an iterable of messages
+        print(f"Taking action {action}")
+        print(f" actions take: {self.actions_taken}")
         self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
         # send messages to supervisor reflecting actions, if necessary
         # actions = []
@@ -201,7 +209,24 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                 self.resolve = self.max_resolve
             elif self.resolve < 0:
                 self.resolve = 0
+        self._plot_resolve.append( (self.time, self.resolve) )
+        self._plot_perceived_resolve.append((self.time, self.perceived_adversary_resolve) )
 
+    def export_plot(self):
+        filename = self.identity + "_resolve.png"
+        fig, ax = plt.subplots(figsize=(10, 6))
+        plt.step([tup[0] for tup in self._plot_resolve], [tup[1] for tup in self._plot_resolve],
+                 where="post", label="My Resolve", marker="o")
+        plt.step([tup[0] for tup in self._plot_perceived_resolve], [tup[1] for tup in self._plot_perceived_resolve],
+                 where="post", label="Perceived Resolve", marker="o")
+        plt.xlabel("Time (s)")
+        plt.ylabel("Resolve")
+        plt.title(f"{self.identity} Resolve")
+        plt.legend()
+        plt.savefig(filename)
+        plt.show()
+
+        super().export_plot("escladder_" + filename, f"Escladder {self.identity}")
     
     def _escalate(self, next_rung, amygdala):
         previous_rung = self.current_rung
