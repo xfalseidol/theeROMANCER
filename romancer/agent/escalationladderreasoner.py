@@ -429,7 +429,7 @@ class EscalationLadderReasoner(Reasoner):
                 ax.add_line(rung)
                 ax.text(-ladder_halfwidth/2, y+0.1, rung_labels[y], ha='center', va='center')
 
-        plt.step(self.plot_time, [self.escalation_ladder.rung_number(rung)-1 for rung in self.plot_rungs], where="post", label="Rung", marker="o")
+        plt.step(self.plot_time, self.plot_rungs, where="post", label="Rung", marker="o")
         plt.xlabel("Time (s)")
         plt.ylabel("Ladder")
         plt.title("Escalation Ladder" if title is None else title)
