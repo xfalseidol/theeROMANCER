@@ -1,6 +1,12 @@
-from casebasedreasoner import CaseBasedReasoner
+from casebasedreasoner import CaseBasedReasoner, MOPComparerSorter, MOP
 from dill import dump, load
 from pathlib import Path
+import matplotlib.pyplot as plt
+import numpy as np
+import copy
+
+from romancer.environment.object import LoggedDict
+
 
 ## CB-ELR Design Model:
 # 1. The ELR inherits from the CBR, so that it can perform case-based reasoning like the Judge.
@@ -25,6 +31,167 @@ from pathlib import Path
 ## Should the CB-ELR be able to decide what the outcome of a scenario "should" be? Eg, compare percepts to current_rung and conclude "I should escalate"
 ## Should the CB-ELR *not* calculate the "correct" outcome and only make conclusions based on past memories?
 ## If we do calculate the "correct" outcome, then that means we're only using memories to decide whether our amygdala overrides our outcome. Is this what we want?
+
+class ELRPerceptMOPComparer(MOPComparerSorter):
+    def __init__(self, keycols=None, valcols=None):
+        if keycols is None:
+            keycols = ["weapon", "target"]
+        if valcols is None:
+            valcols = ["count"]
+        self.keycols = keycols
+        self.valcols = valcols
+
+    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names, visual=False):
+        pivot_percepts = self.get_percept_list(cbr, mop_name)
+        pivot_percepts.sort(key=lambda x: (x['weapon'], x['target']))
+        compare_percepts = { comp_mopname : self.get_percept_list(cbr, comp_mopname) for comp_mopname in compare_mop_names }
+        distances = { comp_mopname : self.compare_two_percept_lists(pivot_percepts, compare_percepts[comp_mopname]) for comp_mopname in compare_mop_names }
+        sorted_mopnames = sorted(distances, key=lambda k: distances[k])
+        if visual:
+            print("For mop " + mop_name + " " + str(pivot_percepts))
+            self.visualise(pivot_percepts, compare_percepts, sorted_mopnames, 20)
+            reverse_mopnames = sorted(distances, key=lambda k: distances[k], reverse=True)
+            self.visualise(pivot_percepts, compare_percepts, reverse_mopnames, 20, "rev")
+            for i in range(min(len(sorted_mopnames), 10)):
+                these_percepts = compare_percepts[sorted_mopnames[i]]
+                these_percepts.sort(key=lambda x: (x['weapon'], x['target']))
+                print(f"#{i}: {sorted_mopnames[i]} = {distances[sorted_mopnames[i]]} - {these_percepts}")
+        return sorted_mopnames
+
+    # Return a map of sorted lists, of the possible values for each key
+    def get_possible_keys(self, compare_percepts):
+        retval = { k : [] for k in self.keycols }
+        for percepts in compare_percepts.values():
+            for p in percepts:
+                for k in self.keycols:
+                    retval[k].append(p[k]) if p[k] not in retval[k] else None
+        for lst in retval.values():
+            lst.sort()
+        return retval
+
+    def create_heatmap(self, possible_keys, percepts):
+        k0 = self.keycols[0]
+        k1 = self.keycols[1]
+        heatmap = np.full((len(possible_keys[k0]), len(possible_keys[k1])), np.nan)
+        for p in percepts:
+            idx_a = possible_keys[k0].index(p[k0])
+            idx_b = possible_keys[k1].index(p[k1])
+            cnt = p[self.valcols[0]]
+            if cnt > 0:
+                heatmap[idx_a, idx_b] = cnt
+        return heatmap
+
+    def visualise(self, pivot_percepts, compare_percepts, sorted_keys, n_charts, suffix=""):
+        possible_keys = self.get_possible_keys(compare_percepts)
+
+        heatmap_compare = self.create_heatmap(possible_keys, pivot_percepts)
+        fig, axes = plt.subplots(nrows=n_charts, ncols=2, figsize=(10, 5 * n_charts))
+        for i, percepts in enumerate([compare_percepts[k] for k in sorted_keys]):
+            if i >= n_charts:
+                break
+            cax = axes[i][0].imshow(heatmap_compare, aspect='auto')
+            axes[i][0].set_title(f"Compare_to")
+            axes[i][0].set_xlabel(self.keycols[0])
+            axes[i][0].set_ylabel(self.keycols[1])
+            axes[i][0].set_xticks([])
+            axes[i][0].set_yticks([])
+
+            heatmap = self.create_heatmap(possible_keys, percepts)
+            cax = axes[i][1].imshow(heatmap, aspect='auto')
+            axes[i][1].set_title(f"{i} {suffix}: {sorted_keys[i]}")
+            axes[i][1].set_xlabel(self.keycols[0])
+            axes[i][1].set_ylabel(self.keycols[1])
+            axes[i][1].set_xticks([])
+            axes[i][1].set_yticks([])
+        plt.tight_layout()
+        plt.show()
+
+    def compare_two_percept_lists(self, pl1, pl2):
+        # For each item in pl1, Find the closest item in p2, then add that to the cumulative distance
+        # Does not need to be symmetric; comp(pl1, pl2) does not need to equal comp(pl2, pl1)
+        total_dist = 0
+        for p1 in pl1:
+            data = {}
+            for i in range(len(pl2)):
+                p2 = pl2[i]
+                data[i] = self.singlepercept_dist(p1, p2)
+            min_dist_idx = min(data, key=lambda k: data[k])
+            total_dist += data[min_dist_idx]
+        return total_dist
+
+    def singlepercept_dist(self, p1, p2):
+        # What's the distance between a pair of single percepts
+        dist = 0.0
+        # Use taxicab distance on keycols, multiply by 100, add taxicab on valcols
+        for k in self.keycols:
+            dist += abs(p1[k] - p2[k])
+        dist *= 100
+        for k in self.valcols:
+            dist += abs(p1[k] - p2[k])
+        return dist
+
+    def get_percept_list(self, cbr, mop_name):
+        flattened_percepts = self.get_flattened_percept_list(cbr, mop_name)
+        combined_percepts = self.combine_percept_list(flattened_percepts)
+        return combined_percepts
+
+    def combine_percept_list(self, percept_list):
+        # We may have percepts that need combining [eg same weapon/target pairing should have their counts summed]
+        # This is destructive on the passed list. Pass a deepcopy if you don't want that
+        combined_percept_list = []
+
+        while len(percept_list) > 0:
+            percept = percept_list.pop(0)
+            i = 0
+            while i < len(percept_list):
+                p_test = percept_list[i]
+                is_match = True
+                for k in self.keycols:
+                    if p_test[k] != percept[k]:
+                        is_match = False
+                        break
+                if is_match:
+                    # print("Combining " + str(percept) + " and " + str(p_test))
+                    for valcol in self.valcols:
+                        percept[valcol] += p_test[valcol]
+                    percept_list.pop(i)
+                else:
+                    i+=1
+
+            combined_percept_list.append(percept)
+        return combined_percept_list
+
+    # For a given mop, get all the individual percepts as a single list-of-dicts
+    #  May have to traverse lists mutliple times, recursively
+    def get_flattened_percept_list(self, cbr, mop_name):
+        # Not doing any sanity checking. If you don't pass this a scenario, expect it to break
+        mop = cbr.mops[mop_name]
+        percepts = mop.slots["percepts"]
+        group_mop = cbr.mops["M_percept_group"]
+        return self.get_flattened_percept_list_r(cbr, percepts, group_mop)
+
+    def get_flattened_percept_list_r(self, cbr, percept_mop, group_mop, depth=0):
+        retval = []
+        if group_mop.is_abstraction(percept_mop):
+            for next_mop in percept_mop.slots.values():
+                retval.extend(self.get_flattened_percept_list_r(cbr, next_mop, group_mop, depth+1))
+        else:
+            slots = percept_mop.slots
+            # Sometimes the percept is just a list of things.
+            #  It still gets stored as a key then a value that is a group.
+            #  Throw away the key and start again with the value
+            if 1 == len(slots):
+                slotval = next(iter(slots.values()))
+                if isinstance(slotval, MOP) and group_mop.is_abstraction(slotval):
+                    retval.extend(self.get_flattened_percept_list_r(cbr, slotval, group_mop))
+                    return retval
+            if isinstance(slots, LoggedDict):
+                slots = slots.data
+            retval.append(copy.deepcopy(slots))
+        # print(".".join(["" for _ in range(depth+1)]) + " " + str(len(retval)))
+        return retval
+
+
 class EscalationLadderCBR(CaseBasedReasoner):
     def __init__(self, env, time, load_memory_from = None):
         if load_memory_from:
@@ -33,33 +200,34 @@ class EscalationLadderCBR(CaseBasedReasoner):
         else:
             super().__init__(env, time)
             self.add_mop(mop_name='M-CALC', mop_type='mop', is_default_mop=True)
-            self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop')
-            self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')})
-            self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop')
-            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, mop_type = 'mop')
-            self.add_mop(mop_name='M_escalation_ladder', absts={'M-GROUP'}, slots={1:self.name_mop('M_ladder_rung')})
+            self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')}, is_default_mop=True)
+            self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_escalation_ladder', absts={'M-GROUP'}, slots={1:self.name_mop('M_ladder_rung')}, is_default_mop=True)
             ## potential outcomes
-            outcome = self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop')
-            self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
-            self.add_mop(mop_name='I_M_deescalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
-            self.add_mop(mop_name='I_M_no_change_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance')
+            outcome = self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
+            self.add_mop(mop_name='I_M_deescalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
+            self.add_mop(mop_name='I_M_no_change_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
             ## ELRScenario
             self.add_mop(mop_name='M_ELRScenario',
                         absts={'M-CASE'},
                         mop_type='mop',
-                        is_core_cbr_mop=True,
                         slots={'percepts': self.name_mop('M_percept_group'),
                                 'amygdala_data': self.name_mop('M_amygdala_data'),
                                 'current_rung': self.name_mop('M_ladder_rung'),
-                                'outcome': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adapt_outcome})
-                                }
+                                'outcome': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adapt_outcome}, is_default_mop=True)
+                                },
+                         is_default_mop=True
             )
             ## adaptation MOPs
             self.add_mop(mop_name='M_adapt_outcome',
                          absts={'M-CALC'},
                          slots={'role': outcome,
-                                'value': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adjust_outcome})})
-            self.add_mop(mop_name='M_adapt')
+                                'value': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adjust_outcome}, is_default_mop=True)},
+                         is_default_mop=True)
+            self.add_mop(mop_name='M_adapt', is_default_mop=True)
 
 
     def make_decision(self, scenario_slots): # like judge.judge_case
@@ -148,10 +316,10 @@ class EscalationLadderCBR(CaseBasedReasoner):
         rung_group = {}
         counter = 1
         for rung in rungs:
-            rung_mop = self.add_mop(absts={'M_ladder_rung'}, slots=rung, mop_type='instance')
+            rung_mop = self.add_mop(absts={'M_ladder_rung'}, slots=rung, mop_type='instance', is_default_mop=True)
             rung_group[counter] = rung_mop
             counter += 1
-        self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance')
+        self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance', is_default_mop=True)
 
     ''' Given some percepts, recursively create groups for as long as some of the things are lists or dicts.
      Eventually return a mop'''

@@ -1,4 +1,6 @@
 import context
+from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
+from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.location import GeographicLocation
@@ -300,10 +302,15 @@ blue_perception_filter.agent = blue_nca
 env.register_object(blue_nca)
 env.add_agent(blue_nca)
 
+# blue_elcbr = EscalationLadderCBR(env, env.time)
+# blue_reasoner.cbr = blue_elcbr
+
 
 # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
 sup.run(verbose = True)
 
+blue_reasoner.export_plot()
+red_reasoner.export_plot()
 # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
 # below its initial position)
 
@@ -330,3 +337,5 @@ red_rung_1a = HotlineLadderRung(match_attributes = any_of([2, 8,
 
 red_ladder_2 = EscalationLadder([red_rung_1a, red_rung_2, red_rung_3, red_rung_4, red_rung_5])
 
+# make_graphviz_graph(blue_elcbr, "blue_elcbr.dot")
+# export_cbr_sqlite(blue_elcbr, "blue_elcbr.sqlite")

@@ -216,6 +216,9 @@ class EscalationLadderReasoner(Reasoner):
 
     def reset_reasoner(self, rung_num=0):
         self.rewind(0)
+        self.digested_percepts.clear()
+        self.actions_taken.clear()
+        self.planned_actions.clear()
         self.current_rung = self.escalation_ladder[rung_num]
 
     def enqueue_digested_percept(self, digested_percept, percept_time):
@@ -290,13 +293,11 @@ class EscalationLadderReasoner(Reasoner):
     
     def _remember_scenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
         if self.cbr:
-            # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
-            ## percepts has attribute events_list, which is a list of percept dictionaries
-            percepts_as_list_of_dict = []
+            all_percepts = []
             for percept in percepts:
-                percepts_as_list_of_dict.append(percept.events_list)
+                all_percepts.append(percept.get_percept_items())
             if self.cbr is not None:
-                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
+                self.cbr.add_ELRScenario(percepts=all_percepts, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
 
 
     def _push_empty_action(self, time):
@@ -428,7 +429,7 @@ class EscalationLadderReasoner(Reasoner):
                 ax.add_line(rung)
                 ax.text(-ladder_halfwidth/2, y+0.1, rung_labels[y], ha='center', va='center')
 
-        plt.step(self.plot_time, [self.escalation_ladder.rung_number(rung)-1 for rung in self.plot_rungs], where="post", label="Rung", marker="o")
+        plt.step(self.plot_time, self.plot_rungs, where="post", label="Rung", marker="o")
         plt.xlabel("Time (s)")
         plt.ylabel("Ladder")
         plt.title("Escalation Ladder" if title is None else title)

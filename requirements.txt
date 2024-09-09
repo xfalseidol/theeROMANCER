@@ -9,6 +9,7 @@ shapely
 dill
 numpy
 scipy
+numpy
 pathlib
 setuptools
 pytest

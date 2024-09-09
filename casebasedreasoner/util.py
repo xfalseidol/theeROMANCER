@@ -1,4 +1,5 @@
 import os.path
+import time
 import sqlite3
 import sys
 
@@ -7,9 +8,16 @@ import inspect
 import types
 import textwrap
 
-def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_edges=True):
+from romancer.environment.object import LoggedDict
+
+
+def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, include_slot_edges=True):
     ''' Given a CBR, returns a representation of this in graphviz format '''
-    g = ["digraph G {", "splines=true", "overlap=false"]
+    g = []
+
+    fname = filename if filename else "cbr.dot"
+    g.append(f"// dot -Kfdp -Tpng -o{fname}.png {fname}")
+    g.extend(["digraph G {", "splines=true", "overlap=false"])
     mopname_to_nodename = {}
     curr_nodeid = 0
     moptype_to_color = {"mop": "red", "instance": "green"}
@@ -33,8 +41,15 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
         thislabel = [
             f"<table cellspacing=\"0\" bgcolor=\"{thismop_color}\"><tr><td colspan=\"2\" id=\"n\">{str(mopname)}</td></tr>"]
         slotnum = 0
-        for slotname in this_mop.slots:
-            val = this_mop.slots[slotname]
+
+        theseslots = this_mop.slots
+        if isinstance(theseslots, LoggedDict):
+            theseslots = theseslots.data
+        if isinstance(theseslots, tuple):
+            theseslots = { i : theseslots[i] for i in range(len(theseslots)) }
+
+        for slotname in theseslots:
+            val = theseslots[slotname]
             val_s = "lambda" if callable(val) else str(val)
             slotnum = slotnum + 1
             thislabel.append(f"<tr><td>{slotname}</td><td id=\"s{str(slotnum)}\">{val_s}</td></tr>")
@@ -88,10 +103,17 @@ def make_graphviz_graph(cbrinst, include_inheritance_edges=True, include_slot_ed
         g.append("\n".join(slot_edges))
 
     g.append('}')
-    return "\n".join(g)
+
+    dot = "\n".join(g)
+    if filename is not None:
+        with open(filename, "w") as out_dot:
+            out_dot.write(dot)
+
+    return dot
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
 def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):
+    t_start = time.time()
     if os.path.exists(dbfile):
         if deleteifexists:
             os.unlink(dbfile)
@@ -192,21 +214,32 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
         cursor.executemany("INSERT INTO mop_spec(mopid, specmopid) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", specrows)
 
-        for slotname in this_mop.slots:
-            val = this_mop.slots[slotname]
+        theseslots = this_mop.slots
+        if isinstance(theseslots, LoggedDict):
+            theseslots = theseslots.data
+        if isinstance(theseslots, tuple):
+            theseslots = { i : theseslots[i] for i in range(len(theseslots)) }
+
+        for slotname in theseslots:
+            # Just in case the name of the slot is anything other than a string
+            slotname_str = str(slotname)
+            if isinstance(slotname, tuple):
+                print(f"It's a tuple, bob {slotname}")
+                continue
+            val = theseslots[slotname]
             val_s = str(val)
             is_func = False
             if callable(val):
                 try:
                     val_s = inspect.getsource(val)
                 except OSError as e:
-                    print(f"Source for {slotname} unavailable")
+                    print(f"Source for {slotname_str} unavailable")
                     val_s = None
                 is_func = True
 
             cursor.execute("INSERT INTO slot(mopid, slotname, val, ref_mopid, is_func) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), ?, ?, (SELECT mopid FROM mop WHERE mopname=?), ?)",
-                           (this_mop.mop_name, slotname, val_s, val_s, is_func))
+                           (this_mop.mop_name, slotname_str, val_s, val_s, is_func))
     else:
         print(f" ... {progress}/{n_mops}")
 
@@ -358,7 +391,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
     ''')
     conn.commit()
     conn.close()
-    print(f"SQLite write complete")
+    t_end = time.time()
+    print(f"SQLite write complete in {t_end-t_start:.2f} seconds")
 
 # For the code-based activities, we're attaching methods to classes
 def __instantiatemethodonclass(instance, code):

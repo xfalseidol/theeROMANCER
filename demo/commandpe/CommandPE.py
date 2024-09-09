@@ -1,5 +1,5 @@
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
-from casebasedreasoner.util import export_cbr_sqlite
+from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.dispositiontree import GeographicDispositionStump
@@ -158,4 +158,5 @@ for scenario in scenarios:
     plot_amygdalas(plot_stress_times, plot_stress_levels)
 
     export_cbr_sqlite(elcbr, f"elcbr_{scenario_name}.sqlite")
+    make_graphviz_graph(elcbr, f"elcbr_{scenario_name}.dot")
 

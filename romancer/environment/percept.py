@@ -13,3 +13,9 @@ class Percept():
         class_name = self.__class__.__name__
         results = {key: self.__getattribute__(key) for key in self.param_names}
         return f"{class_name}({', '.join([f'{k}={v.__repr__()}' for k,v in results.items()])})"
+
+    def get_percept_items(self):
+        ret = {}
+        for k in self.param_names:
+            ret[k] = getattr(self, k)
+        return ret
