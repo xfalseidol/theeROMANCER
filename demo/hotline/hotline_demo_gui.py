@@ -69,8 +69,14 @@ class HotlineGUI:
         fig.set_size_inches(6, 4)
         if self.n_charts <= len(self.canvases):
             canvas = FigureCanvasTkAgg(fig, master=self.frame)
+            column = 2
+            if "BLUE" in fig.axes[0].get_title().upper():
+                column = 0
+            if "RED" in fig.axes[0].get_title().upper():
+                column = 1
+            print()
             canvas.draw()
-            canvas.get_tk_widget().grid(row=self.n_charts%2, column=self.n_charts//2)
+            canvas.get_tk_widget().grid(row=self.n_charts%2, column=column)
             self.canvases.append(canvas)
         else:
             self.canvases[self.n_charts].figure = fig
