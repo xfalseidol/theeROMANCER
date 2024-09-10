@@ -222,6 +222,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         plt.xlabel("Time (s)")
         plt.ylabel("Resolve")
         plt.title(f"{self.identity} Resolve")
+        ax.set_ylim(ymin=0)
         plt.legend()
         plt.savefig(filename)
         plt.show()
