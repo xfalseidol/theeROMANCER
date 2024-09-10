@@ -28,8 +28,8 @@ class HotlineGUI:
         # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
         # self.run_button.pack()
 
-        self.frame = ttk.Frame(self.root)
-        self.frame.pack()
+        self.chartframe = ttk.Frame(self.root)
+        self.chartframe.pack()
 
         def show_capture():
             self.hotline_show()
@@ -68,7 +68,7 @@ class HotlineGUI:
         fig = plt.gcf()
         fig.set_size_inches(6, 4)
         if self.n_charts <= len(self.canvases):
-            canvas = FigureCanvasTkAgg(fig, master=self.frame)
+            canvas = FigureCanvasTkAgg(fig, master=self.chartframe)
             column = 2
             if "BLUE" in fig.axes[0].get_title().upper():
                 column = 0
