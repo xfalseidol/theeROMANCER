@@ -244,7 +244,7 @@ def run_hotline(
     sup.dispatch_table['HotlinePrivateROMANCERMessage'] = hotline_private_message_dispatcher
     sup.dispatch_table['HotlineRungChangeMessage'] = hotline_rung_change_dispatcher
     # sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
-    sup.watchlist.push(Stop(time=1.21e6)) # Stop at 1.21e6 seconds (about two weeks)
+    sup.watchlist.push(Stop(time=86400 * 2))
 
     min_lat = deg2rad(-180)
     max_lat = deg2rad(180)
