@@ -309,7 +309,10 @@ def run_hotline(
     sup.run(verbose = True)
 
     blue_reasoner.export_plot()
+    # blue_amygdala.export_plot()
+
     red_reasoner.export_plot()
+    # red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 
