@@ -81,12 +81,15 @@ class Amygdala(ImprovedRomancerObject):
 
         plt.title("Mood Meter" if title is None else title)
         plt.savefig(filename)
-#        plt.show()
+        plt.show()
 
 
     def current_amygdala_parameters(self):
         '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Note that it does not update and log self.pbf.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
+        halflife_eps = 0.0000001
+        if self.pbf_halflife < halflife_eps:
+            self.pbf_halflife = halflife_eps
         cur_pbf = self.pbf * 2**(-delta_t / self.pbf_halflife)
         self.pbf = cur_pbf
         self.last_pbf_update_time = self.time

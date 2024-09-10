@@ -215,15 +215,26 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
     def export_plot(self):
         filename = self.identity + "_resolve.png"
         fig, ax = plt.subplots(figsize=(10, 6))
-        plt.step([tup[0] for tup in self._plot_resolve], [tup[1] for tup in self._plot_resolve],
+        my_resolve_x = [tup[0] for tup in self._plot_resolve]
+        my_resolve_x.append(self.environment.time)
+        print(f"Time in reasoner during plot: {self.environment.time}")
+        my_resolve_y = [tup[1] for tup in self._plot_resolve]
+        my_resolve_y.append(my_resolve_y[-1])
+        plt.step(my_resolve_x, my_resolve_y,
                  where="post", label="My Resolve", marker="o")
-        plt.step([tup[0] for tup in self._plot_perceived_resolve], [tup[1] for tup in self._plot_perceived_resolve],
+
+        their_resolve_x = [tup[0] for tup in self._plot_perceived_resolve]
+        their_resolve_x.append(self.environment.time)
+        their_resolve_y = [tup[1] for tup in self._plot_perceived_resolve]
+        their_resolve_y.append(their_resolve_y[-1])
+        plt.step(their_resolve_x, their_resolve_y ,
                  where="post", label="Perceived Resolve", marker="o")
         plt.xlabel("Time (s)")
         plt.ylabel("Resolve")
         plt.title(f"{self.identity} Resolve")
+        ax.set_ylim(ymin=0)
         plt.legend()
-        plt.savefig(filename)
+        # plt.savefig(filename)
         plt.show()
 
         super().export_plot("escladder_" + filename, f"Escladder {self.identity}")

@@ -429,14 +429,19 @@ class EscalationLadderReasoner(Reasoner):
                 ax.add_line(rung)
                 ax.text(-ladder_halfwidth/2, y+0.1, rung_labels[y], ha='center', va='center')
 
-        plt.step(self.plot_time, self.plot_rungs, where="post", label="Rung", marker="o")
+        plot_time = self.plot_time.copy()
+        plot_time.append(self.environment.time)
+        print(f"Time in elr at plot: {self.environment.time}")
+        plot_rungs = self.plot_rungs.copy()
+        plot_rungs.append(plot_rungs[-1])
+        plt.step(plot_time, plot_rungs, label="Rung", marker="o")
         plt.xlabel("Time (s)")
         plt.ylabel("Ladder")
         plt.title("Escalation Ladder" if title is None else title)
         plt.legend()
 
         plt.yticks(range(len(rung_labels)), labels=rung_labels)
-        plt.savefig(filename)
+        # plt.savefig(filename)
         plt.show()
 
     def visualise_final(self):
