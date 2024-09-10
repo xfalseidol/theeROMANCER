@@ -10,24 +10,48 @@ class HotlineGUI:
         self.canvases = []
         self.root = tk.Tk()
         self.root.title("Hotline")
+        self.sliders = {}
+        self.slidervalues = {}
+        self.slider_frame = tk.Frame(self.root)
+        self.slider_frame.pack(side=tk.TOP, fill=tk.X, expand=True, padx=10, pady=10)
 
-        red_slider_label = ttk.Label(self.root, text="Red Response Threshold")
-        red_slider_label.pack()
-        self.red_threshold_slider = ttk.Scale(self.root, from_=0.0, to=1.0, orient="horizontal")
-        self.red_threshold_slider.pack()
-        self.red_threshold_slider.bind("<ButtonRelease-1>", self.on_slider_change)
+        self.create_slider("Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.001, 0, 0)
+        self.create_slider("Blue Initial PBF", "red_initial_pbf", 0.0, 100.0, 0.001, 0, 1)
+        self.create_slider("Red Max PBF", "red_max_pbf", 0.0, 1.0, 1.0, 0, 2)
+        self.create_slider("Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 100000, 0, 3)
 
-        blue_slider_label = ttk.Label(self.root, text="Blue Response Threshold")
-        blue_slider_label.pack()
-        self.blue_threshold_slider = ttk.Scale(self.root, from_=0.0, to=1.0, orient="horizontal")
-        self.blue_threshold_slider.pack()
-        self.blue_threshold_slider.bind("<ButtonRelease-1>", self.on_slider_change)
-
-        self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
-        self.run_button.pack()
+        self.create_slider("Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.001, 1, 0)
+        self.create_slider("Blue Initial PBF", "blue_initial_pbf", 0.0, 100.0, 0.001, 1, 1)
+        self.create_slider("Blue Max PBF", "blue_max_pbf", 0.0, 1.0, 1.0, 1, 2)
+        self.create_slider("Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 100000, 1, 3)
+        #
+        # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
+        # self.run_button.pack()
 
         self.frame = ttk.Frame(self.root)
         self.frame.pack()
+
+        def show_capture():
+            self.hotline_show()
+        plt.show = show_capture
+        self.run_hotline_guiparam()
+
+    def create_slider(self, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x, grid_y):
+        slider_label = ttk.Label(self.slider_frame, text=sliderlabel)
+        slider_label.grid(row=grid_x, column=3*grid_y, padx=5, pady=5, sticky="w")
+        slider = ttk.Scale(self.slider_frame, from_=slidermin, to=slidermax, orient="horizontal")
+        slider.set(sliderdefault)
+        slider.grid(row=grid_x, column=3*grid_y+1, padx=5, pady=5, sticky="ew")
+        slider.bind("<ButtonRelease-1>", self.on_slider_change)
+        slider.bind("<Motion>", self.update_slider_values)
+        slider_value_label = ttk.Label(self.slider_frame, text=slider.get())
+        slider_value_label.grid(row=grid_x, column=3*grid_y+2, padx=5, pady=5, stick="e")
+        self.slidervalues[slider] = slider_value_label
+        self.sliders[slidername] = slider
+
+    def update_slider_values(self, event=None):
+        for slider in self.slidervalues:
+            self.slidervalues[slider].config(text=f"{slider.get():.3f}")
 
     def on_slider_change(self, event):
         self.run_hotline_guiparam()
@@ -37,15 +61,16 @@ class HotlineGUI:
 
     def run_hotline_guiparam(self):
         self.n_charts = 0
-        run_hotline(red_response_threshhold=self.red_threshold_slider.get(), blue_response_threshhold=self.blue_threshold_slider.get())
+        params = { k: v.get() for k, v in self.sliders.items() }
+        run_hotline(**params)
 
     def hotline_show(self):
         fig = plt.gcf()
-        fig.set_size_inches(4, 3)
+        fig.set_size_inches(6, 4)
         if self.n_charts <= len(self.canvases):
             canvas = FigureCanvasTkAgg(fig, master=self.frame)
             canvas.draw()
-            canvas.get_tk_widget().grid(row=self.n_charts//2, column=self.n_charts%2)
+            canvas.get_tk_widget().grid(row=self.n_charts%2, column=self.n_charts//2)
             self.canvases.append(canvas)
         else:
             self.canvases[self.n_charts].figure = fig
@@ -55,8 +80,4 @@ class HotlineGUI:
 
 if __name__ == "__main__":
     hgui = HotlineGUI()
-    def show_capture():
-        hgui.hotline_show()
-    plt.show = show_capture
-
     hgui.mainloop()
