@@ -166,13 +166,13 @@ class MatchAllRung(EscalationLadderRung):
 
         # if any digested percept's singular event matches all attributes, the rung is matched
         for percept in reasoner.digested_percepts:
+            # we want to match EVERY attribute in match_attributes against SOME event in the percept's event list
             for event in percept.events_list:
-                match = True
+                match = True # try to proce there ISN't a match
                 for attribute, value in self.match_attributes.items():
-                    try:
-                        event_value = event[attribute]
-                        if event_value != value:
-                            match = False # an attribute does not match
+                    try: # attempt to access the match attribute out of the current event
+                        if event[attribute] != value:
+                            match = False # at least one attribute does not match
                     except:
                         match = False # the event does not have the right attributes
                 if match: # all rung attributes have a matching value in the event
@@ -293,12 +293,13 @@ class EscalationLadderReasoner(Reasoner):
     
     def _remember_scenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
         if self.cbr:
-            all_percepts = []
+            # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
+            ## percepts has attribute events_list, which is a list of percept dictionaries
+            percepts_as_list_of_dict = []
             for percept in percepts:
-                all_percepts.append(percept.get_percept_items())
+                percepts_as_list_of_dict.append(percept.events_list)
             if self.cbr is not None:
-                self.cbr.add_ELRScenario(percepts=all_percepts, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
-
+                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
 
     def _push_empty_action(self, time):
         heappush(self.planned_actions, (time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))

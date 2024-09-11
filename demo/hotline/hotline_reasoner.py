@@ -211,14 +211,15 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
 
     def _deescalate(self, amygdala):
+        previous_rung = self.current_rung
         super()._deescalate(amygdala)
-        next_rung = self.escalation_ladder.next_rung(self.current_rung)
+        # next_rung = self.escalation_ladder.next_rung(self.current_rung)
         message = HotlineRungChangeMessage(uid=self.new_message_index(),
                                                time = self.time,
                                                sender=(self.environment.uid, self.compute_self_uid()),
                                                recipient=(1,1),
                                                messagetype='HotlineRungChangeMessage',
-                                               old_rung=next_rung,
+                                               old_rung=previous_rung,
                                                new_rung=self.current_rung)
         heappush(self.planned_actions, (self.time, message, None))
 
