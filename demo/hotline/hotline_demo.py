@@ -15,13 +15,6 @@ from hotline_actions import DeterrentThreat, CompellentThreat, ConcessionOffer, 
 from numpy import deg2rad, rad2deg
 
 
-# TODO: 
-# 1. and test implement SendPublicMessage, SendPrivateMessage
-# 2. test any_of, all_of, HotlineRung
-# 3. write translation dictionary for action-description
-# 4. implement "script generation" of the simulation:
-### - write custom print/log behavior that logs interactions: "RED: Do this or I'll do this.", "BLUE: I concede, I'll do this."
-
 # We assume that the universe of possible actions is represented by a set of unique integers {1, ... 60}
 # We should add a mechanism for associating these numbers with human-readable descriptions, but that isn't essential to get this
 # initial demo working.
@@ -200,11 +193,11 @@ def run_hotline(
                                                     (20000, 56, UpdateAmygdalaParameters(0.7, 0.3, 2.0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
                                     red_actions = [(2000, 49, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                    (20000, 55, UpdateAmygdalaParameters(0.2, 0.3, 0, 0))], # actions that agent assumes red could or should take at this rung (can overlap with match attributes but don't have to)
-                                    blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(54, 53, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
-                                                                 (25000, 54, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
-                                                                 (35000, SendPrivateMessage(ConcessionOffer(60, 59, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
-                                                                 (45000, 60, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2))], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
-                                    red_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(53, 54, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
+                                    blue_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(54, 53, None)), UpdateAmygdalaParameters(0.0, -0.5, 0.5, 0.2)),
+                                                                 (25000, 54, UpdateAmygdalaParameters(0.0, -0.5, 0.5, 0.2)),
+                                                                 (35000, SendPrivateMessage(ConcessionOffer(60, 59, None)), UpdateAmygdalaParameters(0.0, -0.5, 0.5, 0.2)),
+                                                                 (45000, 60, UpdateAmygdalaParameters(0.0, -0.5, 0.5, 0.2))], # actions that agent assumes that blue will take if it attempts to de-escalate from this rung)
+                                    red_deescalation_actions = [(600, SendPrivateMessage(ConcessionOffer(53, 54, None)), UpdateAmygdalaParameters(0.0, -0.5, 0.5, 0.2)),
                                                                  (25000, 53, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                                  (35000, SendPrivateMessage(ConcessionOffer(59, 60, None)), UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2)),
                                                                  (45000, 59, UpdateAmygdalaParameters(0.2, -0.5, 0.5, 0.2))], # actions that agent assumes that red will take if it attempts to de-escalate from this rung

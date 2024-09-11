@@ -1,5 +1,4 @@
 from escalationladderreasoner import EscalationLadderCBR
-from simulation_scenario import run
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.agent.escalationladderreasoner import EscalationLadderReasoner, MatchAllRung, EscalationLadder
 from romancer.agent.amygdala import Amygdala, Amygdala_Fight, Amygdala_Freeze, Amygdala_Flight, Amygdala_StoneCold
@@ -37,9 +36,9 @@ def _get_amygdala_random(env, count):
 
 def _get_amygdala_archetypes(env):
     archetype_amygs = [
-        Amygdala_Fight(env, env.time),
-        Amygdala_Flight(env, env.time),
-        Amygdala_Freeze(env, env.time),
+        # Amygdala_Fight(env, env.time),
+        # Amygdala_Flight(env, env.time),
+        # Amygdala_Freeze(env, env.time),
         Amygdala_StoneCold(env, env.time)
     ]
     return archetype_amygs
@@ -86,27 +85,29 @@ for amygdala in amygdalas:
         for weapon in range(1, weapon_classes + 1):
             for target in range(1, target_classes + 1):
                 for hit_count in range(hit_counts):
+                    ELR.current_rung = ELR.escalation_ladder[rungnum]
+                    ELR.digested_percepts.clear()
                     ELR.reset_reasoner(rungnum)
-                    percept = Percept(events_list={'weapon': weapon, 'target': target, 'count': hit_count})
+                    percept = Percept(events_list=[{'weapon': str(weapon), 'target': str(target), 'count': str(hit_count)}])
                     ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
                     ELR.deliberate(0, amygdala) # this will log ELRscenario memories into the attached CBR
 
     print()
-    for rungnum in range(len(ELR.escalation_ladder)):
-        print(f"    ... Stochastic Training: rung {rungnum} with {percepts_per_stochastic_train} compound percepts in {stochastic_train_scenarios} scenarios")
-        for _ in range(stochastic_train_scenarios):
-            ELR.reset_reasoner(rungnum)
-            for _ in range(percepts_per_stochastic_train):
-                events_list = []
-                for _ in range(items_per_stochastic_percept):
-                    events_list.append({'weapon': 1+random.randint(0, weapon_classes),
-                                               'target': 1+random.randint(0, target_classes),
-                                               'count': random.randint(0, 3)})
-                if 1 == len(events_list):
-                    events_list = events_list[0]
-                percept = Percept(events_list=events_list)
-                ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
-            ELR.deliberate(0, amygdala)
+    # for rungnum in range(len(ELR.escalation_ladder)):
+    #     print(f"    ... Stochastic Training: rung {rungnum} with {percepts_per_stochastic_train} compound percepts in {stochastic_train_scenarios} scenarios")
+    #     for _ in range(stochastic_train_scenarios):
+    #         ELR.reset_reasoner(rungnum)
+    #         for _ in range(percepts_per_stochastic_train):
+    #             events_list = []
+    #             for _ in range(items_per_stochastic_percept):
+    #                 events_list.append({'weapon': 1+random.randint(0, weapon_classes),
+    #                                            'target': 1+random.randint(0, target_classes),
+    #                                            'count': random.randint(0, 3)})
+    #             if 1 == len(events_list):
+    #                 events_list = events_list[0]
+    #             percept = Percept(events_list=events_list)
+    #             ELR.enqueue_digested_percept(digested_percept=percept, percept_time=0)
+    #         ELR.deliberate(0, amygdala)
 
     # print()
     # for depth in range(5):
@@ -126,15 +127,15 @@ for amygdala in amygdalas:
 
     print()
 
-ELCBR.display_memory()
+ELCBR.display_memory(include_scenario_details=False)
 
-export_cbr_sqlite(ELCBR, "trainedELCBR.sqlite")
+# export_cbr_sqlite(ELCBR, "trainedELCBR.sqlite")
 
-# serialize it
-print(f"Pickling trained ELCBR, with {len(ELCBR.mops)} mops")
-ELCBR.serialize("trainedELCBR.pkl")
+# # serialize it
+# print(f"Pickling trained ELCBR, with {len(ELCBR.mops)} mops")
+# ELCBR.serialize("trainedELCBR.pkl")
 
-# create a new CB-ELR and load the old one's memories into it
-print("Verify-Loading trained ELCBR")
-new_ELCBR = EscalationLadderCBR(env, env.time, load_memory_from="trainedELCBR.pkl")
-print(f"Reloaded CBR has {len(new_ELCBR.mops)} mops")
+# # create a new CB-ELR and load the old one's memories into it
+# print("Verify-Loading trained ELCBR")
+# new_ELCBR = EscalationLadderCBR(env, env.time, load_memory_from="trainedELCBR.pkl")
+# print(f"Reloaded CBR has {len(new_ELCBR.mops)} mops")

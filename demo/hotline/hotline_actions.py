@@ -170,7 +170,7 @@ class HotlineAction(WatchlistItem):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
         script_version += translation_dictionary[self.action_id]
-        stress =_get_amygdala_display(self.params)
+        stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
 
@@ -188,6 +188,9 @@ class HotlineMessage(WatchlistItem):
         # take next action on agent's reasoner's action queue
         params = agent.reasoner.take_next_action()
         self.params = agent.amygdala.current_amygdala_parameters()
+        if params:
+            agent.amygdala.update_parameters(params)
+        self.params = agent.amygdala.current_amygdala_parameters()
         if self.public:
             supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[], public_messages=[self.message])
         else:
@@ -203,7 +206,7 @@ class HotlineMessage(WatchlistItem):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.sender]}: {self.message.submessage}"
-        stress =_get_amygdala_display(self.params)
+        stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
     
 
@@ -219,6 +222,9 @@ class HotlineRungChange(WatchlistItem):
     def process(self, supervisor):
         agent = supervisor.environment.message_dispatch_table[self.who]
         params = agent.reasoner.take_next_action()
+        if params:
+            agent.amygdala.update_parameters(params)
+        self.params = agent.amygdala.current_amygdala_parameters()
         self.params = agent.amygdala.current_amygdala_parameters()
 
 
@@ -233,7 +239,7 @@ class HotlineRungChange(WatchlistItem):
             script_version += f"I'm escalating from {self.old_rung} to {self.new_rung}."
         else:
             script_version += f"I'm deescalating from {self.old_rung} to {self.new_rung}."
-        stress =_get_amygdala_display(self.params)
+        stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
 
