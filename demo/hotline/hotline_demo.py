@@ -1,6 +1,8 @@
 import context
+import csv
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
+from demo.hotline.hotline_rules import matching_rules, actionlexicon
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.location import GeographicLocation
@@ -9,9 +11,10 @@ from romancer.agent.amygdala import UpdateAmygdalaParameters, Amygdala
 from romancer.agent.personlikeagent import push_personlike_action
 from romancer.agent.escalationladderreasoner import EscalationLadder
 from romancer.agent.escalationladderagent import EscalationLadderAgent
-from hotline_reasoner import HotlineLadderRung, HotlineLadderReasoner, any_of, all_of, min_adversary_resolve
+from hotline_reasoner import HotlineLadderRung, HotlineLadderReasoner
 from hotline_percept import HotlinePerceptionEngine, HotlinePerceptionFilter, SendPrivateMessage, SendPublicMessage, HotlineActionROMANCERMessage, HotlinePrivateROMANCERMessage, HotlinePublicROMANCERMessage
-from hotline_actions import DeterrentThreat, CompellentThreat, ConcessionOffer, hotline_action_dispatcher, hotline_public_message_dispatcher, hotline_private_message_dispatcher, hotline_deliberate_action, hotline_deterministic_action, hotline_rung_change_dispatcher
+from hotline_actions import hotline_action_dispatcher, hotline_public_message_dispatcher, hotline_private_message_dispatcher, hotline_deliberate_action, hotline_deterministic_action, hotline_rung_change_dispatcher
+from hotline_rules import DeterrentThreat, CompellentThreat, ConcessionOffer
 from numpy import deg2rad, rad2deg
 
 
@@ -63,15 +66,8 @@ def run_hotline(
         red_max_pbf = 1.0,
         red_response_threshhold = 0.7,
     ):
-    red_rung_1 = HotlineLadderRung(match_attributes = any_of([1, 2, 7, 8,
-                                                              DeterrentThreat(14, 13, None),
-                                                              all_of((DeterrentThreat(20, 19, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(2, 3, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(8, 9, None), min_adversary_resolve(0.2))),
-                                                              DeterrentThreat(13, 14, None),
-                                                              all_of((DeterrentThreat(19, 20, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(4, 1, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(10, 7, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
+
+    red_rung_1 = HotlineLadderRung(match_attributes = matching_rules[1], # the characteristics mapped from the percepts the agent has digested that map to this rung
                                     red_actions = [(1000, SendPublicMessage(DeterrentThreat(14, 13, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                    (2000, 1, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                    (10000, SendPrivateMessage(DeterrentThreat(20, 19, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
@@ -93,17 +89,12 @@ def run_hotline(
 
     blue_rung_1 = red_rung_1 # mirror-imaged rung can literally be same object!
 
+    def _a(side, action, suffix):
+        return actionlexicon.get_actionnum(side, action, suffix)
 
     # here's the flow when an agent takes
-    red_rung_2 = HotlineLadderRung(match_attributes = any_of([13, 14, 19, 20,
-                                                              DeterrentThreat(26, 25, None),
-                                                              all_of((DeterrentThreat(31, 32, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(15, 14, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(21, 20, None), min_adversary_resolve(0.2))),
-                                                              DeterrentThreat(25, 26, None),
-                                                              all_of((DeterrentThreat(32, 31, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(16, 13, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(22, 19, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
+    red_rung_2 = HotlineLadderRung(match_attributes = matching_rules[2], # the characteristics mapped from the percepts the agent has digested that map to this rung
+
                                     red_actions = [(1000, SendPublicMessage(DeterrentThreat(26, 25, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                     (2000, 13, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                     (10000, SendPrivateMessage(DeterrentThreat(32, 31, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
@@ -127,15 +118,7 @@ def run_hotline(
 
     # repeat this pattern for rungs 3-5
 
-    red_rung_3 = HotlineLadderRung(match_attributes = any_of([25, 26, 31, 32,
-                                                              DeterrentThreat(38, 37, None),
-                                                              all_of((DeterrentThreat(43, 44, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(27, 26, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(33, 32, None), min_adversary_resolve(0.2))),
-                                                              DeterrentThreat(37, 38, None),
-                                                              all_of((DeterrentThreat(44, 43, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(28, 25, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(34, 31, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
+    red_rung_3 = HotlineLadderRung(match_attributes = matching_rules[3], # the characteristics mapped from the percepts the agent has digested that map to this rung
                                     red_actions = [(1000, SendPublicMessage(DeterrentThreat(38, 37, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                     (2000, 25, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                     (10000, SendPrivateMessage(DeterrentThreat(44, 43, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
@@ -158,15 +141,7 @@ def run_hotline(
     blue_rung_3 = red_rung_3
 
 
-    red_rung_4 = HotlineLadderRung(match_attributes = any_of([37, 38, 43, 44,
-                                                              DeterrentThreat(50, 49, None),
-                                                              all_of((DeterrentThreat(55, 56, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(39, 38, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(45, 44, None), min_adversary_resolve(0.2))),
-                                                              DeterrentThreat(49, 50, None),
-                                                              all_of((DeterrentThreat(56, 55, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(40, 37, None), min_adversary_resolve(0.5))),
-                                                              all_of((CompellentThreat(46, 43, None), min_adversary_resolve(0.2)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
+    red_rung_4 = HotlineLadderRung(match_attributes = matching_rules[4], # the characteristics mapped from the percepts the agent has digested that map to this rung
                                     red_actions = [(1000, SendPublicMessage(DeterrentThreat(50, 49, None)), UpdateAmygdalaParameters(0.1, 0.1, 0, 0)),
                                                     (2000, 37, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                     (10000, SendPrivateMessage(DeterrentThreat(56, 55, None)), UpdateAmygdalaParameters(0.2, 0.2, 0, 0)),
@@ -189,13 +164,7 @@ def run_hotline(
     blue_rung_4 = red_rung_4
 
 
-    red_rung_5 = HotlineLadderRung(match_attributes = any_of([49, 50, 55, 56,
-                                                              all_of((DeterrentThreat(55, 56, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(51, 50, None), min_adversary_resolve(0.7))),
-                                                              all_of((CompellentThreat(57, 56, None), min_adversary_resolve(0.5))),
-                                                              all_of((DeterrentThreat(56, 55, None), min_adversary_resolve(0.85))),
-                                                              all_of((CompellentThreat(52, 49, None), min_adversary_resolve(0.7))),
-                                                              all_of((CompellentThreat(58, 55, None), min_adversary_resolve(0.5)))]), # the characteristics mapped from the percepts the agent has digested that map to this rung
+    red_rung_5 = HotlineLadderRung(match_attributes = matching_rules[5], # the characteristics mapped from the percepts the agent has digested that map to this rung
                                     blue_actions = [(2000, 50, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),
                                                     (20000, 56, UpdateAmygdalaParameters(0.7, 0.3, 2.0, 0))], # actions that agent assumes blue could or should take at this rung (can overlap with match attributes but don't have to)
                                     red_actions = [(2000, 49, UpdateAmygdalaParameters(0.1, 0.2, 0, 0)),

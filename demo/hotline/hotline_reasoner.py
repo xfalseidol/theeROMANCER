@@ -1,8 +1,8 @@
+import csv
 from romancer.agent.escalationladderreasoner import EscalationLadderRung, EscalationLadderReasoner
 from typing import NamedTuple
 from hotline_percept import SendPrivateMessage, SendPublicMessage, HotlineMessagePercept, HotlineActionPercept, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage, HotlineRungChangeMessage
-from hotline_actions import DeterrentThreat, CompellentThreat, ConcessionOffer
-from functools import reduce
+from hotline_rules import DeterrentThreat, CompellentThreat, ConcessionOffer
 from heapq import heappush, heappop
 import matplotlib.pyplot as plt
 
@@ -21,48 +21,6 @@ import matplotlib.pyplot as plt
 # 25 to action 23 (at any level of credibility), or if the adversary has made the threat to take action 32 unless the reasoner
 # makes action 31, and the reasoner assesses the opponent's credibility at >= 0.75.
 
-
-class any_of(tuple):
-
-    def evaluate(self, reasoner, amygdala):
-        '''Recursively evaluate contents of self until at least one top-level member evaluates to True. If a member is an integer, it is assumed to represent an action that the reasoner perceives to have been taken.'''
-
-        taken_actions = set({percept.action_taken for percept in reasoner.digested_percepts if isinstance(percept, HotlineActionPercept)})
-
-        def action_taken(n):
-            return n in taken_actions
-
-        # actions_taken = []  
-        # for m in self:
-        #     if isinstance(m, int):
-        #         actions_taken.append(action_taken(m))
-        #     else:
-        #         actions_taken.append(m.evaluate(reasoner, amygdala))
-        # return any(actions_taken)
-        # returns true if any action m has been taken or if any other behavior m evaluates to true
-        return any((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self if isinstance(m, int)))
-
-
-class all_of(tuple):
-    
-    def evaluate(self, reasoner, amygdala):
-        '''Recursively evaluate contents of self, breaking if a top-level member evaluates False. Returns True if all top-level members return True. If a member is an integer, it is assumed to represent an action that the reasoner perceives to have been taken.'''
-
-        taken_actions = set({percept.action_taken for percept in self.digested_percepts if isinstance(percept, HotlineActionPercept)})
-
-        def action_taken(n):
-            return n in taken_actions
-        
-        return all((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self))
-
-
-class min_adversary_resolve(NamedTuple):
-    min_resolve: float
-
-    def evaluate(self, reasoner, amygdala):
-        '''Checks if current estimate of adversary resolve presently meets of exceeds self.min_resolve.'''
-        return reasoner.perceived_adversary_resolve >= self.min_resolve
-        
 
 class HotlineLadderRung(EscalationLadderRung):
     '''match_attributes is assumed to be a statement in the matching DSL which as a .evaluate(reasoner, amygdala) method.'''
