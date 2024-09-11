@@ -1,4 +1,4 @@
-from cbr import CaseBasedReasoner, MOPComparerSorter, MOP
+from casebasedreasoner.cbr import CaseBasedReasoner, MOPComparerSorter, MOP
 from dill import dump, load
 from pathlib import Path
 import matplotlib.pyplot as plt
