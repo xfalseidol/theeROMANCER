@@ -175,7 +175,8 @@ class ConcessionOffer(NamedTuple):  # "If you do {quid}, I'll do {quo}, until {d
 
 
 # Return a map of run_number to matcher
-def load_matcher_csv(csvfile, actionlexicon):
+def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
+    # Any actors [subject, object] that appear as keys in actor_mapping get replaced with their mapped value
     retval = {}
 
     rules = []
@@ -189,22 +190,22 @@ def load_matcher_csv(csvfile, actionlexicon):
             rules = retval.get(rung_number, [])
             retval[rung_number] = rules
 
-            subject = actionlexicon.get_actionnum(row['subject_side'], row['subject_action'], row['subject_suffix'])
-            object = actionlexicon.get_actionnum(row['object_side'], row['object_action'], row['object_suffix'])
-            if subject is None:
-                print(f"Error in input. Could not find action number for {row['subject_side']} {row['subject_action']} {row['subject_suffix']}")
+            subject_side = actor_mapping[row['subject_side']] if row['subject_side'] in actor_mapping else row['subject_side']
+            object_side = actor_mapping[row['object_side']] if row['object_side'] in actor_mapping else row['object_side']
+            actor_subj = actionlexicon.get_actionnum(subject_side, row['subject_action'], row['subject_suffix'])
+            actor_obj = actionlexicon.get_actionnum(object_side, row['object_action'], row['object_suffix'])
+            if actor_subj is None:
+                print(f"Error in input. Could not find action number for {row['subject_side']}={subject_side} {row['subject_action']} {row['subject_suffix']}")
 
             min_resolve_str = row.get('min_adversary_resolve', '')
             min_resolve = min_adversary_resolve(float(min_resolve_str) if len(min_resolve_str)>0 else -1)
             if row['verb'] == 'ActionTaken':
-                rules.append(ActionTaken(subject))
+                rules.append(ActionTaken(actor_subj))
             elif row['verb'] == 'DeterrentThreat':
-                threat = DeterrentThreat(subject, object, None)
+                threat = DeterrentThreat(actor_subj, actor_obj, None)
                 rules.append(all_of([threat, min_resolve]))
             elif row['verb'] == 'CompellentThreat':
-                threat = CompellentThreat(subject, object, None)
+                threat = CompellentThreat(actor_subj, actor_obj, None)
                 rules.append(all_of([threat, min_resolve]))
 
     return {rung: any_of(rules) for rung, rules in retval.items()}
-
-matching_rules = load_matcher_csv("data/matchingrules.csv", actionlexicon)
