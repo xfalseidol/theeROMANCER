@@ -172,8 +172,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         self._plot_resolve.append( (self.time, self.resolve) )
         self._plot_perceived_resolve.append((self.time, self.perceived_adversary_resolve) )
 
-    def export_plot(self):
-        filename = self.identity + "_resolve.png"
+    def export_plot_resolve(self, filename=None):
         fig, ax = plt.subplots(figsize=(10, 6))
         my_resolve_x = [tup[0] for tup in self._plot_resolve]
         my_resolve_x.append(self.environment.time)
@@ -186,15 +185,21 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         their_resolve_x.append(self.environment.time)
         their_resolve_y = [tup[1] for tup in self._plot_perceived_resolve]
         their_resolve_y.append(their_resolve_y[-1])
-        plt.step(their_resolve_x, their_resolve_y ,
+        plt.step(their_resolve_x, their_resolve_y,
                  where="post", label="Perceived Resolve", marker="o")
         plt.xlabel("Time (s)")
         plt.ylabel("Resolve")
         plt.title(f"{self.identity} Resolve")
         ax.set_ylim(ymin=0)
         plt.legend()
-        # plt.savefig(filename)
+        if filename is not None:
+            plt.savefig(filename)
         plt.show()
+
+    def export_plot(self):
+        filename = self.identity + "_resolve.png"
+
+        self.export_plot_resolve(filename)
 
         super().export_plot("escladder_" + filename, f"Escladder {self.identity}")
     
@@ -257,13 +262,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
     def _enqueue_deescalation_actions(self):
         '''Need to override this to account for more compact action descriptions.'''
-        if self.identity == 'blue':
-            actions = self.current_rung.blue_deescalation_actions
-        elif self.identity == 'red':
-            actions = self.current_rung.red_deescalation_actions
 
         # Loop through actions
-        for action in actions:
+        for action in self.current_rung.deescalation_actions:
             action_messages = list()
             delta_t, action_or_message, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
