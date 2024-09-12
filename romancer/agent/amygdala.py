@@ -30,7 +30,7 @@ class Amygdala(ImprovedRomancerObject):
     FLIGHT_STR = "flight"
     FREEZE_STR = "freeze"
 
-    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 100, max_pbf = 1.0, response_threshhold = 1.0):
+    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 100, max_pbf = 1.0, response_threshhold = 1.0, name=""):
         super().__init__(environment, time)
         self.fight_weight = fight_weight # used to update/predict fight response
         self.flight_weight = flight_weight # used to update/predict flight response
@@ -44,6 +44,7 @@ class Amygdala(ImprovedRomancerObject):
         self.pbf_halflife = pbf_halflife # half-life of cortisol
         self.max_pbf = max_pbf # maximum possible cortisol level
         self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
+        self.name = name
 
         # Eventually capture from the logged object, but for now capture these synchronously as they change.
         self.plot_time = []
@@ -79,7 +80,7 @@ class Amygdala(ImprovedRomancerObject):
         ax2.set_ylabel("PBF")
         ax2.legend(loc="upper right")
 
-        plt.title("Mood Meter" if title is None else title)
+        plt.title(f"{self.name} Mood Meter" if title is None else title)
         plt.savefig(filename)
         plt.show()
 
