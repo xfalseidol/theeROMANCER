@@ -2,7 +2,9 @@ import csv
 from functools import reduce
 from typing import NamedTuple
 
-from demo.hotline.hotline_percept import HotlineActionPercept, HotlineMessagePercept
+from agent.amygdala import UpdateAmygdalaParameters
+from demo.hotline.hotline_percept import HotlineActionPercept, HotlineMessagePercept, SendPublicMessage, \
+    SendPrivateMessage
 
 
 class any_of(tuple):
@@ -209,3 +211,68 @@ def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
                 rules.append(all_of([threat, min_resolve]))
 
     return {rung: any_of(rules) for rung, rules in retval.items()}
+
+
+# Return a map of rung_number to list of time-action tuples
+def load_matcher_csv(csvfile, actionlexicon, actiontype="action", actor_mapping={}):
+    # Any actors [subject, object] that appear as keys in actor_mapping get replaced with their mapped value
+    retval = {}
+
+    rules = []
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if 0 == len(row["rung_number"].strip()):
+                continue
+
+            rung_number = int(row['rung_number'])
+            rules = retval.get(rung_number, [])
+            retval[rung_number] = rules
+
+            if row['act_type'] != actiontype:
+                continue
+
+            action_time = float(row['action_time'])
+
+            subject_side = actor_mapping[row['subject_side']] if row['subject_side'] in actor_mapping else row['subject_side']
+            actor_subj = actionlexicon.get_actionnum(subject_side, row['subject_action'], row['subject_suffix'])
+            actor_obj = None
+            have_object = len(row['object_side'].strip()>0)
+            if have_object:
+                object_side = actor_mapping[row['object_side']] if row['object_side'] in actor_mapping else row['object_side']
+                actor_obj = actionlexicon.get_actionnum(object_side, row['object_action'], row['object_suffix'])
+
+            if actor_subj is None:
+                print(f"Error in input. Could not find action number for {row['subject_side']}={subject_side} {row['subject_action']} {row['subject_suffix']}")
+
+            act = None
+            if row['verb'] == 'DoAction':
+                pass
+                # act = ActionTaken(actor_subj))
+            elif row['verb'] == 'DeterrentThreat':
+                act = DeterrentThreat(actor_subj, actor_obj, None)
+            elif row['verb'] == 'ConcessionOffer':
+                act = ConcessionOffer(actor_subj, actor_obj, None)
+            elif len(row['verb'].strip()) > 0:
+                print(f"Error in input, don't know what to do with verb column {row['verb']}")
+                continue
+
+            if row['message'] == "SendPublicMessage":
+                act = SendPublicMessage(act)
+            elif row['message'] == "SendPrivateMessage":
+                act = SendPrivateMessage(act)
+            elif len(row['message'].strip())>0:
+                print(f"Error in input, don't know what to do with message column {row['message']}")
+                continue
+
+            if len(row['delta_amyg_pbf'].strip()) > 0:
+                updateaymg = UpdateAmygdalaParameters(row['delta_amyg_pbf'],
+                                                      row['delta_amyg_fight'],
+                                                      row['delta_amyg_flight'],
+                                                      row['delta_amyg_freeze'])
+            else:
+                updateaymg = UpdateAmygdalaParameters(0, 0, 0, 0)
+
+            rules.append((action_time, act, updateaymg))
+
+    return retval
