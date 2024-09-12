@@ -266,10 +266,10 @@ def load_matcher_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
                 continue
 
             if len(row['delta_amyg_pbf'].strip()) > 0:
-                updateaymg = UpdateAmygdalaParameters(row['delta_amyg_pbf'],
-                                                      row['delta_amyg_fight'],
-                                                      row['delta_amyg_flight'],
-                                                      row['delta_amyg_freeze'])
+                updateaymg = UpdateAmygdalaParameters(float(row['delta_amyg_pbf']),
+                                                      float(row['delta_amyg_fight']),
+                                                      float(row['delta_amyg_flight']),
+                                                      float(row['delta_amyg_freeze']))
             else:
                 updateaymg = UpdateAmygdalaParameters(0, 0, 0, 0)
 
