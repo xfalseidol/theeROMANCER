@@ -121,7 +121,7 @@ def run_hotline(
     red_amygdala = Amygdala(environment = env, time = env.time, fight_weight = red_fight_weight, flight_weight = red_flight_weight,
                             freeze_weight = red_freeze_weight, initial_fight = red_initial_fight, initial_flight = red_initial_flight,
                             initial_freeze = red_initial_freeze, initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife,
-                            max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
+                            max_pbf = red_max_pbf, response_threshhold = red_response_threshhold, name="Red")
 
     red_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
     red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
@@ -143,7 +143,7 @@ def run_hotline(
     blue_amygdala = Amygdala(environment = env, time = env.time, fight_weight = blue_fight_weight, flight_weight = blue_flight_weight,
                             freeze_weight = blue_freeze_weight, initial_fight = blue_initial_fight, initial_flight = blue_initial_flight,
                             initial_freeze = blue_initial_freeze, initial_pbf = blue_initial_pbf, pbf_halflife = blue_pbf_halflife,
-                            max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold)
+                            max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold, name="Blue")
 
     blue_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
     blue_planned_actions = [] # change to force planned blue actions, this will be heapified so it needs to be (time, action) tuples
@@ -169,10 +169,10 @@ def run_hotline(
     sup.run(verbose = True)
 
     blue_reasoner.export_plot()
-    # blue_amygdala.export_plot()
+    blue_amygdala.export_plot()
 
     red_reasoner.export_plot()
-    # red_amygdala.export_plot()
+    red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 
