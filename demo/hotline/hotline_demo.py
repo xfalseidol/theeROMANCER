@@ -51,12 +51,10 @@ red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescala
 
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
-        blue_fight_weight = 1.0, blue_flight_weight = 2.0, blue_freeze_weight = 1.0,
-        blue_initial_fight = 0.0, blue_initial_flight = 1.0, blue_initial_freeze = 0.0,
+        blue_initial_fight = 0.0, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2,
 
-        red_fight_weight = 1.0, red_flight_weight = 1.0, red_freeze_weight = 1.0,
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.0,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7,
@@ -118,8 +116,7 @@ def run_hotline(
     sup.environment = env
     engine.environment = env
 
-    red_amygdala = Amygdala(environment = env, time = env.time, fight_weight = red_fight_weight, flight_weight = red_flight_weight,
-                            freeze_weight = red_freeze_weight, initial_fight = red_initial_fight, initial_flight = red_initial_flight,
+    red_amygdala = Amygdala(environment = env, time = env.time, initial_fight = red_initial_fight, initial_flight = red_initial_flight,
                             initial_freeze = red_initial_freeze, initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife,
                             max_pbf = red_max_pbf, response_threshhold = red_response_threshhold, name="Red")
 
@@ -140,8 +137,7 @@ def run_hotline(
     env.register_object(red_nca)
     env.add_agent(red_nca)
 
-    blue_amygdala = Amygdala(environment = env, time = env.time, fight_weight = blue_fight_weight, flight_weight = blue_flight_weight,
-                            freeze_weight = blue_freeze_weight, initial_fight = blue_initial_fight, initial_flight = blue_initial_flight,
+    blue_amygdala = Amygdala(environment = env, time = env.time, initial_fight = blue_initial_fight, initial_flight = blue_initial_flight,
                             initial_freeze = blue_initial_freeze, initial_pbf = blue_initial_pbf, pbf_halflife = blue_pbf_halflife,
                             max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold, name="Blue")
 
