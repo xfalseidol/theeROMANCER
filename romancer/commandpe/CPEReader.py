@@ -247,6 +247,7 @@ class CPEWeaponFiredReader:
 
         plt.show()
         plt.savefig(filename)
+        plt.close()
 
 
 if __name__ == "__main__":

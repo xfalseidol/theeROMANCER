@@ -195,6 +195,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         if filename is not None:
             plt.savefig(filename)
         plt.show()
+        plt.close()
 
     def export_plot(self):
         filename = self.identity + "_resolve.png"

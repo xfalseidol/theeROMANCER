@@ -425,6 +425,7 @@ class EscalationLadderReasoner(Reasoner):
         plt.yticks(range(len(rung_labels)), labels=rung_labels)
         # plt.savefig(filename)
         plt.show()
+        plt.close()
 
     def visualise_final(self):
         super().visualise_final()
