@@ -16,7 +16,7 @@ class HotlineGUI:
         self.slider_frame.pack(side=tk.TOP, fill=tk.X, expand=True, padx=10, pady=10)
 
         self.create_slider("Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.001, 0, 0)
-        self.create_slider("Blue Initial PBF", "red_initial_pbf", 0.0, 100.0, 0.001, 0, 1)
+        self.create_slider("Red Initial PBF", "red_initial_pbf", 0.0, 100.0, 0.001, 0, 1)
         self.create_slider("Red Max PBF", "red_max_pbf", 0.0, 1.0, 1.0, 0, 2)
         self.create_slider("Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 100000, 0, 3)
 
@@ -66,17 +66,27 @@ class HotlineGUI:
 
     def hotline_show(self):
         fig = plt.gcf()
-        fig.set_size_inches(6, 4)
+        fig.set_size_inches(5, 2)
         if self.n_charts <= len(self.canvases):
             canvas = FigureCanvasTkAgg(fig, master=self.chartframe)
+            titles = [ax.get_title().upper() for ax in fig.axes]
             column = 2
-            if "BLUE" in fig.axes[0].get_title().upper():
+            if any(["BLUE" in t for t in titles]):
                 column = 0
-            if "RED" in fig.axes[0].get_title().upper():
+            elif any(["RED" in t for t in titles]):
                 column = 1
+
+            row = 1
+            if any(["MOOD" in t for t in titles]):
+                row = 3
+            elif any(["LADDER" in t for t in titles]):
+                row = 2
+            elif any(["RESOLVE" in t for t in titles]):
+                row = 1
+
             print()
             canvas.draw()
-            canvas.get_tk_widget().grid(row=self.n_charts%2, column=column)
+            canvas.get_tk_widget().grid(row=row, column=column)
             self.canvases.append(canvas)
         else:
             self.canvases[self.n_charts].figure = fig
