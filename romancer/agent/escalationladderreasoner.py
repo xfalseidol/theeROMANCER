@@ -55,15 +55,14 @@ class EscalationLadder(UserList):
 
     # for deliberaing present time
     def highest_matched_rung(self, current_rung, reasoner, amygdala):
-        matched = False
-        next_rung = self.data[0]
+        matched_rungs = [rung.rung_matched(reasoner, amygdala) for rung in self.data]
+        print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}")
+
+        matched_indices = [i for i, match in enumerate(matched_rungs) if match]
         highest_matched_rung = None
-        while next_rung:
-            matched = next_rung.rung_matched(reasoner, amygdala)
-            if matched:
-                #print(f"Matched. current_rung={current_rung}, next_rung={next_rung}")
-                highest_matched_rung = next_rung
-            next_rung = self.next_rung(next_rung)
+        if len(matched_indices) > 0:
+            highest_matched_rung_idx = max(matched_indices)
+            highest_matched_rung = self.data[highest_matched_rung_idx]
         return highest_matched_rung
 
 
