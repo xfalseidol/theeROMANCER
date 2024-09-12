@@ -79,6 +79,9 @@ class Amygdala(ImprovedRomancerObject):
         ax2.plot(self.plot_time, self.plot_pbf, label="PBF", color="grey")
         ax2.set_ylabel("PBF")
         ax2.legend(loc="upper right")
+        ax2.axhline(y=self.response_threshhold, color="gray", linestyle="--")
+        ax2.annotate('Response Threshold', xy=(0.5, self.response_threshhold), xytext=(0.52, self.response_threshhold),
+                     textcoords='data', fontsize=8, color='gray')
 
         plt.title(f"{self.name} Mood Meter" if title is None else title)
         plt.savefig(filename)
