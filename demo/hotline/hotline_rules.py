@@ -1,9 +1,10 @@
 import csv
 from functools import reduce
+from operator import add
 from typing import NamedTuple
 
-from agent.amygdala import UpdateAmygdalaParameters
-from demo.hotline.hotline_percept import HotlineActionPercept, HotlineMessagePercept, SendPublicMessage, \
+from romancer.agent.amygdala import UpdateAmygdalaParameters
+from hotline_percept import HotlineActionPercept, HotlineMessagePercept, SendPublicMessage, \
     SendPrivateMessage
 
 
@@ -18,16 +19,19 @@ class any_of(tuple):
         def action_taken(n):
             return n in taken_actions
 
-        # actions_taken = []
-        # for m in self:
-        #     if isinstance(m, int):
-        #         actions_taken.append(action_taken(m))
-        #     else:
-        #         actions_taken.append(m.evaluate(reasoner, amygdala))
-        # return any(actions_taken)
+        actions_taken = []
+        for m in self:
+            if isinstance(m, int):
+                actions_taken.append(action_taken(m))
+            elif isinstance(m, ActionTaken):
+                actions_taken.append(action_taken(m.action))
+            else:
+                actions_taken.append(m.evaluate(reasoner, amygdala))
+        q = any(actions_taken)
+        return q
         # returns true if any action m has been taken or if any other behavior m evaluates to true
-        return any((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self if
-                    isinstance(m, int)))
+        # return any((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self if
+        #             isinstance(m, int)))
 
 
 class all_of(tuple):
@@ -36,12 +40,25 @@ class all_of(tuple):
         '''Recursively evaluate contents of self, breaking if a top-level member evaluates False. Returns True if all top-level members return True. If a member is an integer, it is assumed to represent an action that the reasoner perceives to have been taken.'''
 
         taken_actions = set(
-            {percept.action_taken for percept in self.digested_percepts if isinstance(percept, HotlineActionPercept)})
+            {percept.action_taken for percept in reasoner.digested_percepts if isinstance(percept, HotlineActionPercept)})
 
         def action_taken(n):
             return n in taken_actions
 
-        return all((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self))
+        actions_taken = []
+        # print("")
+        for m in self:
+            # print(f"next all_of: {m}")
+            if isinstance(m, int):
+                actions_taken.append(action_taken(m))
+            elif isinstance(m, ActionTaken):
+                actions_taken.append(action_taken(m.action))
+            else:
+                actions_taken.append(m.evaluate(reasoner, amygdala))
+        q = all(actions_taken)
+        return q
+
+        # return all((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self))
 
 
 class ActionTaken(NamedTuple):
@@ -93,9 +110,19 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
     def evaluate(self, reasoner, amygdala):
         '''Determine whether this threat is currently credible to reasoner given its internal state.'''
 
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if
-                                isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
+        # The reduce(add, []) function doesn't work right if something in the list is a tuple, convert those to list items
+        l = [percept.messages for percept in reasoner.digested_percepts if
+                                isinstance(percept, HotlineMessagePercept) and len(percept.messages)>0]
+        i = 0
+        while i < len(l):
+            if isinstance(l[i], tuple):
+                for q in l.pop(i):
+                    l.append(q)
+            else:
+                i+=1
+
+        messages = reduce(add, l, [])
+        submessages = reduce(add, [message.contents for message in messages], [])
         deterrent_threats = filter(lambda m: isinstance(m, DeterrentThreat), submessages)
 
         for dt in deterrent_threats:
@@ -125,9 +152,19 @@ class CompellentThreat(
     def evaluate(self, reasoner, amygdala):
         '''Determine whether this threat is currently credible to reasoner given its internal state.'''
 
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if
-                                isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
+        # The reduce(add, []) function doesn't work right if something in the list is a tuple, convert those to list items
+        l = [percept.messages for percept in reasoner.digested_percepts if
+                                isinstance(percept, HotlineMessagePercept) and len(percept.messages)>0]
+        i = 0
+        while i < len(l):
+            if isinstance(l[i], tuple):
+                for q in l.pop(i):
+                    l.append(q)
+            else:
+                i+=1
+
+        messages = reduce(add, l, [])
+        submessages = reduce(add, [message.contents for message in messages], [])
         compellent_threats = filter(lambda m: isinstance(m, CompellentThreat), submessages)
 
         for ct in compellent_threats:
@@ -141,7 +178,7 @@ class CompellentThreat(
         return False
 
     def __str__(self):
-        script_version = f"You must take {translation_dictionary[self.demanded_action]} or else I'll take {translation_dictionary[self.threat]}"
+        script_version = f"You must take {self.demanded_action} or else I'll take {self.threat}"
         if self.deadline:
             script_version += f"; you have until {self.deadline}"
         script_version += "."
