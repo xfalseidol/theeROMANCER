@@ -15,15 +15,14 @@ class HotlineGUI:
         self.slider_frame = tk.Frame(self.root)
         self.slider_frame.pack(side=tk.TOP, fill=tk.X, expand=True, padx=10, pady=10)
 
-        self.create_slider("Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.001, 0, 0)
-        self.create_slider("Red Initial PBF", "red_initial_pbf", 0.0, 100.0, 0.001, 0, 1)
-        self.create_slider("Red Max PBF", "red_max_pbf", 0.0, 1.0, 1.0, 0, 2)
-        self.create_slider("Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 100000, 0, 3)
+        self.create_slider("Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.95, 0, 0)
+        self.create_slider("Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1, 0)
+        self.create_slider("Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, 2, 0)
 
-        self.create_slider("Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.001, 1, 0)
-        self.create_slider("Blue Initial PBF", "blue_initial_pbf", 0.0, 100.0, 0.001, 1, 1)
-        self.create_slider("Blue Max PBF", "blue_max_pbf", 0.0, 1.0, 1.0, 1, 2)
-        self.create_slider("Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 100000, 1, 3)
+        self.create_slider("Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.95, 0, 1)
+        self.create_slider("Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1, 1)
+        self.create_slider("Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2, 1)
+
         #
         # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
         # self.run_button.pack()
