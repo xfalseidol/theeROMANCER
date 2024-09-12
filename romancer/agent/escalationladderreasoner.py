@@ -75,14 +75,12 @@ class EscalationLadderRung():
     '''Much of the logic of the EscalationLadderReasoner is stored in EscalationLadderRung instances. This permits these rungs to exhibit custom behavior if necessary.'''
     rung_id = 1
 
-    def __init__(self, match_attributes=None, blue_actions=[], red_actions=[], blue_deescalation_actions=[], red_deescalation_actions=[], pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name=""):
+    def __init__(self, match_attributes=None, actions=[], deescalation_actions=[], pbf_threshold = 1.0, amygdala_update=UpdateAmygdalaParameters(0, 0, 0, 0), name=""):
         self.match_attributes = match_attributes # a sequence of patterns that are used to check whether agent believes that this rung has been reached
         self.pbf_threshold = pbf_threshold # what stress level would trigger this rung regardless of match_attributes
-        self.red_actions = red_actions # collection of actions that reasoner believes Red will take at this rung, associated with amount of time that must pass before/between those actions
-        self.blue_actions = blue_actions # collection of actions that reasoner believes Blue will take at this rung, associated with amount of time that must pass before/between those actions
-        self.red_deescalation_actions = red_deescalation_actions # collection of actions that reasoner believes Red will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
-        self.blue_deescalation_actions = blue_deescalation_actions  # collection of actions that reasoner believes Blue will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
-        self.amygdala_update = amygdala_update 
+        self.actions = actions # collection of actions that reasoner will take at this rung, associated with amount of time that must pass before/between those actions
+        self.deescalation_actions = deescalation_actions # collection of actions that reasoner will take at this rung if it is attempting to de-escalate the situation, associated with amount of time that must pass before/between those actions
+        self.amygdala_update = amygdala_update
         self.id = EscalationLadderRung.rung_id
         self.name = name
         EscalationLadderRung.rung_id += 1
@@ -128,15 +126,9 @@ class EscalationLadderRung():
         return actions
 
 
-    def enqueue_red_deescalation_actions(self, reasoner):
+    def enqueue_deescalation_actions(self, reasoner):
         '''This method enqueues the red deescalation actions associated with this rung in the reasoner's action queue.'''
-        reasoner._enqueue_actions(self.red_deescalation_actions, reasoner)
-
-
-    def enqueue_blue_deescalation_actions(self, reasoner):
-        '''This method enqueues the blue deescalation actions associated with this rung in the reasoner's action queue.'''
-        reasoner._enqueue_actions(self.blue_deescalation_actions, reasoner)
-
+        reasoner._enqueue_actions(self.deescalation_actions, reasoner)
 
     def check_for_deescalation(self, reasoner, amygdala):
         '''This method uses information stored in this rung and the reasoner, in conjunction with the current amygdala state, to determine whether it appears that the adversary is attempting to deescalate (from the reasoner's standpoint, or if the agent is is desperate based on its amygdala state that it wants to try to deescalate no matter what. (This captures the case in which stressors cause the agent to become more desparate even though conditions necessary to match a higher rung of the escalation ladder have not occured.)'''
@@ -345,35 +337,25 @@ class EscalationLadderReasoner(Reasoner):
 
 
     def _enqueue_actions(self):
-        if self.identity == 'blue':
-            actions = self.current_rung.blue_actions
-        elif self.identity == 'red':
-            actions = self.current_rung.red_actions
-
-        for action in actions:
+        for action in self.current_rung.actions:
             delta_t, draft_messages, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
             action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
-        if len(actions) == 0:
+        if len(self.current_rung.actions) == 0:
             self._push_empty_action(self.time)
 
     def _enqueue_deescalation_actions(self):
-        if self.identity == 'blue':
-            actions = self.current_rung.blue_deescalation_actions
-        elif self.identity == 'red':
-            actions = self.current_rung.red_deescalation_actions
-
-        for action in actions:
+        for action in self.current_rung.deescalation_actions:
             delta_t, draft_messages, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
             action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
-        if len(actions) == 0:
+        if len(self.current_rung.deescalation_actions) == 0:
             self._push_empty_action(self.time)
 
     def _find_approximate_match_time(self, pres_time, max_time, matched_rung, amygdala):

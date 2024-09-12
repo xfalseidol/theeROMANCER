@@ -81,6 +81,9 @@ class ActionLexicon:
 
 actionlexicon = ActionLexicon("data/action_lexicon.csv")
 
+class DoAction(NamedTuple):
+    action: int
+    deadline: any
 
 class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (threat) until (deadline??)"
     provocation: int  # action adversary could take that threatener wants to deter
@@ -214,7 +217,7 @@ def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
 
 
 # Return a map of rung_number to list of time-action tuples
-def load_matcher_csv(csvfile, actionlexicon, actiontype="action", actor_mapping={}):
+def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping={}):
     # Any actors [subject, object] that appear as keys in actor_mapping get replaced with their mapped value
     retval = {}
 
@@ -237,7 +240,7 @@ def load_matcher_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
             subject_side = actor_mapping[row['subject_side']] if row['subject_side'] in actor_mapping else row['subject_side']
             actor_subj = actionlexicon.get_actionnum(subject_side, row['subject_action'], row['subject_suffix'])
             actor_obj = None
-            have_object = len(row['object_side'].strip()>0)
+            have_object = len(row['object_side'].strip())>0
             if have_object:
                 object_side = actor_mapping[row['object_side']] if row['object_side'] in actor_mapping else row['object_side']
                 actor_obj = actionlexicon.get_actionnum(object_side, row['object_action'], row['object_suffix'])
@@ -247,8 +250,7 @@ def load_matcher_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
 
             act = None
             if row['verb'] == 'DoAction':
-                pass
-                # act = ActionTaken(actor_subj))
+                act = DoAction(actor_subj, None)
             elif row['verb'] == 'DeterrentThreat':
                 act = DeterrentThreat(actor_subj, actor_obj, None)
             elif row['verb'] == 'ConcessionOffer':

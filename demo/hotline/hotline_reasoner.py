@@ -1,4 +1,6 @@
 import csv
+
+from demo.hotline.hotline_rules import DoAction
 from romancer.agent.escalationladderreasoner import EscalationLadderRung, EscalationLadderReasoner
 from typing import NamedTuple
 from hotline_percept import SendPrivateMessage, SendPublicMessage, HotlineMessagePercept, HotlineActionPercept, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage, HotlineRungChangeMessage
@@ -96,7 +98,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         '''This method is meant to be called when a WatchListItem reflecting the agent's planned action is processed by the Supervisor. It should be an internal implementation detail which is called via a method on the PersonLikeAgent, which uses the values it returns to update the Amygdala state.'''
         action_time, action, params = heappop(self.planned_actions) # This should return an iterable of messages
         print(f"Taking action {action}")
-        print(f" actions take: {self.actions_taken}")
+        # print(f" actions take: {self.actions_taken}")
         self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
         # send messages to supervisor reflecting actions, if necessary
         # actions = []
@@ -225,17 +227,20 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
     def _enqueue_actions(self):
         '''Need to override this to account for more compact action descriptions.'''
-        if self.identity == 'blue':
-            actions = self.current_rung.blue_actions
-        elif self.identity == 'red':
-            actions = self.current_rung.red_actions
 
         # Loop through actions
-        for action in actions:
+        for action in self.current_rung.actions:
             # action_messages = list()
             delta_t, action_or_message, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
-            if isinstance(action_or_message, int): # Convert integers to actions
+            if isinstance(action_or_message, DoAction):
+                action_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
+                                                                    time=action_time,
+                                                                    sender=(self.environment.uid, self.compute_self_uid()),
+                                                                    recipient=(1, 1),
+                                                                    messagetype = 'HotlineActionROMANCERMessage',
+                                                                    action_id = action_or_message.action) # send action message to supervisor
+            elif isinstance(action_or_message, int): # Convert integers to actions
                 action_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
                                                                     time=action_time,
                                                                     sender=(self.environment.uid, self.compute_self_uid()),
