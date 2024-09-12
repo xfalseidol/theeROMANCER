@@ -56,14 +56,14 @@ class EscalationLadder(UserList):
     # for deliberaing present time
     def highest_matched_rung(self, current_rung, reasoner, amygdala):
         matched = False
-        next_rung = self.next_rung(current_rung)
+        next_rung = self.data[0]
         highest_matched_rung = None
         while next_rung:
             matched = next_rung.rung_matched(reasoner, amygdala)
-            current_rung = next_rung
             if matched:
+                #print(f"Matched. current_rung={current_rung}, next_rung={next_rung}")
                 highest_matched_rung = next_rung
-            next_rung = self.next_rung(current_rung)
+            next_rung = self.next_rung(next_rung)
         return highest_matched_rung
 
 
@@ -128,7 +128,7 @@ class EscalationLadderRung():
 
     def enqueue_deescalation_actions(self, reasoner):
         '''This method enqueues the red deescalation actions associated with this rung in the reasoner's action queue.'''
-        reasoner._enqueue_actions(self.deescalation_actions, reasoner)
+        reasoner.enqueue_deescalation_actions(self.deescalation_actions, reasoner)
 
     def check_for_deescalation(self, reasoner, amygdala):
         '''This method uses information stored in this rung and the reasoner, in conjunction with the current amygdala state, to determine whether it appears that the adversary is attempting to deescalate (from the reasoner's standpoint, or if the agent is is desperate based on its amygdala state that it wants to try to deescalate no matter what. (This captures the case in which stressors cause the agent to become more desparate even though conditions necessary to match a higher rung of the escalation ladder have not occured.)'''
@@ -345,7 +345,7 @@ class EscalationLadderReasoner(Reasoner):
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
         if len(self.current_rung.actions) == 0:
-            self._push_empty_action(self.time)
+            self._push_empty_action(self.time+15 * 60)
 
     def _enqueue_deescalation_actions(self):
         for action in self.current_rung.deescalation_actions:
@@ -395,7 +395,7 @@ class EscalationLadderReasoner(Reasoner):
         # plt.figure(figsize=(10, 6))
         rung_labels = [rung.name for rung in self.escalation_ladder]
 
-        show_ladder_y_axis = True
+        show_ladder_y_axis = False
         if show_ladder_y_axis:
 
             ax.yaxis.set_visible(False)
