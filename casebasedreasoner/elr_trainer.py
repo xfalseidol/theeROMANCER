@@ -1,4 +1,4 @@
-from escalationladderreasoner import EscalationLadderCBR
+from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.agent.escalationladderreasoner import EscalationLadderReasoner, MatchAllRung, EscalationLadder
 from romancer.agent.amygdala import Amygdala, Amygdala_Fight, Amygdala_Freeze, Amygdala_Flight, Amygdala_StoneCold
