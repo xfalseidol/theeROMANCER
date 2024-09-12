@@ -414,7 +414,6 @@ class EscalationLadderReasoner(Reasoner):
 
         plot_time = self.plot_time.copy()
         plot_time.append(self.environment.time)
-        print(f"Time in elr at plot: {self.environment.time}")
         plot_rungs = self.plot_rungs.copy()
         plot_rungs.append(plot_rungs[-1])
         plt.step(plot_time, plot_rungs, label="Rung", marker="o")
