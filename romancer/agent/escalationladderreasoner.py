@@ -257,8 +257,7 @@ class EscalationLadderReasoner(Reasoner):
         next_rung = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
         if next_rung:
             self._remember_scenario(percepts = self.digested_percepts,
-                                    amygdala_parameters = amygdala.current_amygdala_parameters(),
-                                    current_rung_match_attributes = self.current_rung.match_attributes,
+                                    current_rung = self.current_rung,
                                     outcome = 'escalate')
             self._escalate(next_rung, amygdala)
             no_change = False
@@ -267,8 +266,7 @@ class EscalationLadderReasoner(Reasoner):
         deescalate, adversary_deescalated = self.current_rung.check_for_deescalation(self, amygdala)
         if deescalate or adversary_deescalated:
             self._remember_scenario(percepts = self.digested_percepts,
-                                    amygdala_parameters = amygdala.current_amygdala_parameters(),
-                                    current_rung_match_attributes = self.current_rung.match_attributes,
+                                    current_rung = self.current_rung,
                                     outcome = 'deescalate')
             self._deescalate(amygdala)
             self.digested_percepts.clear()
@@ -276,8 +274,7 @@ class EscalationLadderReasoner(Reasoner):
 
         if no_change:
             self._remember_scenario(percepts = self.digested_percepts,
-                                    amygdala_parameters = amygdala.current_amygdala_parameters(),
-                                    current_rung_match_attributes = self.current_rung.match_attributes,
+                                    current_rung = self.current_rung,
                                     outcome = 'no_change')
         
         # determine if a higher rung will be matched in the future\
@@ -291,7 +288,7 @@ class EscalationLadderReasoner(Reasoner):
             self.max_deliberation_time = max_time
         # self.rewind(pres_time)
     
-    def _remember_scenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
+    def _remember_scenario(self, percepts, current_rung, outcome):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
             ## percepts has attribute events_list, which is a list of percept dictionaries
@@ -299,7 +296,7 @@ class EscalationLadderReasoner(Reasoner):
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.events_list)
             if self.cbr is not None:
-                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, amygdala_parameters=amygdala_parameters, current_rung_match_attributes=current_rung_match_attributes, outcome=outcome)
+                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, outcome=outcome)
 
     def _push_empty_action(self, time):
         heappush(self.planned_actions, (time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
@@ -448,5 +445,3 @@ class EscalationLadderReasoner(Reasoner):
     def visualise_final(self):
         super().visualise_final()
         self.export_plot()
-
-

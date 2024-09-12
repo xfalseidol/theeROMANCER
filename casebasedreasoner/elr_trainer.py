@@ -65,7 +65,6 @@ ELR = EscalationLadderReasoner(env, env.time, escalation_ladder=escalation_ladde
 match_attributes = []
 for rung in rungs:
     match_attributes.append(rung.match_attributes)
-ELCBR.add_escalation_ladder(match_attributes)
 
 # train on random amygdalas and systematic percepts
 amygdala_scenarios = 10
@@ -131,9 +130,9 @@ ELCBR.display_memory(include_scenario_details=False)
 
 # export_cbr_sqlite(ELCBR, "trainedELCBR.sqlite")
 
-# # serialize it
-# print(f"Pickling trained ELCBR, with {len(ELCBR.mops)} mops")
-# ELCBR.serialize("trainedELCBR.pkl")
+# serialize it
+print(f"Pickling trained ELCBR, with {len(ELCBR.mops)} mops")
+ELCBR.serialize("trainedELCBR.pkl")
 
 # # create a new CB-ELR and load the old one's memories into it
 # print("Verify-Loading trained ELCBR")

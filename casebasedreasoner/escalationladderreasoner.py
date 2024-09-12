@@ -8,30 +8,6 @@ import copy
 from romancer.environment.object import LoggedDict
 
 
-## CB-ELR Design Model:
-# 1. The ELR inherits from the CBR, so that it can perform case-based reasoning like the Judge.
-# 2. Like the Judge, it needs its own set of "domain-specific" MOPs, like "percepts", "ladder rungs", "amygdala data", and "outcomes".
-# 3. Like the Judge, it creates a specialization of M-CASE, M_ELRScenario (I've changed naming convention to M_... for ease of typing).
-# 4. Like the Judge, it uses make_decision, adapt_outcome, and mop_calc to fill missing roles (ie, "outcome") based on prior cases and its own knowledge.
-# 5. "percepts" and "ladder rungs" are purely abstract: their form is inferred from the external caller/trainer, although we do assume a single percept is a single dictionary of data
-
-
-## Proposed CB-ELR Model/Process:
-### An ELRScenario is defined by {percepts, amygdala_data, current_rung, next_rung, outcome} (do we need current_rung? why?)
-### In the Simulation, one "percept" has a list of "events" (eg, events[0] = {'weapon': 3, 'target': 4}),
-# but I made the choice to turn each event into its own "percept" for this model, since each event could trigger escalation
-
-## The CB-ELR should be able to figure out whether it "should" escalate/deescalate/neither, without consulting its memories
-## In other words, it needs to be able to compare the percepts in a scenario with the current_rung in the scenario,
-## and make a decision, regardless of prior scenarios.
-## But, this decision is a purely rational decision, based on comparing perceived events to an escalation ladder rung.
-## So, the point of this CB-ELR model is to account for the amygdala. In other words,
-## the CB-ELR should be able to take the "correct" outcome and adjust it based on its memories of prior scenarios and their amygdala data.
-
-## Should the CB-ELR be able to decide what the outcome of a scenario "should" be? Eg, compare percepts to current_rung and conclude "I should escalate"
-## Should the CB-ELR *not* calculate the "correct" outcome and only make conclusions based on past memories?
-## If we do calculate the "correct" outcome, then that means we're only using memories to decide whether our amygdala overrides our outcome. Is this what we want?
-
 class ELRPerceptMOPComparer(MOPComparerSorter):
     def __init__(self, keycols=None, valcols=None):
         if keycols is None:
@@ -124,10 +100,16 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
         dist = 0.0
         # Use taxicab distance on keycols, multiply by 100, add taxicab on valcols
         for k in self.keycols:
-            dist += abs(p1[k] - p2[k])
+            try:
+                dist += abs(float(p1[k]) - float(p2[k]))
+            except:
+                pass
         dist *= 100
         for k in self.valcols:
-            dist += abs(p1[k] - p2[k])
+            try:
+                dist += abs(float(p1[k]) - float(p2[k]))
+            except:
+                pass
         return dist
 
     def get_percept_list(self, cbr, mop_name):
@@ -191,22 +173,42 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
         # print(".".join(["" for _ in range(depth+1)]) + " " + str(len(retval)))
         return retval
 
+## CB-ELR Design Model:
+# 1. The ELR inherits from the CBR, so that it can perform case-based reasoning like the Judge.
+# 2. Like the Judge, it needs its own set of "domain-specific" MOPs, like "percepts", "ladder rungs", "amygdala data", and "outcomes".
+# 3. Like the Judge, it creates a specialization of M-CASE, M_ELRScenario (I've changed naming convention to M_... for ease of typing).
+# 4. Like the Judge, it uses make_decision, adapt_outcome, and mop_calc to fill missing roles (ie, "outcome") based on prior cases and its own knowledge.
+# 5. "percepts" and "ladder rungs" are purely abstract: their form is inferred from the external caller/trainer, although we do assume a single percept is a single dictionary of data
 
+
+## Proposed CB-ELR Model/Process:
+### An ELRScenario is defined by {percepts, amygdala_data, current_rung, next_rung, outcome} (do we need current_rung? why?)
+### In the Simulation, one "percept" has a list of "events" (eg, events[0] = {'weapon': 3, 'target': 4}),
+# but I made the choice to turn each event into its own "percept" for this model, since each event could trigger escalation
+
+## The CB-ELR should be able to figure out whether it "should" escalate/deescalate/neither, without consulting its memories
+## In other words, it needs to be able to compare the percepts in a scenario with the current_rung in the scenario,
+## and make a decision, regardless of prior scenarios.
+## But, this decision is a purely rational decision, based on comparing perceived events to an escalation ladder rung.
+## So, the point of this CB-ELR model is to account for the amygdala. In other words,
+## the CB-ELR should be able to take the "correct" outcome and adjust it based on its memories of prior scenarios and their amygdala data.
+
+## Should the CB-ELR be able to decide what the outcome of a scenario "should" be? Eg, compare percepts to current_rung and conclude "I should escalate"
+## Should the CB-ELR *not* calculate the "correct" outcome and only make conclusions based on past memories?
+## If we do calculate the "correct" outcome, then that means we're only using memories to decide whether our amygdala overrides our outcome. Is this what we want?
 class EscalationLadderCBR(CaseBasedReasoner):
     def __init__(self, env, time, load_memory_from = None):
+        super().__init__(env, time)
+        self.upper_threshold = 5  # how many net deviations from a known case are required to think the new case is more severe
+        self.lower_threshold = -5 # how many net deviations from a known case are required to think the new case is less severe
         if load_memory_from:
-            super().__init__(env, time)
             self.load(load_memory_from)
         else:
-            super().__init__(env, time)
             self.add_mop(mop_name='M-CALC', mop_type='mop', is_default_mop=True)
             self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
             self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')}, is_default_mop=True)
-            self.add_mop(mop_name='M_amygdala_data', absts={'M-EVENT'}, slots={'pbf_level': 0.0, 'fight_level': 0.0, 'flight_level': 0.0, 'freeze_level': 0.0}, mop_type = 'mop', is_default_mop=True)
-            self.add_mop(mop_name='M_ladder_rung', absts={'M-STATE'}, mop_type = 'mop', is_default_mop=True)
-            self.add_mop(mop_name='M_escalation_ladder', absts={'M-GROUP'}, slots={1:self.name_mop('M_ladder_rung')}, is_default_mop=True)
             ## potential outcomes
-            outcome = self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
+            self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
             self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
             self.add_mop(mop_name='I_M_deescalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
             self.add_mop(mop_name='I_M_no_change_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
@@ -215,19 +217,28 @@ class EscalationLadderCBR(CaseBasedReasoner):
                         absts={'M-CASE'},
                         mop_type='mop',
                         slots={'percepts': self.name_mop('M_percept_group'),
-                                'amygdala_data': self.name_mop('M_amygdala_data'),
-                                'current_rung': self.name_mop('M_ladder_rung'),
+                                'current_rung': 0,
                                 'outcome': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adapt_outcome}, is_default_mop=True)
                                 },
                          is_default_mop=True
             )
-            ## adaptation MOPs
-            self.add_mop(mop_name='M_adapt_outcome',
-                         absts={'M-CALC'},
-                         slots={'role': outcome,
-                                'value': self.add_mop(absts={'M-PATTERN'}, slots={'calc_fn': self.adjust_outcome}, is_default_mop=True)},
-                         is_default_mop=True)
-            self.add_mop(mop_name='M_adapt', is_default_mop=True)
+
+
+    def get_sibling_scenario(self, pattern, mop):
+        '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
+        sibling = None
+        if self.decision_making_ability is not None:
+            sibling = self.choose_stochastic(mop, self.decision_making_ability, self.rng)
+            print("Randomly chose " + sibling.mop_name)
+        else:
+            for abst in mop.absts: # goes up one layer in abstraction
+                for spec in abst.specs: # looks at all specializations
+                    if isinstance(spec, MOP) and \
+                        spec.is_instance_mop() and \
+                        spec != mop and not spec.is_abstraction(self.name_mop('M-FAILED-SOLUTION')) and \
+                        spec.slots['current_rung'] == mop.slots['current_rung']:
+                                        sibling = spec
+        return sibling
 
 
     def make_decision(self, scenario_slots): # like judge.judge_case
@@ -237,57 +248,94 @@ class EscalationLadderCBR(CaseBasedReasoner):
         print(f"Deciding outcome in {instance}...")
         outcome = instance.get_filler('outcome')
         print(f"Outcome in {instance} is {outcome}.")
+        return outcome
 
 
-    ## TODO:
-    ## 1. figure out how to get an "old" case with the same current_rung as the "this" case
-    ## 2. figure out how to get the "base" outcome, ie "given the percepts and the current_rung, what *should* I do?"
-    ## 3. write adapt_outcome MOPs to cover possible scenarios involving two different sets of amygdala data and/or percepts
-    ## 4. write self.adapt_outcome() to construct the slots for an adapt_outcome MOP and get the result
-    ## 5. write self.adjust_outcome() which should adjust an outcome up or down based on what the adapt_outcome MOP says
-    ## 6. optionally, we should explore more than 1 "old" scenario to aggregate our decision
     def adapt_outcome(self, pattern, mop): # compares amygdala parameters in old and new scenarios, adjusting outcome if it should
-        old_mop = mop.get_filler('old') ## whatever it gets from OLD ought to have the same current_rung, or else the comparison is nonsense
+        mop_comparer = ELRPerceptMOPComparer()
+        old_mop = mop.get_filler('old') # calls get_sibling
+        print(f"Comparing new scneario {mop} to old scenario {old_mop}...")
         old_outcome = old_mop.get_filler('outcome')
-
-        outcome = "???"
+        # old_percept_name = old_mop.slots['percepts'].mop_name
+        old_percepts = mop_comparer.get_flattened_percept_list(self, old_mop.mop_name)
+        # new_percept_name = mop.slots['percepts'].mop_name
+        new_percepts = mop_comparer.get_flattened_percept_list(self, mop.mop_name)
+        # new_percepts = mop.slots['percepts']
+        distance = mop_comparer.compare_two_percept_lists(old_percepts, new_percepts)
+        # similarity = self.compare_two_mop_dicts(self.get_mop_slots_r(old_percepts), self.get_mop_slots_r(new_percepts))
         print("---------------------------")
-        print(f"Based on percepts and current rung, outcome should be {outcome}")
+        if distance > self.upper_threshold:
+            outcome = self.increase_outcome(old_outcome)
+            print(f"New scenario is much more severe than old scenario: adapting old outcome {old_outcome} up")
+        elif distance < self.lower_threshold:
+            outcome = self.decrease_outcome(old_outcome)
+            print(f"New scenario is much less severe than old scenario: adapting old outcome {old_outcome} down")
+        else:
+            outcome = old_outcome
+            print(f"New scenario is very similar to old scenario: keeping old outcome {old_outcome}")
         print("---------------------------")
-        print(f"Looking at amygdala parameters in {old_mop}")
-        ## the Judge calculates the MOTIVES of the old and new crimes (crime_compare_slots, using mop_calc)
-        ## then, it calculates the adjustment to the old sentence (mop_calc > adjust_sentence) using the ADAPT-SETENCE mop it calculates
-        # for pos in range(0, min(old_size, size)):
-        #     old_index = old_size - pos
-        #     index = size - pos
-        #     slots = {'role': sentence, 'index': pos, 'old_sentence': old_sentence}
-        #     slots.update(judge.crime_compare_slots(old_mop, old_index, ['old_action', 'old_motive', 'old_severity']))
-        #     slots.update(judge.crime_compare_slots(mop, index, ['this_action', 'this_motive', 'this_severity']))
-        #     result = judge.mop_calc(slots)
-        #     if result is not None:
-        #         return result
-
-        ## we don't need a calculated field like MOTIVES, so we don't need something like crime_compare_slots
-        ## but we do something like adjust_sentence, to move an outcome up or down based on amygdala params
-        ## let's brainstorm some situations:
-        ## ** assume current_rung is the same for both scenarios **
-        ## old_outcome is what it should be (amygdala didn't override) -> compare this_fight, this_flight, this_freeze to old values, if not too different, give same outcome
-        ## old_outcome should not be "escalate" but is "escalate" (fight) -> compare this_fight to old_fight
-        ## old_outcome should not be "no change" but is "no change" (freeze) -> compare this_freeze to old_freze
-        ## old_outcome should not be "deescalate" but is "deescalate" (flight) -> compare this_flight to old_flight
-        amygdala_data = []
-        for value in amygdala_data:
-            # construct the slots of an M_adapt_outcome spec (see above for examples of these specs)
-            pass
-   
-        print("---------------------------")
-        print("No major differences found")
-        print("Using old outcome")
-        return old_outcome
+        return outcome
 
 
-    def adjust_outcome(self, pattern, mop): 
-        pass
+    def get_sibling_scenario(self, pattern, mop):
+        '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
+        sibling = None
+        for abst in mop.absts: # goes up one layer in abstraction
+            for spec in abst.specs: # looks at all specializations
+                if isinstance(spec, MOP) and spec.is_instance_mop() and spec != mop and not spec.is_abstraction(
+                        self.name_mop('M-FAILED-SOLUTION')) and spec.slots['current_rung'] == mop.slots['current_rung']:
+                    sibling = spec
+        return sibling
+    
+    # def choose_stochastic(self, mop_name, decision_making_ability, rng):
+    #     ''' for a given mop, and a given decision_making_ability , find a comparable mop. Pass a Random Number Generator '''
+    #     # decision_making_ability should be in the range 0 [= no ability to make good decisions] to 1 [= will make best decision possible]
+    #     # return self.mops['I-M-CRIME.123']
+    #     sorted_mops = self.compare_to_all_other_mops(mop_name)
+    #     # Choose uniformly, one from the top n mops, where n is derived from current decision making ability
+    #     select_from_cnt = int(min(len(sorted_mops), max(1, (1.0-decision_making_ability) * len(sorted_mops))))
+    #     # print(f"Decision Making {decision_making_ability}, Selected range: {select_from_cnt}")
+    #     selected_idx = rng.randrange(select_from_cnt)
+    #     return self.mops[sorted_mops[selected_idx]]
+
+    def compare_percept_groups(self, percept_group_1, percept_group_2):
+        # start looking at the last percept in each group, going down until we reach the end of one or the other
+        deviations = 0
+        # percepts_to_check = min(len(percept_group_1), len(percept_group_2)) - 1
+        # for i in range(percepts_to_check, -1, -1):
+        #     percept_1_name = percept_group_1[i].mop_name
+        #     percept_2_name = percept_group_2[i].mop_name
+        #     deviations += self.compare_two_mop_dicts(self.get_mop_slots_r(percept_1_name), self.get_mop_slots_r(percept_2_name))
+        percept_1_name = percept_group_1.mop_name
+        percept_2_name = percept_group_2.mop_name
+        deviations += self.compare_two_mop_dicts(self.get_mop_slots_r(percept_1_name), self.get_mop_slots_r(percept_2_name))
+
+        return deviations
+
+    
+    # def deviation(self, percept_1, percept_2):
+    #     deviation = 0
+    #     for p1_role, p1_filler in percept_1.slots.items():
+    #         try:
+    #             p2_filler = percept_2.slots[p1_role]
+    #             if isinstance(p1_filler, str) and isinstance(p2_filler, str):
+    #                 deviation += float(p2_filler) - float(p1_filler)
+    #         except:
+    #             pass
+    #     return deviation
+
+
+    def increase_outcome(self, outcome):
+        if outcome == 'deescalation':
+            return 'no change'
+        return 'escalation'
+    
+
+    def decrease_outcome(self, outcome):
+        if outcome == 'escalation':
+            return 'no change'
+        return 'deescalation'
+    
 
     def mop_calc(self, slots):
         instance = self.slots_to_mop(slots=slots, absts={'M-CALC'}, mop_type='instance')
@@ -307,19 +355,6 @@ class EscalationLadderCBR(CaseBasedReasoner):
         with open(filepath, 'rb') as f:
             self.mops = load(f)
 
-    def add_escalation_ladder(self, rungs):
-        # assume rungs is a list of match_attribute dictionaries
-        if len(self.name_mop("M_escalation_ladder").specs) > 0:
-            for spec in self.name_mop("M_escalation_ladder").specs:
-                self.remove_mop(spec)
-
-        rung_group = {}
-        counter = 1
-        for rung in rungs:
-            rung_mop = self.add_mop(absts={'M_ladder_rung'}, slots=rung, mop_type='instance', is_default_mop=True)
-            rung_group[counter] = rung_mop
-            counter += 1
-        self.add_mop(absts={"M_escalation_ladder"}, slots={'rungs': rung_group}, mop_type='instance', is_default_mop=True)
 
     ''' Given some percepts, recursively create groups for as long as some of the things are lists or dicts.
      Eventually return a mop'''
@@ -345,21 +380,10 @@ class EscalationLadderCBR(CaseBasedReasoner):
             print("Percepts is neither dict nor list")
             slots_dict["percept"] = percepts
         return self.add_mop(mop_type='instance', absts={'M_percept'}, slots=slots_dict)
+    
 
-
-    def add_ELRScenario(self, percepts, amygdala_parameters, current_rung_match_attributes, outcome):
-        percept_mop = self.create_mop_percepts_slots_r(percepts)
-
-        # amygdala data
-        amygdala_data_slots = {'pbf_level': amygdala_parameters.current_pbf,
-                               'fight_level': amygdala_parameters.current_fight,
-                               'flight_level': amygdala_parameters.current_flight,
-                               'freeze_level': amygdala_parameters.current_freeze,
-                               'dominant_response': amygdala_parameters.current_dominant_response}
-        amygdala_data = self.add_mop(slots=amygdala_data_slots, absts={'M_amygdala_data'}, mop_type='instance')
-       
-        # current rung
-        current_rung = self.add_mop(slots=current_rung_match_attributes, absts={'M_ladder_rung'}, mop_type='instance')
+    def add_ELRScenario(self, percepts, current_rung, outcome):
+        percept_group = self.create_mop_percepts_slots_r(percepts)
 
         # outcome
         if outcome == 'deescalate':
@@ -370,22 +394,13 @@ class EscalationLadderCBR(CaseBasedReasoner):
             outcome = self.name_mop('I_M_no_change_outcome')
        
         ## create the new scenario
-        slots = {'percepts': percept_mop, 'amygdala_data': amygdala_data, 'current_rung': current_rung, 'outcome': outcome}
+        slots = {'percepts': percept_group, 'current_rung': current_rung, 'outcome': outcome}
         self.add_mop(absts={'M_ELRScenario'},
                      mop_type='instance',
                      slots=slots)
 
 
     def display_memory(self, include_scenario_details=False):
-        ## show escalation ladder
-        print("------------------")
-        print("Displaying escalation ladder:")
-        for spec in self.name_mop("M_escalation_ladder").specs:
-            # ladder = self.name_mop(spec)
-            print(spec.mop_name)
-            for rung_number, rung in spec.slots.items():
-                print(rung_number, rung)
-
         print("------------------")
         print("ELRScenarios:")
         outcome_totals = {}
