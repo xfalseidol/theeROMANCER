@@ -201,7 +201,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
         self.export_plot_resolve(filename)
 
-        super().export_plot("escladder_" + filename, f"Escladder {self.identity}")
+        super().export_plot("escladder_" + filename, f"{self.identity} Escalation Ladder")
     
     def _escalate(self, next_rung, amygdala):
         previous_rung = self.current_rung
