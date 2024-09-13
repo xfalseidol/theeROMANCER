@@ -196,6 +196,13 @@ class FixedAmgydala(Amygdala):
         nothingupdate = UpdateAmygdalaParameters(0.0, 0.0, 0.0, 0.0)
         super().update_parameters(nothingupdate)
 
+''' An Amygdala class that doesn't change it's response over time [but may change whether that response happens or not]'''
+class FixedResponseAmgydala(Amygdala):
+    def update_parameters(self, parameters):
+        # Override update so we remain fixed on mood
+        nothingupdate = UpdateAmygdalaParameters(parameters.delta_pbf)
+        super().update_parameters(nothingupdate)
+
 ''' Fighter archetype '''
 class Amygdala_Fight(FixedAmgydala):
     def __init__(self, environment, time):
@@ -256,3 +263,48 @@ class Amygdala_StoneCold(FixedAmgydala):
 
     def dominant_response(self):
         return None
+
+# This is always going to choose "fight" but does change based on pbf
+class Amygdala_ResponseFight(FixedResponseAmgydala):
+    def __init__(self, environment, time):
+        super().__init__(environment, time)
+        self.fight_weight = 1.0
+        self.flight_weight = 0.0
+        self.freeze_weight = 0.0
+        self.fight = 1.0
+        self.flight = 0.0
+        self.freeze = 0.0
+
+
+# This is always going to choose "flight" but does change based on pbf
+class Amygdala_ResponseFlight(FixedResponseAmgydala):
+    def __init__(self, environment, time):
+        super().__init__(environment, time)
+        self.fight_weight = 0.0
+        self.flight_weight = 1.0
+        self.freeze_weight = 0.0
+        self.fight = 0.0
+        self.flight = 1.0
+        self.freeze = 0.0
+
+# This is always going to choose "freeze" but does change based on pbf
+class Amygdala_ResponseFreeze(FixedResponseAmgydala):
+    def __init__(self, environment, time):
+        super().__init__(environment, time)
+        self.fight_weight = 0.0
+        self.flight_weight = 0.0
+        self.freeze_weight = 1.0
+        self.fight = 0.0
+        self.flight = 0.0
+        self.freeze = 1.0
+
+all_amygdala_archetypes = [
+    Amygdala_StoneCold,
+    Amygdala_Loki,
+    Amygdala_Fight,
+    Amygdala_Flight,
+    Amygdala_Freeze,
+    Amygdala_ResponseFight,
+    Amygdala_ResponseFlight,
+    Amygdala_ResponseFreeze
+]
