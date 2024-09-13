@@ -1,3 +1,5 @@
+import random
+
 from romancer.environment.object import ImprovedRomancerObject
 from typing import NamedTuple
 import math
@@ -161,6 +163,30 @@ class Amygdala(ImprovedRomancerObject):
     def dominant_response(self):
         dominant_response = self.current_amygdala_parameters().current_dominant_response
         return dominant_response
+
+''' Joker archetype'''
+class Amygdala_Loki(Amygdala):
+    def __init__(self, env, time):
+        super().__init__(env, time)
+        self.pbf = 1.0
+        self.response_threshhold = 0.5
+
+    def update_parameters(self, parameters):
+        next_mood = random.choice([self.FIGHT_STR, self.FLIGHT_STR, self.FREEZE_STR])
+        if next_mood == self.FIGHT_STR:
+            self.fight = 1.0
+            self.flight = 0.0
+            self.freeze = 0.0
+        elif next_mood == self.FLIGHT_STR:
+            self.fight = 0.0
+            self.flight = 1.0
+            self.freeze = 0.0
+        elif next_mood == self.FREEZE_STR:
+            self.fight = 0.0
+            self.flight = 0.0
+            self.freeze = 1.0
+        self.capture_plot()
+
 
 
 ''' An Amygdala class that doesn't change over time'''
