@@ -26,18 +26,7 @@ import matplotlib.pyplot as plt
 
 class HotlineLadderRung(EscalationLadderRung):
     '''match_attributes is assumed to be a statement in the matching DSL which as a .evaluate(reasoner, amygdala) method.'''
-
-    
     def rung_matched(self, reasoner, amygdala):
-        '''Assumes that self.match_attributes is a statement in the matching DSL.'''
-        dominant_response = amygdala.dominant_response()
-        if dominant_response == "freeze": # never escalate
-            return False
-        if dominant_response == "fight": # always escalate
-            return True
-        if dominant_response == "flight": # try to de-escalate
-            return False
-        
         return self.match_attributes.evaluate(reasoner, amygdala)
 
 
@@ -64,7 +53,6 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
         # Possibly push WatchlistItems to check for whether opponent keeps their word?
         # possibly call self.update_resolve()? This may be needed at startup of main simulation loop
-        
         # now call the EscalationLadderReasoner's deliberate method--self.resolve and self.perceived_adversary_resolve are passed to next_matched_rung by its second parameter referring to the reasoner object
         super().deliberate(max_time, amygdala)
 
@@ -217,9 +205,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         heappush(self.planned_actions, (self.time, message, None))
 
 
-    def _deescalate(self, amygdala):
+    def _deescalate(self, next_rung, enqueue_actions):
+        super()._deescalate(next_rung, enqueue_actions)
         previous_rung = self.current_rung
-        super()._deescalate(amygdala)
         # next_rung = self.escalation_ladder.next_rung(self.current_rung)
         message = HotlineRungChangeMessage(uid=self.new_message_index(),
                                                time = self.time,
@@ -230,11 +218,13 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                                                new_rung=self.current_rung)
         heappush(self.planned_actions, (self.time, message, None))
 
-    def _enqueue_actions(self):
+    def _enqueue_actions(self, actions):
         '''Need to override this to account for more compact action descriptions.'''
+        if actions is None:
+            return
 
         # Loop through actions
-        for action in self.current_rung.actions:
+        for action in actions:
             # action_messages = list()
             delta_t, action_or_message, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
@@ -259,28 +249,6 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
             else:
                 action_message = action_or_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.compute_self_uid()), 'recipient': (1, 1)})
             heappush(self.planned_actions, (action_time, action_message, update_params))
-    
-
-    def _enqueue_deescalation_actions(self):
-        '''Need to override this to account for more compact action descriptions.'''
-
-        # Loop through actions
-        for action in self.current_rung.deescalation_actions:
-            action_messages = list()
-            delta_t, action_or_message, update_params = action # unpack 3-tuple
-            action_time = self.time + delta_t
-            if isinstance(action_or_message, int): # Convert integers to actions
-                action_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
-                                                                    time=action_time,
-                                                                    sender=(self.environment.uid, self.compute_self_uid()),
-                                                                    recipient=(1, 1),
-                                                                    messagetype = 'HotlineActionROMANCERMessage',
-                                                                    action_id = action_or_message) # send action message to supervisor
-                heappush(self.planned_actions, (action_time, action_message, update_params))
-            # else:
-            #     action_message = action_or_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.compute_self_uid()), 'recipient': (1, 1)})
-            # elif isinstance(action_or_message, SendPrivateMessage) or isinstance(action_or_message, SendPublicMessage):
-            #     action_message = action_or_message.coerce_to_message(uid=self.new_message_index(), time=action_time, sender=(self.environment.uid, self.compute_self_uid()), recipient=(1, 1), addressee=self.compute_opponent_uid())
 
 
     def compute_opponent_uid(self):

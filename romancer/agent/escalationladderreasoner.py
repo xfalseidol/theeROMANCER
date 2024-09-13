@@ -56,14 +56,15 @@ class EscalationLadder(UserList):
     # for deliberaing present time
     def highest_matched_rung(self, current_rung, reasoner, amygdala):
         matched_rungs = [rung.rung_matched(reasoner, amygdala) for rung in self.data]
-        print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}")
+        print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}, percepts={reasoner.digested_percepts}")
 
         matched_indices = [i for i, match in enumerate(matched_rungs) if match]
         highest_matched_rung = None
+        highest_matched_rung_idx = None
         if len(matched_indices) > 0:
             highest_matched_rung_idx = max(matched_indices)
             highest_matched_rung = self.data[highest_matched_rung_idx]
-        return highest_matched_rung
+        return highest_matched_rung, highest_matched_rung_idx
 
 
     def rung_number(self, rung):
@@ -85,14 +86,13 @@ class EscalationLadderRung():
         EscalationLadderRung.rung_id += 1
 
     def rung_matched(self, reasoner, amygdala):
-        dominant_response = amygdala.dominant_response()
-        if dominant_response == amygdala.FREEZE_STR: # never escalate
+        if self.match_attributes is None:
             return False
-        if dominant_response == amygdala.FIGHT_STR: # always escalate
-            return True
-        if dominant_response == amygdala.FLIGHT_STR: # try to de-escalate
-            return False
-        
+
+        evaluate_op = getattr(self.match_attributes, 'evaluate', None)
+        if callable(evaluate_op):
+            return evaluate_op(reasoner, amygdala)
+
         # ANY attribute in match_attributes matches a digested percept
         for attribute, value in self.match_attributes.items():
             for percept in reasoner.digested_percepts:
@@ -124,24 +124,6 @@ class EscalationLadderRung():
         # return set(reasoner.actions_taken).difference(actions) # FIX
         return actions
 
-
-    def enqueue_deescalation_actions(self, reasoner):
-        '''This method enqueues the red deescalation actions associated with this rung in the reasoner's action queue.'''
-        reasoner.enqueue_deescalation_actions(self.deescalation_actions, reasoner)
-
-    def check_for_deescalation(self, reasoner, amygdala):
-        '''This method uses information stored in this rung and the reasoner, in conjunction with the current amygdala state, to determine whether it appears that the adversary is attempting to deescalate (from the reasoner's standpoint, or if the agent is is desperate based on its amygdala state that it wants to try to deescalate no matter what. (This captures the case in which stressors cause the agent to become more desparate even though conditions necessary to match a higher rung of the escalation ladder have not occured.)'''
-        # This needs to compare reasoner.digested_percepts and the opponent's deescalation_actions and return True if there is a suffient match
-        # It seems reasonable that deescalation will usually be associated with *special* percepts (explicit messages) that will be easy to test for, but for a general solution it will be necessary to consider the whole percept history somehow
-        # Also return True if dominant amygdala response is currently 'flight'
-        parameters = amygdala.current_amygdala_parameters()
-        if parameters.current_dominant_response == amygdala.FLIGHT_STR:
-            return True, False
-        elif parameters.current_dominant_response == amygdala.FREEZE_STR or parameters.current_dominant_response == amygdala.FIGHT_STR:
-            return False, False
-        else:                  
-            return False, False
-    
     def __repr__(self):
         return "Rung " + str(self.id)
     
@@ -176,6 +158,7 @@ class EscalationLadderReasoner(Reasoner):
 
     def __init__(self,  environment, time, escalation_ladder, identity, current_rung = None, planned_actions = None, actions_taken = None, digested_percepts = None, cbr = None):
         super().__init__(environment, time)
+        self.idle_time = 60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
         self.escalation_ladder = escalation_ladder # an EscalationLadder instance
         self.identity = identity # 'blue' or 'red'
         if current_rung and current_rung in self.escalation_ladder: # rung of escalation ladder agent believes represents current state of conflict
@@ -240,44 +223,51 @@ class EscalationLadderReasoner(Reasoner):
     def deliberate(self, max_time, amygdala):
         '''This method causes the agent to cogitate and predict how its mental state and intentions will evolve up until max_time in the future, presuming that it receives no additional percepts after the current time. One of the purposes of this method is to establish the evolution of the internal mental state of the agent. These changes can be stored on the loglist and then used to account for how a new percept can interrupt the agent's 'chain of thought.'
         '''
+
+        super().deliberate(max_time, amygdala)
+        current_rung_idx = self.escalation_ladder.rung_number(self.current_rung)
+        # determine if a different rung is matched
+        # Even if the amygdala is dominant, we want to do this if we're training the ELCBR
+        matched_rung, matched_rung_idx = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
+        if matched_rung:
+            self._remember_scenario(percepts = self.digested_percepts,
+                                    current_rung = self.current_rung,
+                                    outcome = matched_rung)
+
+        amygdala_dominant_response = amygdala.dominant_response()
+        amygdala_rung = None
+        amygdala_rung_idx = None
+        amygdala_dominant = (amygdala_dominant_response is not None)
+        if amygdala.FIGHT_STR == amygdala_dominant_response:
+            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.next_rung(self.current_rung, self.current_rung)
+        elif amygdala.FREEZE_STR == amygdala_dominant_response:
+            amygdala_rung, amygdala_rung_idx = self.current_rung, current_rung_idx
+        elif amygdala.FLIGHT_STR == amygdala_dominant_response:
+            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung, self.current_rung)
+
+        curr_rungname = self.current_rung.name
+        amygdala_rungname = amygdala_rung.name if amygdala_rung else "None"
+        matched_rungname = matched_rung.name if matched_rung else "None"
+        print(f"{self.identity} next rungs: Curr_Rung={curr_rungname}, Amygdala={amygdala_rungname}, Matcher={matched_rungname}. Current dominant response: {amygdala_dominant_response}")
+
+        chosen_rung = matched_rung
+        chosen_rung_idx = matched_rung_idx
+        if amygdala_dominant:
+            chosen_rung = amygdala_rung
+            chosen_rung_idx = amygdala_rung_idx
+
+        if chosen_rung_idx == current_rung_idx or chosen_rung_idx is None:
+            # No change. Ask me again in an hour
+            self._push_empty_action(self.time + self.idle_time)
+        elif chosen_rung_idx > current_rung_idx:
+            self._escalate(chosen_rung, amygdala)
+        elif chosen_rung_idx < current_rung_idx:
+            if amygdala_dominant:
+                self._deescalate(None, self.current_rung.deescalation_actions)
+            else:
+                self._deescalate(chosen_rung, False)
+
         amygdala.capture_plot()
-        pres_time = self.time
-        no_change = True
-
-        # determine if a higher rung is matched now and escalate accordingly
-        next_rung = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
-        if next_rung:
-            self._remember_scenario(percepts = self.digested_percepts,
-                                    current_rung = self.current_rung,
-                                    outcome = 'escalate')
-            self._escalate(next_rung, amygdala)
-            no_change = False
-
-        # Check for de-escalation and attempt to de-escalate if possible and desired
-        deescalate, adversary_deescalated = self.current_rung.check_for_deescalation(self, amygdala)
-        if deescalate or adversary_deescalated:
-            self._remember_scenario(percepts = self.digested_percepts,
-                                    current_rung = self.current_rung,
-                                    outcome = 'deescalate')
-            self._deescalate(amygdala)
-            self.digested_percepts.clear()
-            no_change = False
-
-        if no_change:
-            self._remember_scenario(percepts = self.digested_percepts,
-                                    current_rung = self.current_rung,
-                                    outcome = 'no_change')
-        
-        # determine if a higher rung will be matched in the future\
-        if max_time > pres_time:
-            self.forward_simulation(max_time, amygdala)
-            next_rung = self.escalation_ladder.next_matched_rung(self.current_rung, self, amygdala)
-            if next_rung: # there is a match in the future
-                match_time = self._find_approximate_match_time(pres_time, max_time, next_rung, amygdala)
-                # create a new WatchlistItem at future match time
-                self._push_empty_action(match_time)
-            self.max_deliberation_time = max_time
-        # self.rewind(pres_time)
     
     def _remember_scenario(self, percepts, current_rung, outcome):
         if self.cbr:
@@ -328,31 +318,22 @@ class EscalationLadderReasoner(Reasoner):
     def _escalate(self, next_rung, amygdala):
         next_rung.update_planned_actions(self)
         self.current_rung = next_rung
-        self._enqueue_actions()
+        self._enqueue_actions(next_rung.actions)
         self.capture_plot()
 
 
-    def _enqueue_actions(self):
-        for action in self.current_rung.actions:
+    def _enqueue_actions(self, actions):
+        if len(actions) == 0 or actions is None:
+            self._push_empty_action(self.time+self.idle_time)
+            return
+
+        for action in actions:
             delta_t, draft_messages, update_params = action # unpack 3-tuple
             action_time = self.time + delta_t
             action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
-        if len(self.current_rung.actions) == 0:
-            self._push_empty_action(self.time+15 * 60)
-
-    def _enqueue_deescalation_actions(self):
-        for action in self.current_rung.deescalation_actions:
-            delta_t, draft_messages, update_params = action # unpack 3-tuple
-            action_time = self.time + delta_t
-            action_messages = [draft_message.coerce_to_message(**{'uid': self.new_message_index(), 'time': action_time, 'sender': (self.environment.uid, self.uid), 'recipient': (1, 1)}) for draft_message in draft_messages]
-            # action_messages = self.untaken_actions(action_messages, reasoner)
-            heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
-
-        if len(self.current_rung.deescalation_actions) == 0:
-            self._push_empty_action(self.time)
 
     def _find_approximate_match_time(self, pres_time, max_time, matched_rung, amygdala):
         def matched_at_time(t): # adjust objects to correct time, determine if there's a match
@@ -369,14 +350,13 @@ class EscalationLadderReasoner(Reasoner):
         return match_time
 
 
-    def _deescalate(self, amygdala):
-        # update planned actions
-        previous_rung = self.escalation_ladder.previous_rung(self.current_rung)
-        if previous_rung:
-            self.current_rung.update_planned_actions(self)
-            self._enqueue_deescalation_actions()
-            self.current_rung = self.escalation_ladder.previous_rung(self.current_rung)
-            self.capture_plot()
+    def _deescalate(self, next_rung, events_to_enqueue):
+        if next_rung is not None:
+            next_rung.update_planned_actions(self)
+            self.current_rung = next_rung
+        if events_to_enqueue is not None:
+            self._enqueue_actions(events_to_enqueue)
+        self.capture_plot()
 
     def capture_plot(self):
         self.plot_time.append(self.time)
