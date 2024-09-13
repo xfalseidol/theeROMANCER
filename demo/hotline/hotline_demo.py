@@ -62,15 +62,15 @@ def run_hotline(
 
     blue_ladder_rungs = []
     red_ladder_rungs = []
-    for rungnum in sorted(blue_matching_rules.keys()):
+    for i, rungnum in enumerate(sorted(blue_matching_rules.keys())):
         blue_ladder_rungs.append(HotlineLadderRung(match_attributes = blue_matching_rules[rungnum],
                                                    actions = blue_actions[rungnum],
                                                    deescalation_actions = blue_deescalate_actions[rungnum],
-                                                   name = str(rungnum)))
+                                                   name = f"BlueRung{i}"))
         red_ladder_rungs.append(HotlineLadderRung(match_attributes=red_matching_rules[rungnum],
                                                    actions=red_actions[rungnum],
                                                    deescalation_actions=red_deescalate_actions[rungnum],
-                                                   name=str(rungnum)))
+                                                   name= f"RedRung{i}"))
     blue_ladder_1 = EscalationLadder(blue_ladder_rungs)
     red_ladder_1 = EscalationLadder(red_ladder_rungs)
 
