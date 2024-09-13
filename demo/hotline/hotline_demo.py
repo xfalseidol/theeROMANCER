@@ -51,11 +51,11 @@ red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescala
 
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
-        blue_initial_fight = 0.0, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
+        blue_initial_fight = 0.5, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2,
 
-        red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.0,
+        red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7,
     ):
@@ -101,7 +101,7 @@ def run_hotline(
     sup.dispatch_table['HotlinePrivateROMANCERMessage'] = hotline_private_message_dispatcher
     sup.dispatch_table['HotlineRungChangeMessage'] = hotline_rung_change_dispatcher
     # sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
-    sup.watchlist.push(Stop(time=86400 * 2))
+    sup.watchlist.push(Stop(time=86400 * 14))
 
     min_lat = deg2rad(-180)
     max_lat = deg2rad(180)
