@@ -71,12 +71,14 @@ class Amygdala(ImprovedRomancerObject):
         ax1.plot(self.plot_time, self.plot_fight, label="Fight", color="r")
         ax1.plot(self.plot_time, self.plot_flight, label="Flight", color="g")
         ax1.plot(self.plot_time, self.plot_freeze, label="Freeze", color="b")
+        ax1.set_ylim(ymin=0)
         ax1.set_xlabel("Time (s)")
         ax1.set_ylabel("Response")
         ax1.legend(loc="upper left")
 
         ax2 = ax1.twinx()
         ax2.plot(self.plot_time, self.plot_pbf, label="PBF", color="grey")
+        ax2.set_ylim(ymin=0)
         ax2.set_ylabel("PBF")
         ax2.legend(loc="upper right")
         ax2.axhline(y=self.response_threshhold, color="gray", linestyle="--")
@@ -110,7 +112,7 @@ class Amygdala(ImprovedRomancerObject):
         current_fight = self.fight * self.fight_weight
         current_flight = self.flight * self.flight_weight
         current_freeze = self.freeze * self.freeze_weight
-        params = CurrentAmygdalaParameters(current_pbf = cur_pbf, current_fight = self.fight * self.fight_weight, current_flight = self.flight * self.flight_weight, current_freeze = self.freeze * self.freeze_weight, current_dominant_response = dominant_response)
+        params = CurrentAmygdalaParameters(current_pbf = cur_pbf, current_fight = current_fight, current_flight = current_flight, current_freeze = current_freeze, current_dominant_response = dominant_response)
         # self.capture_plot(params)
         return params
 
