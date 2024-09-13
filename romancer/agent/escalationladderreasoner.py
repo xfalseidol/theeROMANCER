@@ -258,6 +258,7 @@ class EscalationLadderReasoner(Reasoner):
         if next_rung:
             self._remember_scenario(percepts = self.digested_percepts,
                                     current_rung = self.current_rung,
+                                    next_rung = next_rung,
                                     outcome = 'escalate')
             self._escalate(next_rung, amygdala)
             no_change = False
@@ -265,8 +266,10 @@ class EscalationLadderReasoner(Reasoner):
         # Check for de-escalation and attempt to de-escalate if possible and desired
         deescalate, adversary_deescalated = self.current_rung.check_for_deescalation(self, amygdala)
         if deescalate or adversary_deescalated:
+            next_rung = self.escalation_ladder.previous_rung(self.current_rung)
             self._remember_scenario(percepts = self.digested_percepts,
                                     current_rung = self.current_rung,
+                                    next_rung = next_rung,
                                     outcome = 'deescalate')
             self._deescalate(amygdala)
             self.digested_percepts.clear()
@@ -275,6 +278,7 @@ class EscalationLadderReasoner(Reasoner):
         if no_change:
             self._remember_scenario(percepts = self.digested_percepts,
                                     current_rung = self.current_rung,
+                                    next_rung = self.current_rung,
                                     outcome = 'no_change')
         
         # determine if a higher rung will be matched in the future\
@@ -288,7 +292,7 @@ class EscalationLadderReasoner(Reasoner):
             self.max_deliberation_time = max_time
         # self.rewind(pres_time)
     
-    def _remember_scenario(self, percepts, current_rung, outcome):
+    def _remember_scenario(self, percepts, current_rung, next_rung, outcome):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
             ## percepts has attribute events_list, which is a list of percept dictionaries
@@ -296,7 +300,7 @@ class EscalationLadderReasoner(Reasoner):
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.events_list)
             if self.cbr is not None:
-                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, outcome=outcome)
+                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, next_rung=next_rung.id, outcome=outcome)
 
     def _push_empty_action(self, time):
         heappush(self.planned_actions, (time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
