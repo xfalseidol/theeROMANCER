@@ -21,27 +21,27 @@ class EscalationLadder(UserList):
 
     # default __init__ method is probably already sufficient here, although it might be appropriate to make it assert that the EscalationLadder contains only Rung objects
 
-    def next_rung(self, current_rung):
+    def next_rung(self, current_rung, default_retval=None):
         '''This method returns the next rung on the escalation ladder after current_rung, or None if current_rung is the top rung.'''
         cur_i = self.data.index(current_rung)
-        try:
-            next_rung = self.data[cur_i + 1]
-        except IndexError:
-            next_rung = None
-        finally:
-            return next_rung
+        next_rung = default_retval
+        if cur_i < len(self.data):
+            try:
+                next_rung = self.data[cur_i + 1]
+            except IndexError:
+                next_rung = default_retval
+        return next_rung, cur_i
 
-    def previous_rung(self, current_rung):
+    def previous_rung(self, current_rung, default_retval=None):
         '''The opposite of next_rung.'''
         cur_i = self.data.index(current_rung)
-        if cur_i == 0:
-            return None
-        try:
-            previous_rung = self.data[cur_i - 1]
-        except IndexError:
-            previous_rung = None
-        finally:
-            return previous_rung
+        previous_rung = default_retval
+        if cur_i > 0:
+            try:
+                previous_rung = self.data[cur_i - 1]
+            except IndexError:
+                previous_rung = default_retval
+        return previous_rung, cur_i
 
     # for deliberating into the future
     def next_matched_rung(self, current_rung, reasoner, amygdala):
@@ -418,7 +418,7 @@ class EscalationLadderReasoner(Reasoner):
         plt.title("Escalation Ladder" if title is None else title)
         plt.legend()
 
-        plt.yticks(range(len(rung_labels)), labels=rung_labels)
+        plt.yticks(range(len(rung_labels)), labels=rung_labels, rotation=60, fontsize=7)
         # plt.savefig(filename)
         plt.show()
         plt.close()
