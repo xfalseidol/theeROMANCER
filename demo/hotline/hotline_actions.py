@@ -111,9 +111,9 @@ class HotlineRungChange(WatchlistItem):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.who]}: "
         if self.old_rung.id < self.new_rung.id:
-            script_version += f"I'm escalating from {self.old_rung} to {self.new_rung}."
+            script_version += f"I'm escalating from {self.old_rung.name} to {self.new_rung.name}."
         else:
-            script_version += f"I'm deescalating from {self.old_rung} to {self.new_rung}."
+            script_version += f"I'm deescalating from {self.old_rung.name} to {self.new_rung.name}."
         stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
