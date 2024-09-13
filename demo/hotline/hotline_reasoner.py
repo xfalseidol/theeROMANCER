@@ -220,7 +220,8 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
     def _enqueue_actions(self, actions):
         '''Need to override this to account for more compact action descriptions.'''
-        if actions is None:
+        if actions is None or 0 == len(actions):
+            # self._push_empty_action(self.time + self.idle_time)
             return
 
         # Loop through actions

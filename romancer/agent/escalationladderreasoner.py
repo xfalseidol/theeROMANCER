@@ -258,14 +258,15 @@ class EscalationLadderReasoner(Reasoner):
 
         if chosen_rung_idx == current_rung_idx or chosen_rung_idx is None:
             # No change. Ask me again in an hour
-            self._push_empty_action(self.time + self.idle_time)
+            pass
+            # self._push_empty_action(self.time + self.idle_time)
         elif chosen_rung_idx > current_rung_idx:
             self._escalate(chosen_rung, amygdala)
         elif chosen_rung_idx < current_rung_idx:
             if amygdala_dominant:
                 self._deescalate(None, self.current_rung.deescalation_actions)
             else:
-                self._deescalate(chosen_rung, False)
+                self._deescalate(chosen_rung, None)
 
         amygdala.capture_plot()
     
@@ -279,9 +280,6 @@ class EscalationLadderReasoner(Reasoner):
             if self.cbr is not None:
                 self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, outcome=outcome)
 
-    def _push_empty_action(self, time):
-        heappush(self.planned_actions, (time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
-        
     @property
     def next_deliberate_action(self):
         if len(self.planned_actions):
@@ -324,7 +322,7 @@ class EscalationLadderReasoner(Reasoner):
 
     def _enqueue_actions(self, actions):
         if len(actions) == 0 or actions is None:
-            self._push_empty_action(self.time+self.idle_time)
+            # self._push_empty_action(self.time+self.idle_time)
             return
 
         for action in actions:
