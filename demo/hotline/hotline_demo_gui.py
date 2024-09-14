@@ -4,12 +4,21 @@ from tkinter import ttk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+from romancer.agent.amygdala import all_amygdala_archetypes
+
+
 class HotlineGUI:
     def __init__(self):
         self.n_charts = 0
         self.canvases = []
         self.root = tk.Tk()
-        self.root.title("Hotline")
+        self.root.title("ROMANCER Hotline")
+
+        self.amygdala_choices = {a.short_desc() : a for a in all_amygdala_archetypes}
+        self.amygdala_combos = {}
+        self._BLUE_AMYG_COMBOKEY = "blue"
+        self._RED_AMYG_COMBOKEY = "red"
+
         self.sliders = {}
         self.slidervalues = {}
         self.slider_frame = tk.Frame(self.root)
@@ -23,6 +32,10 @@ class HotlineGUI:
         self.create_slider("Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1, 1)
         self.create_slider("Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2, 1)
 
+        self.create_amygdala_choice("Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3, 0)
+        self.create_amygdala_choice("Red Amygdala", self._RED_AMYG_COMBOKEY, 3, 1)
+        print(self.amygdala_choices)
+
         #
         # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
         # self.run_button.pack()
@@ -34,6 +47,18 @@ class HotlineGUI:
             self.hotline_show()
         plt.show = show_capture
         self.run_hotline_guiparam()
+
+    def create_amygdala_choice(self, label, name, grid_row, grid_col):
+        dropdown_options = [k for k in self.amygdala_choices.keys()]
+        dropdown_var = tk.StringVar(value=dropdown_options[0])
+        self.amygdala_combos[name] = dropdown_var
+        combo_label = ttk.Label(self.slider_frame, text=label)
+        combo_label.grid(row=grid_row, column=3 * grid_col, padx=5, pady=5, sticky="w")
+        dropdown = ttk.Combobox(self.slider_frame, textvariable=dropdown_var)
+        dropdown['values'] = dropdown_options
+        dropdown.set(dropdown_options[0])
+        dropdown.bind("<<ComboboxSelected>>", self.on_slider_change)
+        dropdown.grid(row=grid_row, column=3 * grid_col + 1, padx=5, pady=5)
 
     def create_slider(self, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x, grid_y):
         slider_label = ttk.Label(self.slider_frame, text=sliderlabel)
@@ -61,6 +86,8 @@ class HotlineGUI:
     def run_hotline_guiparam(self):
         self.n_charts = 0
         params = { k: v.get() for k, v in self.sliders.items() }
+        params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
+        params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
         run_hotline(**params)
 
     def hotline_show(self):
