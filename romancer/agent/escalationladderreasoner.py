@@ -390,7 +390,7 @@ class EscalationLadderReasoner(Reasoner):
         plot_time.append(self.environment.time)
         plot_rungs = self.plot_rungs.copy()
         plot_rungs.append(plot_rungs[-1])
-        plt.step(plot_time, plot_rungs, label="Rung", marker="o")
+        plt.step(plot_time, plot_rungs, label="Rung", marker="o", where="post")
         plt.xlabel("Time (s)")
         plt.ylabel("Ladder")
         plt.title("Escalation Ladder" if title is None else title)
