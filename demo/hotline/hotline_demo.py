@@ -53,11 +53,11 @@ red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescala
 def run_hotline(
         blue_initial_fight = 0.5, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
-        blue_response_threshhold = 0.2,
+        blue_response_threshhold = 0.2, blue_amyg=Amygdala,
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
-        red_response_threshhold = 0.7,
+        red_response_threshhold = 0.7, red_amyg=Amygdala
     ):
 
     blue_ladder_rungs = []
@@ -116,9 +116,12 @@ def run_hotline(
     sup.environment = env
     engine.environment = env
 
-    red_amygdala = Amygdala(environment = env, time = env.time, initial_fight = red_initial_fight, initial_flight = red_initial_flight,
-                            initial_freeze = red_initial_freeze, initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife,
-                            max_pbf = red_max_pbf, response_threshhold = red_response_threshhold, name="Red")
+    red_amygdala = red_amyg(environment = env, time = env.time, name="Red")
+    red_amygdala.set_response_values(initial_fight = red_initial_fight,
+                                 initial_flight = red_initial_flight,
+                                 initial_freeze = red_initial_freeze)
+    red_amygdala.set_pbf(initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife,
+                     max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
 
     red_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
     red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
@@ -137,9 +140,13 @@ def run_hotline(
     env.register_object(red_nca)
     env.add_agent(red_nca)
 
-    blue_amygdala = Amygdala(environment = env, time = env.time, initial_fight = blue_initial_fight, initial_flight = blue_initial_flight,
-                            initial_freeze = blue_initial_freeze, initial_pbf = blue_initial_pbf, pbf_halflife = blue_pbf_halflife,
-                            max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold, name="Blue")
+    blue_amygdala = blue_amyg(environment = env, time = env.time, name="Blue")
+    blue_amygdala.set_response_values(initial_fight = blue_initial_fight,
+                                 initial_flight = blue_initial_flight,
+                                 initial_freeze = blue_initial_freeze)
+    blue_amygdala.set_pbf(initial_pbf = blue_initial_pbf, pbf_halflife = blue_pbf_halflife,
+                     max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold)
+
 
     blue_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
     blue_planned_actions = [] # change to force planned blue actions, this will be heapified so it needs to be (time, action) tuples
