@@ -88,6 +88,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         print(f"Taking action {action}")
         # print(f" actions take: {self.actions_taken}")
         self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
+
+        self.environment.supervisor.deliver_messages(action)
+        self.environment.supervisor.process_inbox()
         # send messages to supervisor reflecting actions, if necessary
         # actions = []
         # for message in messages:
@@ -97,7 +100,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         #     self.environment.supervisor.deliver_messages(messages)
         #     self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
         #     self.environment.supervisor.inbox.clear() # remove action messages
-        # self.actions_taken.append((action_time, action))
+        self.actions_taken.append((action_time, action))
         return params
 
     def update_resolve(self):
