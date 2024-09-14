@@ -118,9 +118,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         threats = filter(lambda m: isinstance(m, DeterrentThreat) and m.provocation not in actions, threats)
         # filter compellent threats where demanded action was taken
         threats = filter(lambda m: isinstance(m, CompellentThreat) and m.demanded_action in actions, threats)
-        if self.identity == 'red':
+        if self.identity == 'Red':
             adversary_threats = {threat for threat in threats if threat.threat % 2 != 0} # red actions assumed to be odd
-        elif self.identity == 'blue':
+        elif self.identity == 'Blue':
             adversary_threats = {threat for threat in threats if threat.threat % 2 == 0} # blue actions assumed to be even
         open_ended_threats = {threat for threat in adversary_threats if not threat.deadline}
         expired_threats = {threat for threat in adversary_threats if threat.deadline and threat.deadline <= self.time}
@@ -131,9 +131,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         delta_unfulfilled_expired_threats = len({threat.threat for threat in expired_threats} - actions) - self._unfulfilled_expired_threats
         # We do an opposite adjustment on the basis of whether the opponent has ever made any concessions (resolve cannot fall below 0)
         concessions = filter(lambda m: isinstance(m, ConcessionOffer), submessages)
-        if self.identity == 'red':
+        if self.identity == 'Red':
             adversary_concessions = [concession for concession in concessions if concession.quid % 2 != 0]
-        elif self.identity == 'blue':
+        elif self.identity == 'Blue':
             adversary_concessions = [concession for concession in concessions if concession.quid % 2 == 0]
         delta_adversary_concessions = len(adversary_concessions) - self._no_adversary_concessions
         if delta_adversary_concessions != 0:

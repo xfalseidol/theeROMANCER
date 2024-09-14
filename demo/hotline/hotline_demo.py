@@ -129,7 +129,7 @@ def run_hotline(
     red_actions_taken = None # change to give Red NCA history of actions taken
     red_digested_percepts = None # change to give Red NCA history of digested percepts
 
-    red_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = red_ladder_1, identity = 'red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
+    red_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = red_ladder_1, identity = 'Red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
 
     red_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
@@ -153,7 +153,7 @@ def run_hotline(
     blue_actions_taken = None # change to give Blue NCA history of actions taken
     blue_digested_percepts = None # change to give Blue NCA history of digested percepts
 
-    blue_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = blue_ladder_1, identity = 'blue', current_rung = blue_cur_rung, planned_actions = blue_planned_actions, actions_taken = blue_actions_taken, digested_percepts = blue_digested_percepts)
+    blue_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = blue_ladder_1, identity = 'Blue', current_rung = blue_cur_rung, planned_actions = blue_planned_actions, actions_taken = blue_actions_taken, digested_percepts = blue_digested_percepts)
 
     blue_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
