@@ -276,9 +276,8 @@ class EscalationLadderReasoner(Reasoner):
             ## percepts has attribute events_list, which is a list of percept dictionaries
             percepts_as_list_of_dict = []
             for percept in percepts:
-                percepts_as_list_of_dict.append(percept.events_list)
-            if self.cbr is not None:
-                self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, outcome=outcome)
+                percepts_as_list_of_dict.append(percept.get_percept_items())
+            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, outcome=outcome)
 
     @property
     def next_deliberate_action(self):
