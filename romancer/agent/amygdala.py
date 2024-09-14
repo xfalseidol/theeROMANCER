@@ -32,20 +32,23 @@ class Amygdala(ImprovedRomancerObject):
     FLIGHT_STR = "flight"
     FREEZE_STR = "freeze"
 
-    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 100, max_pbf = 1.0, response_threshhold = 1.0, name=""):
+    def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 38400, max_pbf = 1.0, response_threshhold = 1.0, name=""):
         super().__init__(environment, time)
-        self.fight_weight = fight_weight # used to update/predict fight response
-        self.flight_weight = flight_weight # used to update/predict flight response
-        self.freeze_weight = freeze_weight # used to update/predict freeze response
-        self.fight = initial_fight # fight response level
-        self.flight = initial_flight # flight response level
-        self.freeze = initial_freeze # freeze response level
-        self.pbf = initial_pbf # initial cortisol level
-        self.last_pbf_update_time = self.time # used to calculate pbf decay
-        self.pbf_decay_rate = (1 / math.log(2)) * pbf_halflife # rate at which cortisol is metabolized
-        self.pbf_halflife = pbf_halflife # half-life of cortisol
-        self.max_pbf = max_pbf # maximum possible cortisol level
-        self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
+        self.fight_weight = None
+        self.flight_weight = None
+        self.freeze_weight = None
+        self.fight = None
+        self.flight = None
+        self.freeze = None
+        self.pbf = None
+        self.last_pbf_update_time = None
+        self.pbf_decay_rate = None
+        self.pbf_halflife = None
+        self.max_pbf = None
+        self.response_threshhold = None
+        self.set_weights(fight_weight, flight_weight, freeze_weight)
+        self.set_response_values(initial_fight, initial_flight, initial_freeze)
+        self.set_pbf(initial_pbf, pbf_halflife, max_pbf, response_threshhold)
         self.name = name
 
         # Eventually capture from the logged object, but for now capture these synchronously as they change.
@@ -56,9 +59,28 @@ class Amygdala(ImprovedRomancerObject):
         self.plot_pbf = []
         self.capture_plot()
 
+    def set_weights(self, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0):
+        self.fight_weight = fight_weight # used to update/predict fight response
+        self.flight_weight = flight_weight # used to update/predict flight response
+        self.freeze_weight = freeze_weight # used to update/predict freeze response
+
+    def set_response_values(self, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0):
+        self.fight = initial_fight # fight response level
+        self.flight = initial_flight # flight response level
+        self.freeze = initial_freeze # freeze response level
+
+    def set_pbf(self, initial_pbf = 0.0001, pbf_halflife = 38400, max_pbf = 1.0, response_threshhold = 1.0):
+        self.pbf = initial_pbf # initial cortisol level
+        self.last_pbf_update_time = self.time # used to calculate pbf decay
+        self.pbf_decay_rate = (1 / math.log(2)) * pbf_halflife # rate at which cortisol is metabolized
+        self.pbf_halflife = pbf_halflife # half-life of cortisol
+        self.max_pbf = max_pbf # maximum possible cortisol level
+        self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
+
+
     def capture_plot(self):
         params = self.current_amygdala_parameters()
-        self.plot_time.append(self.time)
+        self.plot_time.append(self.environment.time)
         self.plot_fight.append(params.current_fight)
         self.plot_flight.append(params.current_flight)
         self.plot_freeze.append(params.current_freeze)
@@ -164,6 +186,10 @@ class Amygdala(ImprovedRomancerObject):
         dominant_response = self.current_amygdala_parameters().current_dominant_response
         return dominant_response
 
+    @staticmethod
+    def short_desc():
+        return "Normal Amygdala"
+
 ''' Joker archetype'''
 class Amygdala_Loki(Amygdala):
     def __init__(self, env, time):
@@ -171,20 +197,24 @@ class Amygdala_Loki(Amygdala):
         self.pbf = 1.0
         self.response_threshhold = 0.5
 
+    @staticmethod
+    def short_desc():
+        return "Joker Archetype Amygdala"
+
     def update_parameters(self, parameters):
         next_mood = random.choice([self.FIGHT_STR, self.FLIGHT_STR, self.FREEZE_STR])
         if next_mood == self.FIGHT_STR:
-            self.fight = 1.0
-            self.flight = 0.0
-            self.freeze = 0.0
+            self.fight = self.fight_weight = 1.0
+            self.flight = self.flight_weight = 0.0
+            self.freeze = self.freeze_weight = 0.0
         elif next_mood == self.FLIGHT_STR:
-            self.fight = 0.0
-            self.flight = 1.0
-            self.freeze = 0.0
+            self.fight = self.fight_weight = 0.0
+            self.flight = self.flight_weight = 1.0
+            self.freeze = self.freeze_weight = 0.0
         elif next_mood == self.FREEZE_STR:
-            self.fight = 0.0
-            self.flight = 0.0
-            self.freeze = 1.0
+            self.fight = self.fight_weight = 0.0
+            self.flight = self.flight_weight = 0.0
+            self.freeze = self.freeze_weight = 1.0
         self.capture_plot()
 
 
@@ -215,6 +245,10 @@ class Amygdala_Fight(FixedAmgydala):
         self.freeze = 0.0
         self.response_threshhold = -1.0
 
+    @staticmethod
+    def short_desc():
+        return "Fight Archetype Amygdala"
+
     def dominant_response(self):
         return self.FIGHT_STR
 
@@ -229,6 +263,10 @@ class Amygdala_Flight(FixedAmgydala):
         self.flight = 1.0
         self.freeze = 0.0
         self.response_threshhold = -1.0
+
+    @staticmethod
+    def short_desc():
+        return "Flight Archetype Amygdala"
 
     def dominant_response(self):
         return self.FLIGHT_STR
@@ -246,6 +284,10 @@ class Amygdala_Freeze(FixedAmgydala):
         self.freeze = 1.0
         self.response_threshhold = -1.0
 
+    @staticmethod
+    def short_desc():
+        return "Freeze Archetype Amygdala"
+
     def dominant_response(self):
         return self.FREEZE_STR
 
@@ -261,6 +303,10 @@ class Amygdala_StoneCold(FixedAmgydala):
         self.freeze = 0.0
         self.response_threshhold = 1e9
 
+    @staticmethod
+    def short_desc():
+        return "Spock Archetype Amygdala"
+
     def dominant_response(self):
         return None
 
@@ -275,6 +321,10 @@ class Amygdala_ResponseFight(FixedResponseAmgydala):
         self.flight = 0.0
         self.freeze = 0.0
 
+    @staticmethod
+    def short_desc():
+        return "Fight-Leaning Archetype Amygdala"
+
 
 # This is always going to choose "flight" but does change based on pbf
 class Amygdala_ResponseFlight(FixedResponseAmgydala):
@@ -287,6 +337,10 @@ class Amygdala_ResponseFlight(FixedResponseAmgydala):
         self.flight = 1.0
         self.freeze = 0.0
 
+    @staticmethod
+    def short_desc():
+        return "Flight-Leaning Archetype Amygdala"
+
 # This is always going to choose "freeze" but does change based on pbf
 class Amygdala_ResponseFreeze(FixedResponseAmgydala):
     def __init__(self, environment, time):
@@ -298,7 +352,12 @@ class Amygdala_ResponseFreeze(FixedResponseAmgydala):
         self.flight = 0.0
         self.freeze = 1.0
 
+    @staticmethod
+    def short_desc():
+        return "Freeze-Leaning Archetype Amygdala"
+
 all_amygdala_archetypes = [
+    Amygdala,
     Amygdala_StoneCold,
     Amygdala_Loki,
     Amygdala_Fight,
