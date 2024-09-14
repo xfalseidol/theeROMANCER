@@ -176,12 +176,9 @@ class Amygdala(ImprovedRomancerObject):
                 self.pbf = self.max_pbf
             if self.pbf < 0:
                 self.pbf = 0
-        if update_parameters.delta_fight > 0:
-            self.fight += update_parameters.delta_fight
-        if update_parameters.delta_flight > 0:
-            self.flight += update_parameters.delta_flight
-        if update_parameters.delta_freeze > 0:
-            self.freeze += update_parameters.delta_freeze
+        self.fight += update_parameters.delta_fight
+        self.flight += update_parameters.delta_flight
+        self.freeze += update_parameters.delta_freeze
         self.capture_plot()
         self.last_pbf_update_time = self.time # update last pbf update time
 
