@@ -66,11 +66,11 @@ def run_hotline(
         blue_ladder_rungs.append(HotlineLadderRung(match_attributes = blue_matching_rules[rungnum],
                                                    actions = blue_actions[rungnum],
                                                    deescalation_actions = blue_deescalate_actions[rungnum],
-                                                   name = f"BlueRung{i}"))
+                                                   name = f"BlueRung{i+1}"))
         red_ladder_rungs.append(HotlineLadderRung(match_attributes=red_matching_rules[rungnum],
                                                    actions=red_actions[rungnum],
                                                    deescalation_actions=red_deescalate_actions[rungnum],
-                                                   name= f"RedRung{i}"))
+                                                   name= f"RedRung{i+1}"))
     blue_ladder_1 = EscalationLadder(blue_ladder_rungs)
     red_ladder_1 = EscalationLadder(red_ladder_rungs)
 
@@ -101,7 +101,7 @@ def run_hotline(
     sup.dispatch_table['HotlinePrivateROMANCERMessage'] = hotline_private_message_dispatcher
     sup.dispatch_table['HotlineRungChangeMessage'] = hotline_rung_change_dispatcher
     # sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
-    sup.watchlist.push(Stop(time=86400 * 14))
+    sup.watchlist.push(Stop(time=86400 * 3))
 
     min_lat = deg2rad(-180)
     max_lat = deg2rad(180)
