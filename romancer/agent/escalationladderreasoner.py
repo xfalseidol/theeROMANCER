@@ -1,3 +1,5 @@
+import random
+
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from romancer.agent.amygdala import UpdateAmygdalaParameters
 from romancer.agent.reasoner import Reasoner
@@ -161,19 +163,17 @@ class EscalationLadderReasoner(Reasoner):
         self.idle_time = 60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
         self.escalation_ladder = escalation_ladder # an EscalationLadder instance
         self.identity = identity # 'blue' or 'red'
+        self.planned_actions = list()
         if current_rung and current_rung in self.escalation_ladder: # rung of escalation ladder agent believes represents current state of conflict
             self.current_rung = current_rung
         elif current_rung == None:
             self.current_rung = self.escalation_ladder[0]
         else:
             raise ValueError('Current rung not in EscalationLadder')
-        if planned_actions: # should planned_actions be a logged UserList?
-            self.planned_actions = planned_actions # planned_actions should be a list of (planned_action_time, action) tuples representing actions that the agent plans to take in the future. These can be provided out of chronological order as EscalationLadderReasoner will heapify them into a priority queue
-            # WILL BINARY HEAP PRIORITY QUEUE WORK CORRECTLY WITH LoggedList?
-        else:
-            self.planned_actions = list()
         heapify(self.planned_actions) # ensure planned actions are heapified
-        if actions_taken: 
+        if planned_actions: # should planned_actions be a logged UserList?
+            self._enqueue_actions(planned_actions)
+        if actions_taken:
             self.actions_taken = LoggedList(data = sorted(actions_taken, key = lambda p: p[0]), parent = self, varname = 'actions_taken') # actions taken sorted in ascending chronological time
         else:
             self.actions_taken = LoggedList(data = list(), parent = self, varname = 'actions_taken')
@@ -361,13 +361,31 @@ class EscalationLadderReasoner(Reasoner):
         
 
     def export_plot(self, filename=None, title=None):
-        if filename is None:
-            filename = "escalationladder.png"
+        self.plot_ladder("ladder" + filename, title)
+        self.plot_timeline("timeline" + filename, None)
 
+    def plot_timeline(self, filename, title):
+        if filename is None:
+            filename = f"escalationladder{self.identity}.png"
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_ylim(0, 3)
+        actions_yval = 1
+        plt.yticks([actions_yval], ["Actions"])
+        plt.xlabel("Time (s)")
+        plt.title(f"{self.identity} Timeline" if title is None else title)
+        times = [a[0] for a in self.actions_taken]
+        evts = [actions_yval + random.uniform(-0.1, 0.1) for a in self.actions_taken]
+        plt.scatter(times, evts, color="blue", label="Actions")
+        plt.legend()
+        plt.show()
+        plt.close()
+
+    def plot_ladder(self, filename, title):
+        if filename is None:
+            filename = f"escalationladder{self.identity}.png"
         fig, ax = plt.subplots(figsize=(10, 6))
         # plt.figure(figsize=(10, 6))
         rung_labels = [rung.name for rung in self.escalation_ladder]
-
         show_ladder_y_axis = False
         if show_ladder_y_axis:
 
@@ -383,8 +401,7 @@ class EscalationLadderReasoner(Reasoner):
                 # ax.axhline(y=y, xmin=-ladder_halfwidth, xmax=0, linewidth=ladder_linewidth, color="grey")
                 rung = mlines.Line2D([-ladder_halfwidth, 0], [y, y], color='grey', linewidth=ladder_linewidth)
                 ax.add_line(rung)
-                ax.text(-ladder_halfwidth/2, y+0.1, rung_labels[y], ha='center', va='center')
-
+                ax.text(-ladder_halfwidth / 2, y + 0.1, rung_labels[y], ha='center', va='center')
         plot_time = self.plot_time.copy()
         plot_time.append(self.environment.time)
         plot_rungs = self.plot_rungs.copy()
@@ -392,9 +409,8 @@ class EscalationLadderReasoner(Reasoner):
         plt.step(plot_time, plot_rungs, label="Rung", marker="o", where="post")
         plt.xlabel("Time (s)")
         plt.ylabel("Ladder")
-        plt.title("Escalation Ladder" if title is None else title)
+        plt.title(f"{self.identity} Escalation Ladder" if title is None else title)
         plt.legend()
-
         plt.yticks(range(len(rung_labels)), labels=rung_labels, rotation=60, fontsize=7)
         # plt.savefig(filename)
         plt.show()
