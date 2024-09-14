@@ -34,21 +34,18 @@ class Amygdala(ImprovedRomancerObject):
 
     def __init__(self, environment, time, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0, initial_pbf = 0.0001, pbf_halflife = 38400, max_pbf = 1.0, response_threshhold = 1.0, name=""):
         super().__init__(environment, time)
-        self.fight_weight = None
-        self.flight_weight = None
-        self.freeze_weight = None
-        self.fight = None
-        self.flight = None
-        self.freeze = None
-        self.pbf = None
-        self.last_pbf_update_time = None
-        self.pbf_decay_rate = None
-        self.pbf_halflife = None
-        self.max_pbf = None
-        self.response_threshhold = None
-        self.set_weights(fight_weight, flight_weight, freeze_weight)
-        self.set_response_values(initial_fight, initial_flight, initial_freeze)
-        self.set_pbf(initial_pbf, pbf_halflife, max_pbf, response_threshhold)
+        self.fight_weight = fight_weight
+        self.flight_weight = flight_weight
+        self.freeze_weight = freeze_weight
+        self.fight = initial_fight
+        self.flight = initial_flight
+        self.freeze = initial_freeze
+        self.pbf = 0.0
+        self.last_pbf_update_time = time
+        self.pbf_decay_rate = 0.0
+        self.pbf_halflife = 0.0
+        self.max_pbf = 0.0
+        self.response_threshhold = 0.0
         self.name = name
 
         # Eventually capture from the logged object, but for now capture these synchronously as they change.
@@ -57,17 +54,22 @@ class Amygdala(ImprovedRomancerObject):
         self.plot_flight = []
         self.plot_freeze = []
         self.plot_pbf = []
+        self.set_weights(fight_weight, flight_weight, freeze_weight)
+        self.set_response_values(initial_fight, initial_flight, initial_freeze)
+        self.set_pbf(initial_pbf, pbf_halflife, max_pbf, response_threshhold)
         self.capture_plot()
 
     def set_weights(self, fight_weight = 1.0, flight_weight = 1.0, freeze_weight = 1.0):
         self.fight_weight = fight_weight # used to update/predict fight response
         self.flight_weight = flight_weight # used to update/predict flight response
         self.freeze_weight = freeze_weight # used to update/predict freeze response
+        self.capture_plot()
 
     def set_response_values(self, initial_fight = 0.0, initial_flight = 0.0, initial_freeze = 0.0):
         self.fight = initial_fight # fight response level
         self.flight = initial_flight # flight response level
         self.freeze = initial_freeze # freeze response level
+        self.capture_plot()
 
     def set_pbf(self, initial_pbf = 0.0001, pbf_halflife = 38400, max_pbf = 1.0, response_threshhold = 1.0):
         self.pbf = initial_pbf # initial cortisol level
@@ -76,7 +78,7 @@ class Amygdala(ImprovedRomancerObject):
         self.pbf_halflife = pbf_halflife # half-life of cortisol
         self.max_pbf = max_pbf # maximum possible cortisol level
         self.response_threshhold = response_threshhold # below this threshold, fight/flight/freeze responses do not activate ('business as usual')
-
+        self.capture_plot()
 
     def capture_plot(self):
         params = self.current_amygdala_parameters()
@@ -105,8 +107,9 @@ class Amygdala(ImprovedRomancerObject):
         ax2.set_ylim(ymin=0)
         ax2.set_ylabel("PBF")
         ax2.legend(loc="upper right")
-        ax2.axhline(y=self.response_threshhold, color="gray", linestyle="--")
-        ax2.annotate('Response Threshold', xy=(0.5, self.response_threshhold), xytext=(0.52, self.response_threshhold),
+        threshold_y = max(0.0, self.response_threshhold)
+        ax2.axhline(y=threshold_y, color="gray", linestyle="--")
+        ax2.annotate('Response Threshold', xy=(0.5, threshold_y), xytext=(0.52, threshold_y),
                      textcoords='data', fontsize=8, color='gray')
 
         plt.title(f"{self.name} Mood Meter" if title is None else title)
@@ -190,10 +193,25 @@ class Amygdala(ImprovedRomancerObject):
     def short_desc():
         return "Normal Amygdala"
 
+
+''' An Amygdala class that doesn't change over time'''
+class FixedAmgydala(Amygdala):
+    def update_parameters(self, parameters):
+        # Override update so no responses change
+        nothingupdate = UpdateAmygdalaParameters(0.0, 0.0, 0.0, 0.0)
+        super().update_parameters(nothingupdate)
+
+''' An Amygdala class that doesn't change it's response over time [but may change whether that response happens or not]'''
+class FixedResponseAmgydala(Amygdala):
+    def update_parameters(self, parameters):
+        # Override update so we remain fixed on mood
+        nothingupdate = UpdateAmygdalaParameters(parameters.delta_pbf, 0.0, 0.0, 0.0)
+        super().update_parameters(nothingupdate)
+
 ''' Joker archetype'''
 class Amygdala_Loki(Amygdala):
-    def __init__(self, env, time):
-        super().__init__(env, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.pbf = 1.0
         self.response_threshhold = 0.5
 
@@ -218,25 +236,10 @@ class Amygdala_Loki(Amygdala):
         self.capture_plot()
 
 
-
-''' An Amygdala class that doesn't change over time'''
-class FixedAmgydala(Amygdala):
-    def update_parameters(self, parameters):
-        # Override update so no responses change
-        nothingupdate = UpdateAmygdalaParameters(0.0, 0.0, 0.0, 0.0)
-        super().update_parameters(nothingupdate)
-
-''' An Amygdala class that doesn't change it's response over time [but may change whether that response happens or not]'''
-class FixedResponseAmgydala(Amygdala):
-    def update_parameters(self, parameters):
-        # Override update so we remain fixed on mood
-        nothingupdate = UpdateAmygdalaParameters(parameters.delta_pbf)
-        super().update_parameters(nothingupdate)
-
 ''' Fighter archetype '''
 class Amygdala_Fight(FixedAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 1.0
         self.flight_weight = 0.0
         self.freeze_weight = 0.0
@@ -254,8 +257,8 @@ class Amygdala_Fight(FixedAmgydala):
 
 ''' Runner archetype '''
 class Amygdala_Flight(FixedAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 0.0
         self.flight_weight = 1.0
         self.freeze_weight = 0.0
@@ -274,8 +277,8 @@ class Amygdala_Flight(FixedAmgydala):
 
 ''' Runner archetype '''
 class Amygdala_Freeze(FixedAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 0.0
         self.flight_weight = 0.0
         self.freeze_weight = 1.0
@@ -293,8 +296,8 @@ class Amygdala_Freeze(FixedAmgydala):
 
 ''' Purely Analytic brain feels no emotion '''
 class Amygdala_StoneCold(FixedAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 0.0
         self.flight_weight = 0.0
         self.freeze_weight = 0.0
@@ -312,8 +315,8 @@ class Amygdala_StoneCold(FixedAmgydala):
 
 # This is always going to choose "fight" but does change based on pbf
 class Amygdala_ResponseFight(FixedResponseAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 1.0
         self.flight_weight = 0.0
         self.freeze_weight = 0.0
@@ -328,8 +331,8 @@ class Amygdala_ResponseFight(FixedResponseAmgydala):
 
 # This is always going to choose "flight" but does change based on pbf
 class Amygdala_ResponseFlight(FixedResponseAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 0.0
         self.flight_weight = 1.0
         self.freeze_weight = 0.0
@@ -343,8 +346,8 @@ class Amygdala_ResponseFlight(FixedResponseAmgydala):
 
 # This is always going to choose "freeze" but does change based on pbf
 class Amygdala_ResponseFreeze(FixedResponseAmgydala):
-    def __init__(self, environment, time):
-        super().__init__(environment, time)
+    def __init__(self, environment, time, name=""):
+        super().__init__(environment, time, name=name)
         self.fight_weight = 0.0
         self.flight_weight = 0.0
         self.freeze_weight = 1.0
