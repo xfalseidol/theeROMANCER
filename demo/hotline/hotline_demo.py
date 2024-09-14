@@ -124,12 +124,10 @@ def run_hotline(
                      max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
 
     red_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
-    red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
-                           (25000, actionlexicon.get_actionnum("Red", "Threat", "6"), None)] # change to force planned red actions, this will be heapified so it needs to be (time, action) tuples
     red_actions_taken = None # change to give Red NCA history of actions taken
     red_digested_percepts = None # change to give Red NCA history of digested percepts
 
-    red_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = red_ladder_1, identity = 'Red', current_rung = red_cur_rung, planned_actions = red_planned_actions, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
+    red_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = red_ladder_1, identity = 'Red', current_rung = red_cur_rung, planned_actions = None, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
 
     red_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
@@ -167,6 +165,10 @@ def run_hotline(
     # blue_elcbr = EscalationLadderCBR(env, env.time)
     # blue_reasoner.cbr = blue_elcbr
 
+    red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
+                           (25000, actionlexicon.get_actionnum("Red", "Threat", "6"),
+                            None)]  # change to force planned red actions, this will be heapified so it needs to be (time, action) tuples
+    red_reasoner._enqueue_actions(red_planned_actions)
 
     # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
     sup.run(verbose = True)
