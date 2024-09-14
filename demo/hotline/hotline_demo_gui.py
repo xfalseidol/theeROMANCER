@@ -102,13 +102,15 @@ class HotlineGUI:
             elif any(["RED" in t for t in titles]):
                 column = 1
 
-            row = 1
-            if any(["MOOD" in t for t in titles]):
-                row = 3
+            row = 5
+            if any(["RESOLVE" in t for t in titles]):
+                row = 1
             elif any(["LADDER" in t for t in titles]):
                 row = 2
-            elif any(["RESOLVE" in t for t in titles]):
-                row = 1
+            elif any(["MOOD" in t for t in titles]):
+                row = 3
+            elif any(["TIMELINE" in t for t in titles]):
+                row = 4
 
             print()
             canvas.draw()
