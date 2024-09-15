@@ -55,11 +55,11 @@ red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescala
 def run_hotline(
         blue_initial_fight = 0.5, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
-        blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr_pkl=None,
+        blue_response_threshhold = 0.2, blue_amyg=None, blue_train_elcbr=None,
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
-        red_response_threshhold = 0.7, red_amyg=None, red_elcbr_pkl=None
+        red_response_threshhold = 0.7, red_amyg=None, red_train_elcbr=None
     ):
 
     blue_ladder_rungs = []
@@ -174,8 +174,13 @@ def run_hotline(
     env.register_object(blue_nca)
     env.add_agent(blue_nca)
 
-    # blue_elcbr = EscalationLadderCBR(env, env.time)
-    # blue_reasoner.cbr = blue_elcbr
+    if blue_train_elcbr is not None:
+        blue_train_elcbr.reset_romancer_object(environment = env, time = env.time)
+        blue_reasoner.cbr = blue_train_elcbr
+
+    if red_train_elcbr is not None:
+        red_train_elcbr.reset_romancer_object(environment = env, time = env.time)
+        red_reasoner.cbr = red_train_elcbr
 
     red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
                            (25000, actionlexicon.get_actionnum("Red", "Threat", "6"),
