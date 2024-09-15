@@ -199,7 +199,11 @@ def run_hotline(
     # below its initial position)
 
 if __name__ == "__main__":
-    run_hotline()
+    blue_train_elcbr = EscalationLadderCBR(None, 0.0)
+    red_train_elcbr = EscalationLadderCBR(None, 0.0)
+    run_hotline(blue_train_elcbr=blue_train_elcbr)
+    export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")
+    export_cbr_sqlite(red_train_elcbr, "hotline_demo_red_cbr.sqlite")
 
 # make_graphviz_graph(blue_elcbr, "blue_elcbr.dot")
 # export_cbr_sqlite(blue_elcbr, "blue_elcbr.sqlite")
