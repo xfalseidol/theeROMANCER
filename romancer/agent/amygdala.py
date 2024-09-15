@@ -119,6 +119,7 @@ class Amygdala(ImprovedRomancerObject):
 
 
     def current_amygdala_parameters(self):
+        print(f"T={self.time} {self.name} FIGHT {self.fight}")
         '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Note that it does not update and log self.pbf.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
         halflife_eps = 0.0000001
@@ -237,13 +238,10 @@ class Amygdala_Loki(Amygdala):
 class Amygdala_Fight(FixedAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 1.0
-        self.flight_weight = 0.0
-        self.freeze_weight = 0.0
-        self.fight = 1.0
-        self.flight = 0.0
-        self.freeze = 0.0
-        self.response_threshhold = -1.0
+        self.set_weights(1.0, 0.0, 0.0)
+        self.set_response_values(1.0, 0.0, 0.0)
+        self.pbf = 1.0
+        self.response_threshhold = 0.0
 
     @staticmethod
     def short_desc():
@@ -256,13 +254,10 @@ class Amygdala_Fight(FixedAmgydala):
 class Amygdala_Flight(FixedAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 0.0
-        self.flight_weight = 1.0
-        self.freeze_weight = 0.0
-        self.fight = 0.0
-        self.flight = 1.0
-        self.freeze = 0.0
-        self.response_threshhold = -1.0
+        self.set_weights(0.0, 1.0, 0.0)
+        self.set_response_values(0.0, 1.0, 0.0)
+        self.pbf = 1.0
+        self.response_threshhold = 0.0
 
     @staticmethod
     def short_desc():
@@ -276,13 +271,10 @@ class Amygdala_Flight(FixedAmgydala):
 class Amygdala_Freeze(FixedAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 0.0
-        self.flight_weight = 0.0
-        self.freeze_weight = 1.0
-        self.fight = 0.0
-        self.flight = 0.0
-        self.freeze = 1.0
-        self.response_threshhold = -1.0
+        self.set_weights(0.0, 0.0, 1.0)
+        self.set_response_values(0.0, 0.0, 1.0)
+        self.pbf = 1.0
+        self.response_threshhold = 0.0
 
     @staticmethod
     def short_desc():
@@ -295,12 +287,9 @@ class Amygdala_Freeze(FixedAmgydala):
 class Amygdala_StoneCold(FixedAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 0.0
-        self.flight_weight = 0.0
-        self.freeze_weight = 0.0
-        self.fight = 0.0
-        self.flight = 0.0
-        self.freeze = 0.0
+        self.set_weights(0.0, 0.0, 0.0)
+        self.set_response_values(0.0, 0.0, 0.0)
+        self.pbf = 0.0
         self.response_threshhold = 1e9
 
     @staticmethod
@@ -314,12 +303,8 @@ class Amygdala_StoneCold(FixedAmgydala):
 class Amygdala_ResponseFight(FixedResponseAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 1.0
-        self.flight_weight = 0.0
-        self.freeze_weight = 0.0
-        self.fight = 1.0
-        self.flight = 0.0
-        self.freeze = 0.0
+        self.set_weights(1.0, 0.0, 0.0)
+        self.set_response_values(1.0, 0.0, 0.0)
 
     @staticmethod
     def short_desc():
@@ -330,12 +315,8 @@ class Amygdala_ResponseFight(FixedResponseAmgydala):
 class Amygdala_ResponseFlight(FixedResponseAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 0.0
-        self.flight_weight = 1.0
-        self.freeze_weight = 0.0
-        self.fight = 0.0
-        self.flight = 1.0
-        self.freeze = 0.0
+        self.set_weights(0.0, 1.0, 0.0)
+        self.set_response_values(0.0, 1.0, 0.0)
 
     @staticmethod
     def short_desc():
@@ -345,12 +326,8 @@ class Amygdala_ResponseFlight(FixedResponseAmgydala):
 class Amygdala_ResponseFreeze(FixedResponseAmgydala):
     def __init__(self, environment, time, name=""):
         super().__init__(environment, time, name=name)
-        self.fight_weight = 0.0
-        self.flight_weight = 0.0
-        self.freeze_weight = 1.0
-        self.fight = 0.0
-        self.flight = 0.0
-        self.freeze = 1.0
+        self.set_weights(0.0, 0.0, 1.0)
+        self.set_response_values(0.0, 0.0, 1.0)
 
     @staticmethod
     def short_desc():
