@@ -26,24 +26,28 @@ class EscalationLadder(UserList):
     def next_rung(self, current_rung, default_retval=None):
         '''This method returns the next rung on the escalation ladder after current_rung, or None if current_rung is the top rung.'''
         cur_i = self.data.index(current_rung)
-        next_rung = default_retval
-        if cur_i < len(self.data):
+        chosen_rung = default_retval
+        chosen_i = cur_i + 1
+        if chosen_i < len(self.data):
             try:
-                next_rung = self.data[cur_i + 1]
+                chosen_rung = self.data[chosen_i]
             except IndexError:
-                next_rung = default_retval
-        return next_rung, cur_i
+                chosen_rung = default_retval
+                chosen_i = cur_i
+        return chosen_rung, chosen_i
 
     def previous_rung(self, current_rung, default_retval=None):
         '''The opposite of next_rung.'''
         cur_i = self.data.index(current_rung)
-        previous_rung = default_retval
-        if cur_i > 0:
+        chosen_rung = default_retval
+        chosen_i = cur_i - 1
+        if chosen_i >= 0:
             try:
-                previous_rung = self.data[cur_i - 1]
+                chosen_rung = self.data[chosen_i]
             except IndexError:
-                previous_rung = default_retval
-        return previous_rung, cur_i
+                chosen_rung = default_retval
+                chosen_i = cur_i
+        return chosen_rung, chosen_i
 
     # for deliberating into the future
     def next_matched_rung(self, current_rung, reasoner, amygdala):
