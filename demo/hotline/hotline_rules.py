@@ -209,7 +209,7 @@ class ConcessionOffer(NamedTuple):  # "If you do {quid}, I'll do {quo}, until {d
         return False
 
     def __str__(self):
-        script_version = f"If you do {translation_dictionary[self.quid]}, I'll do {translation_dictionary[self.quo]}"
+        script_version = f"If you do {self.quid}, I'll do {self.quo}"
         if self.deadline:
             script_version += f", until {self.deadline}"
         script_version += "."
