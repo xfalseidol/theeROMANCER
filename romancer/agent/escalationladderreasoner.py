@@ -308,7 +308,7 @@ class EscalationLadderReasoner(Reasoner):
             self.environment.supervisor.deliver_messages(messages)
             self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
             self.environment.supervisor.inbox.clear() # remove action messages
-        self.actions_taken.append((action_time, actions))
+        self.actions_taken.append((self.environment.time, actions))
         return params # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
 
 
