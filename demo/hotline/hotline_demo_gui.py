@@ -1,3 +1,5 @@
+from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
+from casebasedreasoner.util import export_cbr_sqlite
 from hotline_demo import run_hotline
 import tkinter as tk
 from tkinter import ttk
@@ -34,7 +36,12 @@ class HotlineGUI:
 
         self.create_amygdala_choice("Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3, 0)
         self.create_amygdala_choice("Red Amygdala", self._RED_AMYG_COMBOKEY, 3, 1)
-        print(self.amygdala_choices)
+
+        self.blue_train_elcbr = EscalationLadderCBR(None, 0.0)
+        self.red_train_elcbr = EscalationLadderCBR(None, 0.0)
+
+        self.cbr_frame = tk.Frame(self.root)
+        self.cbr_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
 
         #
         # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
@@ -47,6 +54,7 @@ class HotlineGUI:
             self.hotline_show()
         plt.show = show_capture
         self.run_hotline_guiparam()
+
 
     def create_amygdala_choice(self, label, name, grid_row, grid_col):
         dropdown_options = [k for k in self.amygdala_choices.keys()]
@@ -73,6 +81,19 @@ class HotlineGUI:
         self.slidervalues[slider] = slider_value_label
         self.sliders[slidername] = slider
 
+    def update_cbr_training_frame(self):
+        for widget in self.cbr_frame.winfo_children():
+            widget.destroy()
+        bluelabel = ttk.Label(self.cbr_frame, text=f"Blue ELCBR MopCount: {len(self.blue_train_elcbr.mops)}")
+        bluelabel.grid(row=0, column=0, padx=5, pady=5)
+        redlabel = ttk.Label(self.cbr_frame, text=f"Red ELCBR MopCount: {len(self.red_train_elcbr.mops)}")
+        redlabel.grid(row=0, column=1, padx=5, pady=5)
+        def save_func():
+            export_cbr_sqlite(self.blue_train_elcbr, "blue_hotline_elcbr.sqlite")
+            export_cbr_sqlite(self.red_train_elcbr, "red_hotline_elcbr.sqlite")
+        savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
+        savebutton.grid(row=0, column=2, padx=5, pady=5)
+
     def update_slider_values(self, event=None):
         for slider in self.slidervalues:
             self.slidervalues[slider].config(text=f"{slider.get():.3f}")
@@ -88,7 +109,10 @@ class HotlineGUI:
         params = { k: v.get() for k, v in self.sliders.items() }
         params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
         params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
+        params["blue_train_elcbr"] = self.blue_train_elcbr
+        params["red_train_elcbr"] = self.red_train_elcbr
         run_hotline(**params)
+        self.update_cbr_training_frame()
 
     def hotline_show(self):
         fig = plt.gcf()
