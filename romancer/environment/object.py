@@ -537,12 +537,23 @@ class ImprovedRomancerObject():
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
         self.environment = environment # ROMANCEREnvironment instance containing object
-        self.uid = self.environment.register_object(self) # assign unique id to object
+        if environment is not None:
+            self.uid = self.environment.register_object(self) # assign unique id to object
         self.message_index = 0 # increments with each message to assign unique ids
         self.time = time # current time of simulated object
         self.loglist = ImprovedLoglist(time) # list of logpoints
         self.repr_list = ['inbox', 'outbox', 'uid', 'message_index', 'time', 'loglist'] # used for __repr__ with keywords
 
+    def reset_romancer_object(self, environment, time):
+        # This place is not a place of honor... no highly esteemed deed is commemorated here... nothing valued is here.
+        # What is here was dangerous and repulsive to us. This message is a warning about danger.
+        self.inbox = list()  # list of messages awaiting processing
+        self.outbox = list()  # list of messages that have not yet been sent
+        self.environment = environment  # ROMANCEREnvironment instance containing object
+        self.uid = self.environment.register_object(self)  # assign unique id to object
+        self.message_index = 0  # increments with each message to assign unique ids
+        self.time = time  # current time of simulated object
+        self.loglist = ImprovedLoglist(time)  # list of logpoints
 
     def __setattr__(self, attr, val):
         '''This custom __setattr__ method is key to the ImprovedRomancerObject's automatic logging behavior. Unless the attr's name is included in self.unlogged_attrs, any change to that attr is automatically logged in self.loglist.'''
