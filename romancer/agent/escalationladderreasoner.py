@@ -62,7 +62,7 @@ class EscalationLadder(UserList):
     # for deliberaing present time
     def highest_matched_rung(self, current_rung, reasoner, amygdala):
         matched_rungs = [rung.rung_matched(reasoner, amygdala) for rung in self.data]
-        print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}, percepts={reasoner.digested_percepts}")
+        print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}. n_percepts={len(reasoner.digested_percepts)}")
 
         matched_indices = [i for i, match in enumerate(matched_rungs) if match]
         highest_matched_rung = None
@@ -241,7 +241,9 @@ class EscalationLadderReasoner(Reasoner):
                 outcome="deescalate"
             self._remember_scenario(percepts = self.digested_percepts,
                                     current_rung = self.current_rung,
+                                    current_rung_idx = current_rung_idx,
                                     next_rung = matched_rung,
+                                    next_rung_idx = matched_rung_idx,
                                     outcome = outcome)
 
         amygdala_dominant_response = amygdala.dominant_response()
@@ -280,14 +282,14 @@ class EscalationLadderReasoner(Reasoner):
 
         amygdala.capture_plot()
     
-    def _remember_scenario(self, percepts, current_rung, next_rung, outcome):
+    def _remember_scenario(self, percepts, current_rung, current_rung_idx, next_rung, next_rung_idx, outcome):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
             ## percepts has attribute events_list, which is a list of percept dictionaries
             percepts_as_list_of_dict = []
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.get_percept_items())
-            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, next_rung=next_rung.id, outcome=outcome)
+            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung_idx, next_rung=next_rung_idx, outcome=outcome)
 
     @property
     def next_deliberate_action(self):
