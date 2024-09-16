@@ -1,5 +1,6 @@
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
-from casebasedreasoner.util import export_cbr_sqlite
+from casebasedreasoner.util import export_cbr_sqlite, export_elcbr_inputs_sqlite
+from demo.hotline.hotline_rules import actionlexicon
 from hotline_demo import run_hotline
 import tkinter as tk
 from tkinter import ttk
@@ -100,8 +101,12 @@ class HotlineGUI:
         run_check.grid(row=3, column=0, padx=5, pady=5)
 
         def save_func():
-            export_cbr_sqlite(self.blue_elcbr, "blue_hotline_elcbr.sqlite")
-            export_cbr_sqlite(self.red_elcbr, "red_hotline_elcbr.sqlite")
+            blue_sqlite = "blue_hotline_elcbr.sqlite"
+            red_sqlite = "red_hotline_elcbr.sqlite"
+            export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
+            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon)
+            export_cbr_sqlite(self.red_elcbr, red_sqlite)
+            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon)
 
         savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
         savebutton.grid(row=4, column=0, padx=5, pady=5)

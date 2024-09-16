@@ -111,6 +111,51 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
 
     return dot
 
+# In cases where we're using an elbr, it is useful for the human using the db,
+#    to have store the EscalationLadder data [match rules, actions, etc] in the database
+# This code assumes it is called after export_cbr_sqlite. dbfile must exist
+def export_elcbr_inputs_sqlite(dbfile, actionlexicon):
+    if not os.path.exists(dbfile):
+        assert ValueError("Can only import ELCBR rules into an existing database")
+
+    print("Appending ELCBR rules into sqlite database")
+    t_start = time.time()
+    conn = sqlite3.connect(dbfile)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS action_lexicon(
+            action_num INTEGER,
+            side TEXT,
+            action TEXT, 
+            suffix TEXT,
+            UNIQUE(action_num))
+    ''')
+
+    al = ((int(a['action_num']), a['side'], a['action'], a['suffix']) for a in actionlexicon.actionlexicon.values())
+    cursor.executemany('''
+        INSERT OR IGNORE INTO action_lexicon (action_num, side, action, suffix) VALUES (?,?,?,?)
+    ''', al)
+
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS scenario_percepts_grouped AS
+        SELECT scenariomop.mopname, scenariomop.mopid, perceptslot.slotname,
+               perceptslot.val, COUNT(perceptslot.val) AS cnt,
+               action_lexicon.*
+           FROM mop scenariomop
+            INNER JOIN slot scenarioslot on scenariomop.mopid = scenarioslot.mopid AND scenarioslot.slotname='percepts'
+            INNER JOIN slot perceptgroupslot on scenarioslot.ref_mopid=perceptgroupslot.mopid
+            INNER JOIN slot perceptslot on perceptgroupslot.ref_mopid=perceptslot.mopid
+            LEFT JOIN action_lexicon ON perceptslot.val=action_lexicon.action_num AND perceptslot.slotname='action_taken'
+         WHERE scenariomop.mopname LIKE 'I-M_ELRScenario%'
+         GROUP BY scenariomop.mopid, perceptslot.slotname, perceptslot.val
+    ''')
+    conn.commit()
+    conn.close()
+    t_end = time.time()
+    print(f"SQLite write complete in {t_end-t_start:.2f} seconds")
+
+
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
 def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):
     t_start = time.time()
