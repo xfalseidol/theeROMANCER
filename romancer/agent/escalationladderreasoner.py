@@ -234,9 +234,17 @@ class EscalationLadderReasoner(Reasoner):
         # Even if the amygdala is dominant, we want to do this if we're training the ELCBR
         matched_rung, matched_rung_idx = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
         if matched_rung:
+            outcome = "no_change"
+            if matched_rung_idx > current_rung_idx:
+                outcome = "escalate"
+            elif matched_rung_idx < current_rung_idx:
+                outcome="deescalate"
             self._remember_scenario(percepts = self.digested_percepts,
                                     current_rung = self.current_rung,
-                                    outcome = matched_rung)
+                                    next_rung = matched_rung,
+                                    outcome = outcome)
+            self._escalate(matched_rung, amygdala)
+            no_change = False
 
         amygdala_dominant_response = amygdala.dominant_response()
         amygdala_rung = None
@@ -274,14 +282,14 @@ class EscalationLadderReasoner(Reasoner):
 
         amygdala.capture_plot()
     
-    def _remember_scenario(self, percepts, current_rung, outcome):
+    def _remember_scenario(self, percepts, current_rung, next_rung, outcome):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
             ## percepts has attribute events_list, which is a list of percept dictionaries
             percepts_as_list_of_dict = []
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.get_percept_items())
-            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, outcome=outcome)
+            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung.id, next_rung=next_rung.id, outcome=outcome)
 
     @property
     def next_deliberate_action(self):
