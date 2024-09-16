@@ -243,8 +243,6 @@ class EscalationLadderReasoner(Reasoner):
                                     current_rung = self.current_rung,
                                     next_rung = matched_rung,
                                     outcome = outcome)
-            self._escalate(matched_rung, amygdala)
-            no_change = False
 
         amygdala_dominant_response = amygdala.dominant_response()
         amygdala_rung = None
