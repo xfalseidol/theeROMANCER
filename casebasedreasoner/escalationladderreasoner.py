@@ -1,4 +1,4 @@
-from cbr import CaseBasedReasoner, MOPComparerSorter, MOP
+from casebasedreasoner.cbr import CaseBasedReasoner, MOPComparerSorter, MOP
 from dill import dump, load
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -81,6 +81,7 @@ class ELRPerceptMOPComparer(MOPComparerSorter):
             axes[i][1].set_yticks([])
         plt.tight_layout()
         plt.show()
+        plt.close()
 
     def compare_two_percept_lists(self, pl1, pl2):
         # For each item in pl1, Find the closest item in p2, then add that to the cumulative distance

@@ -2,43 +2,10 @@ import csv
 from typing import NamedTuple
 from functools import reduce
 from operator import add
+
 from romancer.supervisor.watchlist import WatchlistItem
 from hotline_percept import HotlineActionROMANCERMessage
-
-pad = 60
-def _make_translation_dictionary():
-    actions = 60
-    actions_to_names = {}
-    current_action = 1
-    for action in range(1, actions + 1):
-        description = ""
-        # who
-        if action % 2 == 1:
-            description += "Red"
-        else:
-            description += "Blue"
-        # what
-        if action % 6 in [1, 2]:
-            description += "Punishment"
-        elif action % 6 in [3, 4]:
-            description += "CompelledConcession"
-        elif action % 6 in [5, 0]:
-            description += "VoluntaryConcession"
-        # which
-        description += str(current_action) + "(" + str(action) + ")"
-        if action % 6 == 0:
-            current_action += 1
-        actions_to_names[action] = description
-    return actions_to_names
-
-
-def _save_translation_dictionary():
-    with open('actions_dictionary.csv', 'w', newline='') as csv_file:  
-        writer = csv.writer(csv_file)
-        writer.writerow(["Action", "Name"])
-        for key, value in translation_dictionary.items():
-            writer.writerow([key, value])
-
+from hotline_rules import actionlexicon
 
 def _get_amygdala_display(params):
     if params:
@@ -47,98 +14,6 @@ def _get_amygdala_display(params):
         flight = str(round(params.current_flight, 2))
         freeze = str(round(params.current_freeze, 2))
         return "stress: (" + pbf + ", " + fight + ", " + flight + ", " + freeze + ")"
-
-
-class DeterrentThreat(NamedTuple): # "Don't Do (provocation) or else I'll (threat) until (deadline??)"
-    provocation: int # action adversary could take that threatener wants to deter
-    threat: int # threatened action if recipient takes provocative action
-    deadline: any # float representing future time or None if no deadline given
-
-    def evaluate(self, reasoner, amygdala):
-        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
-
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
-        deterrent_threats = filter(lambda m: isinstance(m, DeterrentThreat), submessages)
-
-        for dt in deterrent_threats:
-            if self.provocation == dt.provocation and self.threat == dt.threat:
-                if dt.deadline:
-                    if reasoner.time <= self.deadline:
-                        return True
-                elif not dt.deadline:
-                    return True   
-
-        return False 
-    
-    
-    def __str__(self):
-        script_version = f"Don't take {translation_dictionary[self.provocation]} or else I'll take {translation_dictionary[self.threat]}"
-        if self.deadline:
-            script_version += f", until {self.deadline}"
-        script_version += "."
-        return script_version
-
-
-class CompellentThreat(NamedTuple): # "You must do {demanded_action} or else I'll do {threat}; you have until {deadline}"
-    demanded_action: int # action adversary could take that threatener wants to compel (i.e., a concession)
-    threat: int # threatened action if recipient fails to take demanded action
-    deadline: any # float representing future time or None if no deadline given
-
-    def evaluate(self, reasoner, amygdala):
-        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
-
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
-        compellent_threats = filter(lambda m: isinstance(m, CompellentThreat), submessages)
-
-        for ct in compellent_threats:
-            if self.demanded_action == ct.demanded_action and self.threat == ct.threat:
-                if ct.deadline:
-                    if reasoner.time <= ct.deadline:
-                        return True
-                elif not ct.deadline:
-                    return True    
-        
-        return False
-    
-
-    def __str__(self):
-        script_version = f"You must take {translation_dictionary[self.demanded_action]} or else I'll take {translation_dictionary[self.threat]}"
-        if self.deadline:
-            script_version += f"; you have until {self.deadline}"
-        script_version += "."
-        return script_version
-
-class ConcessionOffer(NamedTuple): # "If you do {quid}, I'll do {quo}, until {deadline}"
-    quid: int # offered concession
-    quo: int # expected counter-concession
-    deadline: any # float representing future time or None if no deadline given
-
-    def evaluate(self, reasoner, amygdala):
-        '''Determine whether this threat is currently credible to reasoner given its internal state.'''
-
-        messages = reduce(add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
-        submessages = reduce(add, [message.contents for message in messages])
-        concession_offers = filter(lambda m: isinstance(m, ConcessionOffer), submessages)
-
-        for co in concession_offers:
-            if self.quid == co.quid and self.quo == co.quo:
-                if co.deadline:
-                    if reasoner.time <= co.deadline:
-                        return True
-                elif not co.deadline:
-                    return True   
-                
-        return False
-
-
-    def __str__(self):
-        script_version = f"If you do {translation_dictionary[self.quid]}, I'll do {translation_dictionary[self.quo]}"
-        if self.deadline:
-            script_version += f", until {self.deadline}"
-        script_version += "."
-        return script_version
 
 
 class HotlineAction(WatchlistItem):
@@ -169,8 +44,8 @@ class HotlineAction(WatchlistItem):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
-        script_version += translation_dictionary[self.action_id]
-        stress =''#_get_amygdala_display(self.params)
+        script_version += actionlexicon.getlabel(self.action_id)
+        stress ='' #_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
 
@@ -236,9 +111,11 @@ class HotlineRungChange(WatchlistItem):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.who]}: "
         if self.old_rung.id < self.new_rung.id:
-            script_version += f"I'm escalating from {self.old_rung} to {self.new_rung}."
+            script_version += f"I'm escalating from {self.old_rung.name} to {self.new_rung.name}."
+        elif self.old_rung.id > self.new_rung.id:
+            script_version += f"I'm deescalating from {self.old_rung.name} to {self.new_rung.name}."
         else:
-            script_version += f"I'm deescalating from {self.old_rung} to {self.new_rung}."
+            script_version += f"A rung change event with no rung change; from {self.old_rung.name} to {self.new_rung.name}"
         stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
@@ -295,5 +172,4 @@ def _sim_time_to_days(time):
     return round(time / (3600 * 24), 2) # divided by seconds in a day
 
 
-translation_dictionary = _make_translation_dictionary()
 agents_to_names = {6: 'RED', 10: 'BLUE'}

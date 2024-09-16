@@ -67,6 +67,8 @@ class Supervisor():
 
     def deliver_messages(self, messages):
         '''Place messages in supervisor's inbox. This method should be called by the environment and agents, primarily.'''
+        if not isinstance(messages, list):
+            messages = [messages]
         for message in messages:
             self.inbox.append(message)
 

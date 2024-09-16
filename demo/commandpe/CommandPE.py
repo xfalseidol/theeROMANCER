@@ -46,6 +46,7 @@ def plot_escalations(times, rungs):
     rung_labels = ["Calm", "Irritated", "Annoyed", "Agitated", "Angry"]
     plt.yticks(range(len(rung_labels)), labels=rung_labels)
     plt.show()
+    plt.close()
 
 def plot_amygdalas(times, stress_levels):
     plt.figure(figsize=(10, 6))
