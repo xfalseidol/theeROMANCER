@@ -55,11 +55,11 @@ red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescala
 def run_hotline(
         blue_initial_fight = 0.5, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
-        blue_response_threshhold = 0.2, blue_amyg=None, blue_train_elcbr=None,
+        blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
-        red_response_threshhold = 0.7, red_amyg=None, red_train_elcbr=None
+        red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
     ):
 
     blue_ladder_rungs = []
@@ -134,7 +134,10 @@ def run_hotline(
     red_actions_taken = None # change to give Red NCA history of actions taken
     red_digested_percepts = None # change to give Red NCA history of digested percepts
 
-    red_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = red_ladder_1, identity = 'Red', current_rung = red_cur_rung, planned_actions = None, actions_taken = red_actions_taken, digested_percepts = red_digested_percepts)
+    red_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = red_ladder_1,
+                                         identity = 'Red', current_rung = red_cur_rung, planned_actions = None,
+                                         actions_taken = red_actions_taken, digested_percepts = red_digested_percepts,
+                                         cbr=red_elcbr, cbr_train=red_train_elcbr, cbr_run=red_run_elcbr)
 
     red_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
@@ -163,7 +166,10 @@ def run_hotline(
     blue_actions_taken = None # change to give Blue NCA history of actions taken
     blue_digested_percepts = None # change to give Blue NCA history of digested percepts
 
-    blue_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = blue_ladder_1, identity = 'Blue', current_rung = blue_cur_rung, planned_actions = blue_planned_actions, actions_taken = blue_actions_taken, digested_percepts = blue_digested_percepts)
+    blue_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = blue_ladder_1,
+                                          identity = 'Blue', current_rung = blue_cur_rung, planned_actions = blue_planned_actions,
+                                          actions_taken = blue_actions_taken, digested_percepts = blue_digested_percepts,
+                                          cbr=blue_elcbr, cbr_train=blue_train_elcbr, cbr_run=blue_run_elcbr)
 
     blue_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
@@ -174,13 +180,10 @@ def run_hotline(
     env.register_object(blue_nca)
     env.add_agent(blue_nca)
 
-    if blue_train_elcbr is not None:
-        blue_train_elcbr.reset_romancer_object(environment = env, time = env.time)
-        blue_reasoner.cbr = blue_train_elcbr
-
-    if red_train_elcbr is not None:
-        red_train_elcbr.reset_romancer_object(environment = env, time = env.time)
-        red_reasoner.cbr = red_train_elcbr
+    if blue_elcbr is not None:
+        blue_elcbr.reset_romancer_object(environment = env, time = env.time)
+    if red_elcbr is not None:
+        red_elcbr.reset_romancer_object(environment = env, time = env.time)
 
     red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
                            (25000, actionlexicon.get_actionnum("Red", "Threat", "6"),
@@ -200,10 +203,8 @@ def run_hotline(
 
 if __name__ == "__main__":
     blue_train_elcbr = EscalationLadderCBR(None, 0.0)
-    red_train_elcbr = EscalationLadderCBR(None, 0.0)
-    run_hotline(blue_train_elcbr=blue_train_elcbr)
+    run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=True)
     export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")
-    export_cbr_sqlite(red_train_elcbr, "hotline_demo_red_cbr.sqlite")
 
 # make_graphviz_graph(blue_elcbr, "blue_elcbr.dot")
 # export_cbr_sqlite(blue_elcbr, "blue_elcbr.sqlite")
