@@ -162,7 +162,9 @@ class EscalationLadderReasoner(Reasoner):
     '''
     '''
 
-    def __init__(self,  environment, time, escalation_ladder, identity, current_rung = None, planned_actions = None, actions_taken = None, digested_percepts = None, cbr = None):
+    def __init__(self,  environment, time, escalation_ladder, identity, current_rung = None,
+                 planned_actions = None, actions_taken = None, digested_percepts = None,
+                 cbr = None, cbr_train=True, cbr_run=False):
         super().__init__(environment, time)
         self.idle_time = 60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
         self.escalation_ladder = escalation_ladder # an EscalationLadder instance
@@ -190,6 +192,8 @@ class EscalationLadderReasoner(Reasoner):
         self.plot_time = []
         self.plot_rungs = []
         self.cbr = cbr
+        self.cbr_train = cbr_train
+        self.cbr_run = cbr_run
         self.capture_plot()
 
     def reset_reasoner(self, rung_num=0):
@@ -224,6 +228,14 @@ class EscalationLadderReasoner(Reasoner):
             self.most_recent_percept_time = percept_time
 
 
+    def match_rung(self, max_time, amygdala):
+        if self.cbr_run:
+            # matched_rung, matched_rung_idx = self.cbr.do_the_matchy_thing()
+            raise ValueError("CBR Match Not Yet Implemented")
+        else:
+            matched_rung, matched_rung_idx = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
+        return matched_rung, matched_rung_idx
+
     def deliberate(self, max_time, amygdala):
         '''This method causes the agent to cogitate and predict how its mental state and intentions will evolve up until max_time in the future, presuming that it receives no additional percepts after the current time. One of the purposes of this method is to establish the evolution of the internal mental state of the agent. These changes can be stored on the loglist and then used to account for how a new percept can interrupt the agent's 'chain of thought.'
         '''
@@ -232,19 +244,20 @@ class EscalationLadderReasoner(Reasoner):
         current_rung_idx = self.escalation_ladder.rung_number(self.current_rung)
         # determine if a different rung is matched
         # Even if the amygdala is dominant, we want to do this if we're training the ELCBR
-        matched_rung, matched_rung_idx = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
+        matched_rung, matched_rung_idx = self.match_rung(max_time, amygdala)
         if matched_rung:
             outcome = "no_change"
             if matched_rung_idx > current_rung_idx:
                 outcome = "escalate"
             elif matched_rung_idx < current_rung_idx:
                 outcome="deescalate"
-            self._remember_scenario(percepts = self.digested_percepts,
-                                    current_rung = self.current_rung,
-                                    current_rung_idx = current_rung_idx,
-                                    next_rung = matched_rung,
-                                    next_rung_idx = matched_rung_idx,
-                                    outcome = outcome)
+            if self.cbr_train:
+                self._remember_scenario(percepts = self.digested_percepts,
+                                        current_rung = self.current_rung,
+                                        current_rung_idx = current_rung_idx,
+                                        next_rung = matched_rung,
+                                        next_rung_idx = matched_rung_idx,
+                                        outcome = outcome)
 
         amygdala_dominant_response = amygdala.dominant_response()
         amygdala_rung = None

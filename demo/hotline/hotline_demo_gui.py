@@ -16,6 +16,9 @@ class HotlineGUI:
         self.root = tk.Tk()
         self.root.title("ROMANCER Hotline")
 
+        self.controls_frame = tk.Frame(self.root)
+        self.controls_frame.pack()
+
         self.amygdala_choices = {a.short_desc() : a for a in all_amygdala_archetypes}
         self.amygdala_combos = {}
         self._BLUE_AMYG_COMBOKEY = "blue"
@@ -23,8 +26,8 @@ class HotlineGUI:
 
         self.sliders = {}
         self.slidervalues = {}
-        self.slider_frame = tk.Frame(self.root)
-        self.slider_frame.pack(side=tk.TOP, fill=tk.X, expand=True, padx=10, pady=10)
+        self.slider_frame = tk.Frame(self.controls_frame)
+        self.slider_frame.grid(padx=10, pady=10, row=0, column=0)
 
         self.create_slider("Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, 0, 0)
         self.create_slider("Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1, 0)
@@ -37,11 +40,14 @@ class HotlineGUI:
         self.create_amygdala_choice("Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3, 0)
         self.create_amygdala_choice("Red Amygdala", self._RED_AMYG_COMBOKEY, 3, 1)
 
-        self.blue_train_elcbr = EscalationLadderCBR(None, 0.0)
-        self.red_train_elcbr = EscalationLadderCBR(None, 0.0)
+        self.blue_elcbr = EscalationLadderCBR(None, 0.0)
+        self.red_elcbr = EscalationLadderCBR(None, 0.0)
 
-        self.cbr_frame = tk.Frame(self.root)
-        self.cbr_frame.pack(side=tk.TOP, fill=tk.X, expand=True)
+        self.cbr_train_intval = tk.IntVar(value=1)
+        self.cbr_run_intval = tk.IntVar(value=0)
+
+        self.cbr_frame = tk.Frame(self.controls_frame)
+        self.cbr_frame.grid(row=0, column=1)
 
         #
         # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
@@ -84,15 +90,22 @@ class HotlineGUI:
     def update_cbr_training_frame(self):
         for widget in self.cbr_frame.winfo_children():
             widget.destroy()
-        bluelabel = ttk.Label(self.cbr_frame, text=f"Blue ELCBR MopCount: {len(self.blue_train_elcbr.mops)}")
+        bluelabel = ttk.Label(self.cbr_frame, text=f"Blue ELCBR Mops: {len(self.blue_elcbr.mops)}")
         bluelabel.grid(row=0, column=0, padx=5, pady=5)
-        redlabel = ttk.Label(self.cbr_frame, text=f"Red ELCBR MopCount: {len(self.red_train_elcbr.mops)}")
-        redlabel.grid(row=0, column=1, padx=5, pady=5)
+        redlabel = ttk.Label(self.cbr_frame, text=f"Red ELCBR Mops: {len(self.red_elcbr.mops)}")
+        redlabel.grid(row=1, column=0, padx=5, pady=5)
+        train_check = ttk.Checkbutton(self.cbr_frame, text="Train CBRs", variable=self.cbr_train_intval)
+        train_check.grid(row=2, column=0, padx=5, pady=5)
+        run_check = ttk.Checkbutton(self.cbr_frame, text="Run CBRs", variable=self.cbr_run_intval)
+        run_check.grid(row=3, column=0, padx=5, pady=5)
+
         def save_func():
-            export_cbr_sqlite(self.blue_train_elcbr, "blue_hotline_elcbr.sqlite")
-            export_cbr_sqlite(self.red_train_elcbr, "red_hotline_elcbr.sqlite")
+            export_cbr_sqlite(self.blue_elcbr, "blue_hotline_elcbr.sqlite")
+            export_cbr_sqlite(self.red_elcbr, "red_hotline_elcbr.sqlite")
+
         savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
-        savebutton.grid(row=0, column=2, padx=5, pady=5)
+        savebutton.grid(row=4, column=0, padx=5, pady=5)
+
 
     def update_slider_values(self, event=None):
         for slider in self.slidervalues:
@@ -106,11 +119,16 @@ class HotlineGUI:
 
     def run_hotline_guiparam(self):
         self.n_charts = 0
+        cbr_train = True if self.cbr_train_intval and self.cbr_train_intval.get()>0 else False
+        cbr_run = True if self.cbr_run_intval and self.cbr_run_intval.get()>0 else False
         params = { k: v.get() for k, v in self.sliders.items() }
         params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
         params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
-        params["blue_train_elcbr"] = self.blue_train_elcbr
-        params["red_train_elcbr"] = self.red_train_elcbr
+        params["blue_elcbr"] = self.blue_elcbr
+        params["red_elcbr"] = self.red_elcbr
+        params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
+        params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
+
         run_hotline(**params)
         self.update_cbr_training_frame()
 
