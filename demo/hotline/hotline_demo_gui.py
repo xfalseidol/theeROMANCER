@@ -1,6 +1,5 @@
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, export_elcbr_inputs_sqlite
-from demo.hotline.hotline_demo import matching_rules_file, actions_file
 from demo.hotline.hotline_rules import actionlexicon
 from hotline_demo import run_hotline
 import tkinter as tk
@@ -25,6 +24,9 @@ class HotlineGUI:
         self.amygdala_combos = {}
         self._BLUE_AMYG_COMBOKEY = "blue"
         self._RED_AMYG_COMBOKEY = "red"
+
+        self.matching_rules_file = "data/matchingrules.csv"
+        self.actions_file = "data/rungchange_actions.csv"
 
         self.sliders = {}
         self.slidervalues = {}
@@ -105,9 +107,9 @@ class HotlineGUI:
             blue_sqlite = "blue_hotline_elcbr.sqlite"
             red_sqlite = "red_hotline_elcbr.sqlite"
             export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
-            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, matching_rules_file, actions_file)
+            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file)
             export_cbr_sqlite(self.red_elcbr, red_sqlite)
-            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, matching_rules_file, actions_file)
+            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file)
 
         savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
         savebutton.grid(row=4, column=0, padx=5, pady=5)
@@ -134,6 +136,8 @@ class HotlineGUI:
         params["red_elcbr"] = self.red_elcbr
         params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
         params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
+        params["blue_matching_rules_file"] = params["red_matching_rules_file"] = self.matching_rules_file
+        params["blue_actions_file"] = params["red_actions_file"] = self.actions_file
 
         run_hotline(**params)
         self.update_cbr_training_frame()

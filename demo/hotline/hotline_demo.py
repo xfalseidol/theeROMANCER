@@ -37,30 +37,29 @@ from numpy import deg2rad, rad2deg
 # alternative ladders, we assume the pattern repeats twice per ladder rung ({1, ... 12} is the first rung, {13, ..., 24} is the
 # second, and so on)
 
-# Load all the tables from CSV ahead of time
 blue_mapping = { "Self": "Blue", "Adversary": "Red"}
 red_mapping = { "Self": "Red", "Adversary": "Blue"}
-matching_rules_file = "data/matchingrules.csv"
-actions_file = "data/rungchange_actions.csv"
-
-blue_matching_rules = load_matcher_csv(matching_rules_file, actionlexicon, blue_mapping)
-blue_actions = load_actions_csv(actions_file, actionlexicon, "action", blue_mapping)
-blue_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescalate_action", blue_mapping)
-
-red_matching_rules = load_matcher_csv(matching_rules_file, actionlexicon, red_mapping)
-red_actions = load_actions_csv(actions_file, actionlexicon, "action", red_mapping)
-red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescalate_action", red_mapping)
 
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
         blue_initial_fight = 0.5, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
+        blue_matching_rules_file = "data/matchingrules.csv", blue_actions_file = "data/rungchange_actions.csv",
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
+        red_matching_rules_file="data/matchingrules.csv", red_actions_file="data/rungchange_actions.csv",
     ):
+
+    blue_matching_rules = load_matcher_csv(blue_matching_rules_file, actionlexicon, blue_mapping)
+    blue_actions = load_actions_csv(blue_actions_file, actionlexicon, "action", blue_mapping)
+    blue_deescalate_actions = load_actions_csv(blue_actions_file, actionlexicon, "deescalate_action", blue_mapping)
+
+    red_matching_rules = load_matcher_csv(red_matching_rules_file, actionlexicon, red_mapping)
+    red_actions = load_actions_csv(red_actions_file, actionlexicon, "action", red_mapping)
+    red_deescalate_actions = load_actions_csv(red_actions_file, actionlexicon, "deescalate_action", red_mapping)
 
     blue_ladder_rungs = []
     red_ladder_rungs = []
