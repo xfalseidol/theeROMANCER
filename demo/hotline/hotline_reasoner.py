@@ -32,8 +32,12 @@ class HotlineLadderRung(EscalationLadderRung):
 
 class HotlineLadderReasoner(EscalationLadderReasoner):
 
-    def __init__(self,  environment, time, escalation_ladder, identity, current_rung = None, planned_actions = None, actions_taken = None, digested_percepts = None, resolve = 0.5, max_resolve = 1.0, perceived_adversary_resolve = 0.5, max_adversary_resolve = 1.0):
-        super().__init__(environment, time, escalation_ladder, identity, current_rung, planned_actions, actions_taken, digested_percepts)
+    def __init__(self,  environment, time, escalation_ladder, identity, current_rung = None,
+                 planned_actions = None, actions_taken = None, digested_percepts = None,
+                 cbr = None, cbr_train=True, cbr_run=False,
+                 resolve = 0.5, max_resolve = 1.0, perceived_adversary_resolve = 0.5, max_adversary_resolve = 1.0):
+        super().__init__(environment, time, escalation_ladder, identity, current_rung, planned_actions, actions_taken, digested_percepts,
+                         cbr=cbr, cbr_train=cbr_train, cbr_run=cbr_run)
         self.resolve = resolve # set initial resolve
         self.max_resolve = max_resolve
         self.perceived_adversary_resolve = perceived_adversary_resolve # these values are analogous to pbf, fall within a defined range
@@ -204,13 +208,13 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                                                recipient=(1,1),
                                                messagetype='HotlineRungChangeMessage',
                                                old_rung=previous_rung,
-                                               new_rung=self.current_rung)
+                                               new_rung=next_rung)
         heappush(self.planned_actions, (self.time, message, None))
 
 
     def _deescalate(self, next_rung, enqueue_actions):
-        super()._deescalate(next_rung, enqueue_actions)
         previous_rung = self.current_rung
+        super()._deescalate(next_rung, enqueue_actions)
         # next_rung = self.escalation_ladder.next_rung(self.current_rung)
         message = HotlineRungChangeMessage(uid=self.new_message_index(),
                                                time = self.time,
@@ -218,7 +222,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                                                recipient=(1,1),
                                                messagetype='HotlineRungChangeMessage',
                                                old_rung=previous_rung,
-                                               new_rung=self.current_rung)
+                                               new_rung=next_rung)
         heappush(self.planned_actions, (self.time, message, None))
 
     def _enqueue_actions(self, actions):
