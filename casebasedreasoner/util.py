@@ -1,3 +1,4 @@
+import csv
 import os.path
 import time
 import sqlite3
@@ -111,12 +112,43 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
 
     return dot
 
+# Given a CSV file, just insert it into sqlite as a table.
+#  To avoid potential exploits, if any column names contain anything other than [a-zA-Z0-9_], refuse completely.
+# Does not bother guessing type. Uses SQLite's "NUMBER" which for this would:
+#   try integer, then real, and finally store as string if coercion didn't work
+def insert_csv_sqlite(dbconn, csvfile, tablename):
+    created_table = False
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if 0 == len(row[reader.fieldnames[0]]):
+                continue
+            if not created_table:
+                cursor = dbconn.cursor()
+                print(f"Creating table {tablename}")
+                cols_types = [f"{col} NUMBER" for col in reader.fieldnames]
+                create_sql = (f"CREATE TABLE IF NOT EXISTS {tablename}"
+                              f" ({",".join(cols_types)})")
+                cursor.execute(create_sql)
+                created_table = True
+            val_bind = ",".join(["?" for _ in reader.fieldnames])
+            val_list = [row[k] for k in reader.fieldnames]
+            cursor.execute(f"INSERT INTO {tablename} VALUES ({val_bind})", val_list)
+    dbconn.commit()
+
+
 # In cases where we're using an elbr, it is useful for the human using the db,
 #    to have store the EscalationLadder data [match rules, actions, etc] in the database
 # This code assumes it is called after export_cbr_sqlite. dbfile must exist
-def export_elcbr_inputs_sqlite(dbfile, actionlexicon):
+def export_elcbr_inputs_sqlite(dbfile, actionlexicon=None, matchingrules_csv=None, actionsfile_csv=None):
     if not os.path.exists(dbfile):
         assert ValueError("Can only import ELCBR rules into an existing database")
+
+    if matchingrules_csv is not None and not os.path.exists(matchingrules_csv):
+        assert ValueError(f"Matchingrules CSV {matchingrules_csv} does not exist")
+
+    if actionsfile_csv is not None and not os.path.exists(actionsfile_csv):
+        assert ValueError(f"Actions File CSV {actionsfile_csv} does not exist")
 
     print("Appending ELCBR rules into sqlite database")
     t_start = time.time()
@@ -131,6 +163,11 @@ def export_elcbr_inputs_sqlite(dbfile, actionlexicon):
             suffix TEXT,
             UNIQUE(action_num))
     ''')
+
+    if matchingrules_csv is not None:
+        insert_csv_sqlite(conn, matchingrules_csv, "matchingrules")
+    if actionsfile_csv is not None:
+        insert_csv_sqlite(conn, actionsfile_csv, "actionsfile")
 
     al = ((int(a['action_num']), a['side'], a['action'], a['suffix']) for a in actionlexicon.actionlexicon.values())
     cursor.executemany('''
