@@ -150,11 +150,12 @@ class MOP(ImprovedRomancerObject):
         m_pattern = self.parent.name_mop('M-PATTERN')
         return m_pattern.is_abstraction(self) # Perhaps M-PATTERN should be distinct Python subclasses of MOP
 
-    def add_role_filler(self, role, filler):
+    def add_role_filler(self, role, filler, verbose=False):
         # if not isinstance(filler, MOP):
         #     raise TypeError(f'Filler {filler} is not MOP')
         self.slots[role] = filler
-        print(f"{self}:{role} <= {filler}")
+        if verbose:
+            print(f"{self}:{role} <= {filler}")   
         return filler
 
 

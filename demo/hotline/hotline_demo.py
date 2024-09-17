@@ -1,8 +1,7 @@
-import os.path
-
 import context
 import csv
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
+from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
 from demo.hotline.hotline_rules import actionlexicon, load_matcher_csv, load_actions_csv, DoAction
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
@@ -103,7 +102,7 @@ def run_hotline(
     sup.dispatch_table['HotlinePrivateROMANCERMessage'] = hotline_private_message_dispatcher
     sup.dispatch_table['HotlineRungChangeMessage'] = hotline_rung_change_dispatcher
     # sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
-    sup.watchlist.push(Stop(time=86400 * 3))
+    sup.watchlist.push(Stop(time=86400 * 1))
 
     min_lat = deg2rad(-180)
     max_lat = deg2rad(180)
@@ -193,18 +192,25 @@ def run_hotline(
     # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
     sup.run(verbose = True)
 
-    blue_reasoner.export_plot()
-    blue_amygdala.export_plot()
+    # blue_reasoner.export_plot()
+    # blue_amygdala.export_plot()
 
-    red_reasoner.export_plot()
-    red_amygdala.export_plot()
+    # red_reasoner.export_plot()
+    # red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 
 if __name__ == "__main__":
-    blue_train_elcbr = EscalationLadderCBR(None, 0.0)
+    print("Training Blue ELCBR using HLR decisions...")
+    blue_train_elcbr = EscalationLadderCBR(None, 0.0, comparer_sorter=HLRComparerSorter())
     run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=True)
-    export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")
+    # blue_train_elcbr.serialize('trainedHLR.pkl')
+    print()
+    print("Rerunning simulation with trained Blue ELCBR...")
+    run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=True, blue_run_elcbr=True)
+    # blue_trained_elcbr = EscalationLadderCBR(None, 0.0, load_memory_from='trainedHLR.pkl', comparer_sorter=HLRComparerSorter())
+    run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=False, blue_run_elcbr=True)
+    # export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")
 
 # make_graphviz_graph(blue_elcbr, "blue_elcbr.dot")
 # export_cbr_sqlite(blue_elcbr, "blue_elcbr.sqlite")
