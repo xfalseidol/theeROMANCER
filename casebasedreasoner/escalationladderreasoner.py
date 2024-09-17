@@ -89,12 +89,9 @@ class EscalationLadderCBR(CaseBasedReasoner):
         old_next_rung = old_mop.slots['next_rung']
         current_rung = mop.get_filler('current_rung')
         output = f"Comparing new scenario {mop} (current_rung={current_rung}) to old scenario {old_mop} (current_rung={old_current_rung}, next_rung={old_next_rung})...\n"
-        # old_outcome = old_mop.get_filler('outcome')
+        old_outcome = old_mop.slots['outcome']
         # calculate difference between percepts
-        distance = self.mop_comparer_sorter.compare_two_percept_groups(mop.get_filler('percepts'), old_mop.get_filler('percepts'))
-        # old_percepts = self.mop_comparer_sorter.get_flattened_percept_list(self, old_mop.mop_name)
-        # new_percepts = self.mop_comparer_sorter.get_flattened_percept_list(self, mop.mop_name)
-        # distance = self.mop_comparer_sorter.compare_two_percept_lists(old_percepts, new_percepts)
+        distance = self.mop_comparer_sorter.compare_two_percept_groups(mop.slots['percepts'], old_mop.slots['percepts'])
         # print("---------------------------")
         if distance > self.too_distant_threshold:
             next_rung = current_rung
@@ -112,11 +109,12 @@ class EscalationLadderCBR(CaseBasedReasoner):
             next_rung = old_mop.get_filler('next_rung')
             output += f"New and old scenarios not distant at all (distance={distance}), copying outcome: "
         if (current_rung - next_rung) > 0:
-            outcome = 'deescalate'
+            outcome = self.name_mop('I_M_deescalate_outcome')
         elif (current_rung - next_rung) < 0:
-            outcome = 'escalate'
+            outcome = self.name_mop('I_M_escalate_outcome')
         else:
-            outcome = 'no change'
+            outcome = self.name_mop('I_M_no_change_outcome')
+        mop.slots['outcome'] = outcome
         output += f"{outcome} from {current_rung} to {next_rung}\n"
         output += "---------------------------"
         if self.verbose:
@@ -204,7 +202,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
             outcome = self.name_mop('I_M_deescalate_outcome')
         elif outcome == 'escalate':
             outcome = self.name_mop('I_M_escalate_outcome')
-        elif outcome == 'no change':
+        elif outcome == 'no_change':
             outcome = self.name_mop('I_M_no_change_outcome')
         slots = {'percepts': percept_group, 'current_rung': current_rung}
         if next_rung:

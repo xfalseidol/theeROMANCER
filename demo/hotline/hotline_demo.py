@@ -86,7 +86,8 @@ def run_hotline(
     sup = SingleThreadSupervisor()
     # Step 1.2: Configure logger
     def hotline_logger(s):
-        print(s)
+        # print(s)
+        pass
         # print()
 
     sup.logger = hotline_logger
@@ -179,10 +180,10 @@ def run_hotline(
     env.register_object(blue_nca)
     env.add_agent(blue_nca)
 
-    if blue_elcbr is not None:
-        blue_elcbr.reset_romancer_object(environment = env, time = env.time)
-    if red_elcbr is not None:
-        red_elcbr.reset_romancer_object(environment = env, time = env.time)
+    # if blue_elcbr is not None:
+    #     blue_elcbr.reset_romancer_object(environment = env, time = env.time)
+    # if red_elcbr is not None:
+    #     red_elcbr.reset_romancer_object(environment = env, time = env.time)
 
     red_planned_actions = [(1000, actionlexicon.get_actionnum("Red", "Threat", "3"), None),
                            (25000, actionlexicon.get_actionnum("Red", "Threat", "6"),
@@ -202,14 +203,15 @@ def run_hotline(
 
 if __name__ == "__main__":
     print("Training Blue ELCBR using HLR decisions...")
-    blue_train_elcbr = EscalationLadderCBR(None, 0.0, comparer_sorter=HLRComparerSorter())
-    run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=True)
-    # blue_train_elcbr.serialize('trainedHLR.pkl')
+    sup = SingleThreadSupervisor()
+    env = SingleThreadEnvironment(sup, None, None)
+    blue_elcbr = EscalationLadderCBR(env, 0.0, comparer_sorter=HLRComparerSorter())
+    run_hotline(blue_elcbr=blue_elcbr, blue_train_elcbr=True)
     print()
+    blue_elcbr.display_memory()
     print("Rerunning simulation with trained Blue ELCBR...")
-    run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=True, blue_run_elcbr=True)
-    # blue_trained_elcbr = EscalationLadderCBR(None, 0.0, load_memory_from='trainedHLR.pkl', comparer_sorter=HLRComparerSorter())
-    run_hotline(blue_elcbr=blue_train_elcbr, blue_train_elcbr=False, blue_run_elcbr=True)
+    run_hotline(blue_elcbr=blue_elcbr, blue_train_elcbr=False, blue_run_elcbr=True)
+    blue_elcbr.display_memory()
     # export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")
 
 # make_graphviz_graph(blue_elcbr, "blue_elcbr.dot")

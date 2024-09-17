@@ -252,7 +252,7 @@ class EscalationLadderReasoner(Reasoner):
             if matched_rung_idx > current_rung_idx:
                 outcome = "escalate"
             elif matched_rung_idx < current_rung_idx:
-                outcome="deescalate"
+                outcome = "deescalate"
             if self.cbr_train:
                 self._remember_scenario(percepts = self.digested_percepts,
                                         current_rung = self.current_rung,

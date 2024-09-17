@@ -231,7 +231,7 @@ class ConcessionOffer(NamedTuple):  # "If you do {quid}, I'll do {quo}, until {d
 
     def __sub__(self, other):
         return (self.quid - other.quid) + (self.quo - other.quo)
-    
+        
 
 # Return a map of run_number to matcher
 def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
