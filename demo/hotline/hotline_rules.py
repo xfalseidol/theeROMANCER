@@ -252,6 +252,20 @@ def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
 
     return {rung: any_of(rules) for rung, rules in retval.items()}
 
+# Return a ordered list of 2-tuples, with number,name
+def load_ladder_rungs_csv(csvfile):
+    retval = []
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if 0 == len(row["rung_number"].strip()):
+                continue
+            rung_number = int(row['rung_number'])
+            rung_name = row['rung_name']
+            retval.append((rung_number, rung_name))
+    retval.sort(key=lambda x: x[0])
+    print(retval)
+    return retval
 
 # Return a map of rung_number to list of time-action tuples
 def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping={}):

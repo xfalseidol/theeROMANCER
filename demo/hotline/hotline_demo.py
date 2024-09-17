@@ -4,7 +4,8 @@ import context
 import csv
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
-from demo.hotline.hotline_rules import actionlexicon, load_matcher_csv, load_actions_csv, DoAction
+from demo.hotline.hotline_rules import actionlexicon, load_matcher_csv, load_actions_csv, DoAction, \
+    load_ladder_rungs_csv
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.location import GeographicLocation
@@ -46,32 +47,38 @@ def run_hotline(
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
         blue_matching_rules_file = "data/matchingrules.csv", blue_actions_file = "data/rungchange_actions.csv",
+        blue_ladder_file = "data/ladder.csv",
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
         red_matching_rules_file="data/matchingrules.csv", red_actions_file="data/rungchange_actions.csv",
+        red_ladder_file = "data/ladder.csv"
     ):
 
+    blue_ladder_rung_inp = load_ladder_rungs_csv(blue_ladder_file)
     blue_matching_rules = load_matcher_csv(blue_matching_rules_file, actionlexicon, blue_mapping)
     blue_actions = load_actions_csv(blue_actions_file, actionlexicon, "action", blue_mapping)
     blue_deescalate_actions = load_actions_csv(blue_actions_file, actionlexicon, "deescalate_action", blue_mapping)
 
+    red_ladder_rung_inp = load_ladder_rungs_csv(red_ladder_file)
     red_matching_rules = load_matcher_csv(red_matching_rules_file, actionlexicon, red_mapping)
     red_actions = load_actions_csv(red_actions_file, actionlexicon, "action", red_mapping)
     red_deescalate_actions = load_actions_csv(red_actions_file, actionlexicon, "deescalate_action", red_mapping)
 
     blue_ladder_rungs = []
     red_ladder_rungs = []
-    for i, rungnum in enumerate(sorted(blue_matching_rules.keys())):
+    for (rungnum, rungname) in blue_ladder_rung_inp:
         blue_ladder_rungs.append(HotlineLadderRung(match_attributes = blue_matching_rules[rungnum],
                                                    actions = blue_actions[rungnum],
                                                    deescalation_actions = blue_deescalate_actions[rungnum],
-                                                   name = f"BlueRung{i+1}"))
+                                                   name = rungname))
+    for (rungnum, rungname) in red_ladder_rung_inp:
         red_ladder_rungs.append(HotlineLadderRung(match_attributes=red_matching_rules[rungnum],
                                                    actions=red_actions[rungnum],
                                                    deescalation_actions=red_deescalate_actions[rungnum],
-                                                   name= f"RedRung{i+1}"))
+                                                   name= rungname))
+
     blue_ladder_1 = EscalationLadder(blue_ladder_rungs)
     red_ladder_1 = EscalationLadder(red_ladder_rungs)
 
