@@ -140,7 +140,7 @@ def insert_csv_sqlite(dbconn, csvfile, tablename):
 # In cases where we're using an elbr, it is useful for the human using the db,
 #    to have store the EscalationLadder data [match rules, actions, etc] in the database
 # This code assumes it is called after export_cbr_sqlite. dbfile must exist
-def export_elcbr_inputs_sqlite(dbfile, actionlexicon=None, matchingrules_csv=None, actionsfile_csv=None):
+def export_elcbr_inputs_sqlite(dbfile, actionlexicon=None, matchingrules_csv=None, actionsfile_csv=None, ladder_csv=None):
     if not os.path.exists(dbfile):
         assert ValueError("Can only import ELCBR rules into an existing database")
 
@@ -149,6 +149,9 @@ def export_elcbr_inputs_sqlite(dbfile, actionlexicon=None, matchingrules_csv=Non
 
     if actionsfile_csv is not None and not os.path.exists(actionsfile_csv):
         assert ValueError(f"Actions File CSV {actionsfile_csv} does not exist")
+
+    if ladder_csv is not None and not os.path.exists(ladder_csv):
+        assert ValueError(f"Ladder File CSV {ladder_csv} does not exist")
 
     print("Appending ELCBR rules into sqlite database")
     t_start = time.time()
@@ -168,6 +171,8 @@ def export_elcbr_inputs_sqlite(dbfile, actionlexicon=None, matchingrules_csv=Non
         insert_csv_sqlite(conn, matchingrules_csv, "matchingrules")
     if actionsfile_csv is not None:
         insert_csv_sqlite(conn, actionsfile_csv, "actionsfile")
+    if ladder_csv is not None:
+        insert_csv_sqlite(conn, ladder_csv, "ladder")
 
     al = ((int(a['action_num']), a['side'], a['action'], a['suffix']) for a in actionlexicon.actionlexicon.values())
     cursor.executemany('''

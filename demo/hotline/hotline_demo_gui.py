@@ -27,6 +27,7 @@ class HotlineGUI:
 
         self.matching_rules_file = "data/matchingrules.csv"
         self.actions_file = "data/rungchange_actions.csv"
+        self.ladder_file = "data/ladder.csv"
 
         self.sliders = {}
         self.slidervalues = {}
@@ -107,9 +108,9 @@ class HotlineGUI:
             blue_sqlite = "blue_hotline_elcbr.sqlite"
             red_sqlite = "red_hotline_elcbr.sqlite"
             export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
-            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file)
+            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file, self.ladder_file)
             export_cbr_sqlite(self.red_elcbr, red_sqlite)
-            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file)
+            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file, self.ladder_file)
 
         savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
         savebutton.grid(row=4, column=0, padx=5, pady=5)
@@ -138,6 +139,7 @@ class HotlineGUI:
         params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
         params["blue_matching_rules_file"] = params["red_matching_rules_file"] = self.matching_rules_file
         params["blue_actions_file"] = params["red_actions_file"] = self.actions_file
+        params["blue_ladder_file"] = params["red_ladder_file"] = self.ladder_file
 
         run_hotline(**params)
         self.update_cbr_training_frame()
