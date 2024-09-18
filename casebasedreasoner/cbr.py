@@ -2,6 +2,7 @@ import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from romancer.environment.object import ImprovedRomancerObject, LoggedList, LoggedSet, LoggedDict
 from casebasedreasoner.mop import MOP, is_satisfied
+from casebasedreasoner.MOP_comparer_sorter import SimpleSlotSorter
 import networkx as nx
 import random
 
@@ -19,134 +20,6 @@ def not_constraint(constraint, filler, slots):
     return not is_satisfied(constraint.get_filler('object'), filler, slots)
 
 
-'''
-This class is used by the stochastic case selector.
-
-Given a CBR, and the name of a mop [that is already inserted into the CBR], and a list of mop names to compare it to 
-Return the list of compare_mop_names, sorted by comparison-to-specific-mop.
-"Most like" should be first on the returned list, and "least like" should be last.
-'''
-class MOPComparerSorter:
-    # This method is the one that will be called by the CBR while doing stochastic tests
-    # There is a dummy implementation in here that should not be used by anyone, ever.
-    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names):
-        return sorted(compare_mop_names)
-
-
-# Recursively get all slot values, with "closer" keys taking priority over "further" keys
-# Then do a naive cosine-distance-like metric
-class SimpleSlotSorter(MOPComparerSorter):
-    def compare_mops_and_sort(self, cbr, mop_name, compare_mop_names):
-        ''' Return a map of mop_name => similarity_score, showing how similar
-        every other mop in this CBR is, to the mop requested '''
-        this_mop_dict = self.get_mop_slots_r(cbr, mop_name)
-        other_dicts = {}
-        # In keeping with get_sibling: Only search through MOPs that come from the same abst as the one we're holding
-
-        for other_mop in compare_mop_names:
-            other_mop_dict = self.get_mop_slots_r(cbr, other_mop)
-            other_dicts[other_mop] = other_mop_dict
-
-        self.normalise_mop_dicts(this_mop_dict, other_dicts)
-
-        comparisons = {}
-        for other_mop in other_dicts:
-            comparisons[other_mop] = self.compare_two_mop_dicts(this_mop_dict, other_dicts[other_mop])
-
-        sorted_items = sorted(comparisons.items(), key=lambda x: x[1], reverse=True)
-        sorted_mops = [item[0] for item in sorted_items]
-        return sorted_mops
-
-    def get_mop_slots_r(self, cbr, mop_name, root_mop=None, curr_dict=None, depth=0):
-        ''' For a given mop, return a map of all slot->slot_value.
-         Do this recursively [ie, if a slot references another mop, go down into that]
-          A higher-level dict value should not be overwritten by a lower level one '''
-        if root_mop is None:
-            root_mop = mop_name
-        if curr_dict is None:
-            curr_dict = dict()
-        if mop_name not in cbr.mops:
-            return curr_dict
-        if depth > 200:
-            raise CBRError("Recursively getting slots went too deep (cycle in graph?)")
-
-        this_mop = cbr.mops[mop_name]
-        recurse_mop_queue = []
-
-        for slot in this_mop.slots:
-            # Already have a key
-            if slot in curr_dict:
-                continue
-
-            slot_val = this_mop.slots[slot]
-            if slot_val == root_mop:
-                continue
-            if slot_val in cbr.mops:
-                curr_dict[slot] = slot_val
-                recurse_mop_queue.append(slot_val)
-            elif isinstance(slot_val, MOP):
-                mop_name = slot_val.mop_name
-                curr_dict[slot] = slot_val.mop_name
-                recurse_mop_queue.append(slot_val.mop_name)
-            elif isinstance(slot_val, (str, int, float)):
-                curr_dict[slot] = slot_val
-            elif callable(slot_val):
-                # print(f"Slot {slot} on mop {mop_name} is a callable. Fix plz")
-                pass
-            elif slot_val is None:
-                pass
-            else:
-                print(f"Slot {slot} on mop {mop_name} has unknown slot type {type(slot_val)}")
-
-        for r_mop in recurse_mop_queue:
-            self.get_mop_slots_r(cbr, r_mop, root_mop, curr_dict, depth=depth + 1)
-
-        return curr_dict
-
-    def compare_two_mop_dicts(self, mop_1, mop_2):
-        ''' Provide two dictionaries, representing two mops. get_mop_slots_r(mop_name) creates those dicts '''
-        # Function is not required to be symmetric; it's reasonable to only calculate based on keys in mop_1
-        # Function should return float >0, where 0 = "nothing in common", and higher numbers = "lots in common"
-        # For now, naively calculate cosine distance. If values are strings, then they either match, or do not match.
-        retval = 0.0
-        for k1 in mop_1:
-            if k1 not in mop_2:
-                # No comparison to be done
-                continue
-
-            v1 = mop_1[k1]
-            v2 = mop_2[k1]
-            if not isinstance(v1, type(v2)):
-                # Don't know how to compare this
-                print(f"Don't know how to compare a {type(v1)} and a {type(v2)}")
-                continue
-            if isinstance(v1, str):
-                if v1 == v2:
-                    retval += 1
-            elif isinstance(v1, (int, float)):
-                retval -= pow((v1 - v2), 2)
-            else:
-                print(f"Don't know how to compare two {type(v1)}")
-
-        return retval
-
-    def normalise_mop_dicts(self, key_mop, other_dicts):
-        for k in key_mop.keys():
-            if isinstance(key_mop[k], (int, float)):
-                min_val = 1000000
-                max_val = -1000000
-                for other_mop in other_dicts.keys():
-                    other_dict = other_dicts[other_mop]
-                    if k in other_dict:
-                        min_val = min(min_val, other_dict[k])
-                        max_val = max(max_val, other_dict[k])
-                for other_mop in other_dicts.keys():
-                    other_dict = other_dicts[other_mop]
-                    if k in other_dict:
-                        other_dict[k] = (other_dict[k] - min_val) / (max_val - min_val)
-                key_mop[k] = (key_mop[k] - min_val) / (max_val - min_val)
-
-
 class CaseBasedReasoner(ImprovedRomancerObject):
     ''''''
 
@@ -157,7 +30,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
         self.clear_memory(True) # install basic MOPs
         self.decision_making_ability = None  # A number in the range 0..1. If None, use normal get_sibling
-        self.mop_comparer_sorter = SimpleSlotSorter() # For comparing and sorting MOPs for stochastic decision making
+        # self.mop_comparer_sorter = SimpleSlotSorter() # For comparing and sorting MOPs for stochastic decision making
         self.rng = random.Random()  # Used by the stochastic mop selector
         self.deleted_mops = [] # Capture mops that are deleted for logging to database later
 

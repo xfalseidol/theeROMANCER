@@ -23,7 +23,6 @@ import matplotlib.pyplot as plt
 # 25 to action 23 (at any level of credibility), or if the adversary has made the threat to take action 32 unless the reasoner
 # makes action 31, and the reasoner assesses the opponent's credibility at >= 0.75.
 
-
 class HotlineLadderRung(EscalationLadderRung):
     '''match_attributes is assumed to be a statement in the matching DSL which as a .evaluate(reasoner, amygdala) method.'''
     def rung_matched(self, reasoner, amygdala):
@@ -89,23 +88,15 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
     def take_next_action(self):
         '''This method is meant to be called when a WatchListItem reflecting the agent's planned action is processed by the Supervisor. It should be an internal implementation detail which is called via a method on the PersonLikeAgent, which uses the values it returns to update the Amygdala state.'''
         action_time, action, params = heappop(self.planned_actions) # This should return an iterable of messages
-        print(f"Taking action {action}")
+        # print(f"Taking action {action}")
         # print(f" actions take: {self.actions_taken}")
         self.forward_simulation(action_time) # make sure that Reasoner is at correct time, although in practice this should do nothing as forward_simulation should have been called on the Agent first
 
         self.environment.supervisor.deliver_messages(action)
         self.environment.supervisor.process_inbox()
-        # send messages to supervisor reflecting actions, if necessary
-        # actions = []
-        # for message in messages:
-        #     actions.append(message.actions)
-        # if len(messages) > 0:
-        #     self.environment.supervisor.inbox.clear() # should already be empty
-        #     self.environment.supervisor.deliver_messages(messages)
-        #     self.environment.supervisor.process_inbox() # all messages should be at the same time, otherwise would be separate actions
-        #     self.environment.supervisor.inbox.clear() # remove action messages
         self.actions_taken.append((action_time, action))
         return params
+
 
     def update_resolve(self):
         '''This method uses the reasoner's history of digested percepts to update its estimates of its own and its opponent's resolve.

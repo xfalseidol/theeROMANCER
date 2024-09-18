@@ -119,7 +119,7 @@ class Amygdala(ImprovedRomancerObject):
 
 
     def current_amygdala_parameters(self):
-        print(f"T={self.time} {self.name} FIGHT {self.fight}")
+        # print(f"T={self.time} {self.name} FIGHT {self.fight}")
         '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Note that it does not update and log self.pbf.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
         halflife_eps = 0.0000001

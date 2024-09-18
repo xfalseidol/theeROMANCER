@@ -62,7 +62,7 @@ class EscalationLadder(UserList):
     # for deliberaing present time
     def highest_matched_rung(self, current_rung, reasoner, amygdala):
         matched_rungs = [rung.rung_matched(reasoner, amygdala) for rung in self.data]
-        print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}. n_percepts={len(reasoner.digested_percepts)}")
+        # print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}. n_percepts={len(reasoner.digested_percepts)}")
 
         matched_indices = [i for i, match in enumerate(matched_rungs) if match]
         highest_matched_rung = None
@@ -230,11 +230,13 @@ class EscalationLadderReasoner(Reasoner):
 
     def match_rung(self, max_time, amygdala):
         if self.cbr_run:
-            # matched_rung, matched_rung_idx = self.cbr.do_the_matchy_thing()
-            raise ValueError("CBR Match Not Yet Implemented")
+            new_scenario_slots = self.cbr.make_scenario_slots(percepts=self.digested_percepts, current_rung=self.escalation_ladder.rung_number(self.current_rung), next_rung=None, outcome=None)
+            matched_rung_idx = self.cbr.make_decision(new_scenario_slots)
+            matched_rung = self.escalation_ladder.data[matched_rung_idx]
         else:
             matched_rung, matched_rung_idx = self.escalation_ladder.highest_matched_rung(self.current_rung, self, amygdala)
         return matched_rung, matched_rung_idx
+
 
     def deliberate(self, max_time, amygdala):
         '''This method causes the agent to cogitate and predict how its mental state and intentions will evolve up until max_time in the future, presuming that it receives no additional percepts after the current time. One of the purposes of this method is to establish the evolution of the internal mental state of the agent. These changes can be stored on the loglist and then used to account for how a new percept can interrupt the agent's 'chain of thought.'
@@ -250,7 +252,7 @@ class EscalationLadderReasoner(Reasoner):
             if matched_rung_idx > current_rung_idx:
                 outcome = "escalate"
             elif matched_rung_idx < current_rung_idx:
-                outcome="deescalate"
+                outcome = "deescalate"
             if self.cbr_train:
                 self._remember_scenario(percepts = self.digested_percepts,
                                         current_rung = self.current_rung,
@@ -273,7 +275,7 @@ class EscalationLadderReasoner(Reasoner):
         curr_rungname = self.current_rung.name
         amygdala_rungname = amygdala_rung.name if amygdala_rung else "None"
         matched_rungname = matched_rung.name if matched_rung else "None"
-        print(f"{self.identity} next rungs: Curr_Rung={curr_rungname}, Amygdala={amygdala_rungname}, Matcher={matched_rungname}. Current dominant response: {amygdala_dominant_response}")
+        # print(f"{self.identity} next rungs: Curr_Rung={curr_rungname}, Amygdala={amygdala_rungname}, Matcher={matched_rungname}. Current dominant response: {amygdala_dominant_response}")
 
         chosen_rung = matched_rung
         chosen_rung_idx = matched_rung_idx
@@ -302,7 +304,8 @@ class EscalationLadderReasoner(Reasoner):
             percepts_as_list_of_dict = []
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.get_percept_items())
-            self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung_idx, next_rung=next_rung_idx, outcome=outcome)
+            # self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung_idx, next_rung=next_rung_idx, outcome=outcome)
+            self.cbr.add_ELRScenario(percepts, current_rung_idx, next_rung_idx, outcome)
 
     @property
     def next_deliberate_action(self):

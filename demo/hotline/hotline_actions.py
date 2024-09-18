@@ -45,7 +45,7 @@ class HotlineAction(WatchlistItem):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
         script_version += actionlexicon.getlabel(self.action_id)
-        stress ='' #_get_amygdala_display(self.params)
+        stress = '' #_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
 

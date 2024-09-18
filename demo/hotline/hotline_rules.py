@@ -7,6 +7,10 @@ from romancer.agent.amygdala import UpdateAmygdalaParameters
 from hotline_percept import HotlineActionPercept, HotlineMessagePercept, SendPublicMessage, \
     SendPrivateMessage
 
+class HotlineTuple(NamedTuple):
+    def __sub__(self, other):
+        print(f"This ROMANCERTuple {self} does not have subtraction defined.")
+
 
 class any_of(tuple):
 
@@ -33,6 +37,8 @@ class any_of(tuple):
         # return any((action_taken(m) if isinstance(m, int) else m.evaluate(reasoner, amygdala) for m in self if
         #             isinstance(m, int)))
 
+    def __sub__(self, other):
+        print("any_of does not have subtraction yet.")
 
 class all_of(tuple):
 
@@ -142,6 +148,9 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
         script_version += "."
         return script_version
 
+    def __sub__(self, other):
+        return (self.provocation - other.provocation) + (self.threat - other.threat)
+
 
 class CompellentThreat(
     NamedTuple):  # "You must do {demanded_action} or else I'll do {threat}; you have until {deadline}"
@@ -185,6 +194,10 @@ class CompellentThreat(
         return script_version
 
 
+def __sub__(self, other):
+    return (self.demanded_action - other.demanded_action) + (self.threat - other.threat)
+
+
 class ConcessionOffer(NamedTuple):  # "If you do {quid}, I'll do {quo}, until {deadline}"
     quid: int  # offered concession
     quo: int  # expected counter-concession
@@ -215,6 +228,10 @@ class ConcessionOffer(NamedTuple):  # "If you do {quid}, I'll do {quo}, until {d
         script_version += "."
         return script_version
 
+
+    def __sub__(self, other):
+        return (self.quid - other.quid) + (self.quo - other.quo)
+        
 
 # Return a map of run_number to matcher
 def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):

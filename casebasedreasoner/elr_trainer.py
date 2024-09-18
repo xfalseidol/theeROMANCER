@@ -1,3 +1,5 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.agent.escalationladderreasoner import EscalationLadderReasoner, MatchAllRung, EscalationLadder
@@ -59,7 +61,7 @@ def train():
 
     ### TRAINING
     env = SingleThreadEnvironment(None, None, None)
-    ELCBR = EscalationLadderCBR(env, env.time)
+    ELCBR = EscalationLadderCBR(env, env.time, verbose=True)
     ELR = EscalationLadderReasoner(env, env.time, escalation_ladder=escalation_ladder, identity='red', cbr=ELCBR)
 
     # inform ELCBR of ladder rungs
