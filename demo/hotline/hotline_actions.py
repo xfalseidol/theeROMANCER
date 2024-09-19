@@ -110,12 +110,13 @@ class HotlineRungChange(WatchlistItem):
     def __str__(self):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.who]}: "
-        if self.old_rung.id < self.new_rung.id:
-            script_version += f"I'm escalating from {self.old_rung.name} to {self.new_rung.name}."
-        elif self.old_rung.id > self.new_rung.id:
-            script_version += f"I'm deescalating from {self.old_rung.name} to {self.new_rung.name}."
+        new_rung = self.new_rung if self.new_rung is not None else self.old_rung
+        if self.old_rung.id < new_rung.id:
+            script_version += f"I'm escalating from {self.old_rung.name} to {new_rung.name}."
+        elif self.old_rung.id > new_rung.id:
+            script_version += f"I'm deescalating from {self.old_rung.name} to {new_rung.name}."
         else:
-            script_version += f"A rung change event with no rung change; from {self.old_rung.name} to {self.new_rung.name}"
+            script_version += f"A rung change event with no rung change; from {self.old_rung.name} to {new_rung.name}"
         stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
