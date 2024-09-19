@@ -199,11 +199,11 @@ def run_hotline(
     # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
     sup.run(verbose = True)
 
-    # blue_reasoner.export_plot()
-    # blue_amygdala.export_plot()
+    blue_reasoner.export_plot()
+    blue_amygdala.export_plot()
 
-    # red_reasoner.export_plot()
-    # red_amygdala.export_plot()
+    red_reasoner.export_plot()
+    red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 
@@ -211,7 +211,7 @@ if __name__ == "__main__":
     print("Training Blue ELCBR using HLR decisions...")
     sup = SingleThreadSupervisor()
     env = SingleThreadEnvironment(sup, None, None)
-    blue_elcbr = EscalationLadderCBR(env, 0.0, comparer_sorter=HLRComparerSorter())
+    blue_elcbr = EscalationLadderCBR(env, 0.0, comparer_sorter=HLRComparerSorter(), name="BlueELCBR")
     run_hotline(blue_elcbr=blue_elcbr, blue_train_elcbr=True)
     print()
     blue_elcbr.display_memory()

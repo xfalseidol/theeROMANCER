@@ -46,8 +46,8 @@ class HotlineGUI:
         self.create_amygdala_choice("Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3, 0)
         self.create_amygdala_choice("Red Amygdala", self._RED_AMYG_COMBOKEY, 3, 1)
 
-        self.blue_elcbr = EscalationLadderCBR(None, 0.0)
-        self.red_elcbr = EscalationLadderCBR(None, 0.0)
+        self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR")
+        self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR")
 
         self.cbr_train_intval = tk.IntVar(value=1)
         self.cbr_run_intval = tk.IntVar(value=0)
