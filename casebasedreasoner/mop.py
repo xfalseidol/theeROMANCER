@@ -68,7 +68,7 @@ class MOP(ImprovedRomancerObject):
 
     This implementation is based on chapter three of Christopher Riesbeck and Roger Schank, _Inside Case-Based Reasoning_ (Lawrence Erlbaum, 1989).'''
 
-    def __init__(self, environment, time, parent, mop_name, absts=None, specs=None, slots=None, mop_type='instance', is_default_mop=False, is_core_cbr_mop=False):
+    def __init__(self, environment, time, parent, mop_name, absts=None, specs=None, slots=None, mop_type='instance', is_default_mop=False, is_core_cbr_mop=False, num_mops=0):
         super().__init__(environment, time)
         if not absts:
             absts = set()   
@@ -77,7 +77,7 @@ class MOP(ImprovedRomancerObject):
         if not slots:
             slots = {} 
         if not mop_name:
-            mop_name = self.make_name(list(absts), mop_type)
+            mop_name = self.make_name(list(absts), mop_type, num_mops)
 
         self.create_seq = parent.get_next_mop_seq()
         self.delete_seq = None
@@ -365,13 +365,13 @@ class MOP(ImprovedRomancerObject):
         return "None"
 
 
-    def make_name(self, absts, mop_type):
+    def make_name(self, absts, mop_type, num_mops):
         '''Returns a name for a new MOP based on its abstractions and mop_type.'''
         name = str(absts[0])
         if mop_type == 'instance':
-            name = 'I-' + str(absts[0]) + '.' + str(self.uid)
+            name = 'I-' + str(absts[0]) + '.' + str(num_mops + 1)
         if mop_type == 'mop':
-            name = str(absts[0]) + '.' + str(self.uid)
+            name = str(absts[0]) + '.' + str(num_mops + 1)
         return name
 
     

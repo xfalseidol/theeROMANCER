@@ -86,7 +86,7 @@ def run_hotline(
     sup = SingleThreadSupervisor()
     # Step 1.2: Configure logger
     def hotline_logger(s):
-        # print(s)
+        print(s)
         pass
         # print()
 
@@ -206,13 +206,17 @@ if __name__ == "__main__":
     sup = SingleThreadSupervisor()
     env = SingleThreadEnvironment(sup, None, None)
     blue_elcbr = EscalationLadderCBR(env, 0.0, comparer_sorter=HLRComparerSorter())
-    run_hotline(blue_elcbr=blue_elcbr, blue_train_elcbr=True)
+    env = SingleThreadEnvironment(sup, None, None)
+    red_elcbr = EscalationLadderCBR(env, 0.0, comparer_sorter=HLRComparerSorter())
+    run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=True, red_train_elcbr=True) # HLR vs HLR (training an ELCBR)
     print()
     blue_elcbr.display_memory()
     print("Rerunning simulation with trained Blue ELCBR...")
-    run_hotline(blue_elcbr=blue_elcbr, blue_train_elcbr=False, blue_run_elcbr=True)
+    # run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=False, blue_run_elcbr=True) # HLR-ECLBR vs HLR    
+    # run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=False, blue_run_elcbr=True, red_train_elcbr=False, red_run_elcbr=True) # HLR-ECLBR vs HLR-ELCBR
     blue_elcbr.display_memory()
     # export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")
+
 
 # make_graphviz_graph(blue_elcbr, "blue_elcbr.dot")
 # export_cbr_sqlite(blue_elcbr, "blue_elcbr.sqlite")

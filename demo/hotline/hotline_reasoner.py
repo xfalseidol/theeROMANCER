@@ -23,6 +23,7 @@ import matplotlib.pyplot as plt
 # 25 to action 23 (at any level of credibility), or if the adversary has made the threat to take action 32 unless the reasoner
 # makes action 31, and the reasoner assesses the opponent's credibility at >= 0.75.
 
+
 class HotlineLadderRung(EscalationLadderRung):
     '''match_attributes is assumed to be a statement in the matching DSL which as a .evaluate(reasoner, amygdala) method.'''
     def rung_matched(self, reasoner, amygdala):

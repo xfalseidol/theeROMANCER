@@ -416,7 +416,7 @@ class HLRComparerSorter(MOPComparerSorter):
                     difference += p1_filler != p2_filler # string mismatch has "size" 1
                 else:
                     try:
-                        difference += p2_filler - p1_filler # we must implement - (__subtr__) in HotlineTuples
+                        difference += p2_filler - p1_filler # we must implement - (__sub__) in NamedTuples
                     except:
                         pass # fillers can't be subtracted
             else: # filler type mismatch means significant difference

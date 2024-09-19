@@ -54,7 +54,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
             compare_mops = [sibling for sibling in self.get_all_siblings(mop) if sibling != mop]
             sorted_mops = self.mop_comparer_sorter.compare_mops_and_sort(self, mop_name, compare_mops)
             if len(sorted_mops) > 0:
-                best_sibling = self.name_mop(sorted_mops[1])
+                best_sibling = self.name_mop(sorted_mops[0])
                 for sibling_name in sorted_mops:
                     sibling = self.name_mop(sibling_name)
                     if sibling != mop and sibling.slots['current_rung'] == mop.slots['current_rung']:
@@ -84,7 +84,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
 
 
     def decide_next_rung(self, pattern, mop):
-        old_mop = mop.get_filler('old') # calls get_sibling
+        old_mop = mop.get_filler('old') # calls get_sibling_scenario
         old_current_rung = old_mop.slots['current_rung']
         old_next_rung = old_mop.slots['next_rung']
         current_rung = mop.get_filler('current_rung')
@@ -106,7 +106,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
                 next_rung = current_rung - 1
             output += f"New and old scenarios somewhat distant (distance={distance}), moving one step in direction of old: "
         else:
-            next_rung = old_mop.get_filler('next_rung')
+            next_rung = old_next_rung
             output += f"New and old scenarios not distant at all (distance={distance}), copying outcome: "
         if (current_rung - next_rung) > 0:
             outcome = self.name_mop('I_M_deescalate_outcome')
@@ -121,18 +121,6 @@ class EscalationLadderCBR(CaseBasedReasoner):
             print(output)
         mop.absts.add(old_mop.mop_name)
         return next_rung
-
-
-    def increase_outcome(self, outcome):
-        if outcome == 'deescalation':
-            return 'no change'
-        return 'escalation'
-    
-
-    def decrease_outcome(self, outcome):
-        if outcome == 'escalation':
-            return 'no change'
-        return 'deescalation'
     
 
     def mop_calc(self, slots):
@@ -195,14 +183,16 @@ class EscalationLadderCBR(CaseBasedReasoner):
         return self.add_mop(absts={'M_percept'}, slots=slots, mop_type='instance')
     
 
-    def make_scenario_slots(self, percepts, current_rung, next_rung=None, outcome=None):
+    def make_scenario_slots(self, percepts, current_rung, next_rung=None):
         percept_group = self.create_percept_group(percepts)
         # outcome
-        if outcome == 'deescalate':
+        if next_rung is None: # we don't know the outcome yet
+            outcome = None
+        elif next_rung < current_rung: # we went down the ladder
             outcome = self.name_mop('I_M_deescalate_outcome')
-        elif outcome == 'escalate':
+        elif current_rung < next_rung: # we went up the ladder
             outcome = self.name_mop('I_M_escalate_outcome')
-        elif outcome == 'no_change':
+        else: # we stayed on the same rung
             outcome = self.name_mop('I_M_no_change_outcome')
         slots = {'percepts': percept_group, 'current_rung': current_rung}
         if next_rung:
@@ -212,8 +202,8 @@ class EscalationLadderCBR(CaseBasedReasoner):
         return slots
     
 
-    def add_ELRScenario(self, percepts, current_rung, next_rung, outcome):
-        slots = self.make_scenario_slots(percepts, current_rung, next_rung, outcome)
+    def add_ELRScenario(self, percepts, current_rung, next_rung):
+        slots = self.make_scenario_slots(percepts, current_rung, next_rung)
         ## create the new scenario
         self.add_mop(absts={'M_ELRScenario'},
                      mop_type='instance',
