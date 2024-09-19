@@ -65,8 +65,8 @@ class EscalationLadder(UserList):
         # print(f"T={reasoner.environment.time}. {reasoner.identity} matched rungs: {matched_rungs}. n_percepts={len(reasoner.digested_percepts)}")
 
         matched_indices = [i for i, match in enumerate(matched_rungs) if match]
-        highest_matched_rung = None
-        highest_matched_rung_idx = None
+        highest_matched_rung = current_rung
+        highest_matched_rung_idx = self.rung_number(current_rung)
         if len(matched_indices) > 0:
             highest_matched_rung_idx = max(matched_indices)
             highest_matched_rung = self.data[highest_matched_rung_idx]
@@ -230,7 +230,7 @@ class EscalationLadderReasoner(Reasoner):
 
     def match_rung(self, max_time, amygdala):
         if self.cbr_run:
-            new_scenario_slots = self.cbr.make_scenario_slots(percepts=self.digested_percepts, current_rung=self.escalation_ladder.rung_number(self.current_rung), next_rung=None, outcome=None)
+            new_scenario_slots = self.cbr.make_scenario_slots(percepts=self.digested_percepts, current_rung=self.escalation_ladder.rung_number(self.current_rung), next_rung=None)
             matched_rung_idx = self.cbr.make_decision(new_scenario_slots)
             matched_rung = self.escalation_ladder.data[matched_rung_idx]
         else:
@@ -247,19 +247,16 @@ class EscalationLadderReasoner(Reasoner):
         # determine if a different rung is matched
         # Even if the amygdala is dominant, we want to do this if we're training the ELCBR
         matched_rung, matched_rung_idx = self.match_rung(max_time, amygdala)
-        if matched_rung:
-            outcome = "no_change"
-            if matched_rung_idx > current_rung_idx:
-                outcome = "escalate"
-            elif matched_rung_idx < current_rung_idx:
-                outcome = "deescalate"
-            if self.cbr_train:
+        if self.cbr_train:
                 self._remember_scenario(percepts = self.digested_percepts,
-                                        current_rung = self.current_rung,
                                         current_rung_idx = current_rung_idx,
-                                        next_rung = matched_rung,
-                                        next_rung_idx = matched_rung_idx,
-                                        outcome = outcome)
+                                        next_rung_idx = matched_rung_idx)
+        # if matched_rung:
+        #     outcome = "no_change"
+        #     if matched_rung_idx > current_rung_idx:
+        #         outcome = "escalate"
+        #     elif matched_rung_idx < current_rung_idx:
+        #         outcome = "deescalate"
 
         amygdala_dominant_response = amygdala.dominant_response()
         amygdala_rung = None
@@ -297,15 +294,14 @@ class EscalationLadderReasoner(Reasoner):
 
         amygdala.capture_plot()
     
-    def _remember_scenario(self, percepts, current_rung, current_rung_idx, next_rung, next_rung_idx, outcome):
+    def _remember_scenario(self, percepts, current_rung_idx, next_rung_idx):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
             ## percepts has attribute events_list, which is a list of percept dictionaries
             percepts_as_list_of_dict = []
             for percept in percepts:
                 percepts_as_list_of_dict.append(percept.get_percept_items())
-            # self.cbr.add_ELRScenario(percepts=percepts_as_list_of_dict, current_rung=current_rung_idx, next_rung=next_rung_idx, outcome=outcome)
-            self.cbr.add_ELRScenario(percepts, current_rung_idx, next_rung_idx, outcome)
+            self.cbr.add_ELRScenario(percepts, current_rung_idx, next_rung_idx)
 
     @property
     def next_deliberate_action(self):

@@ -7,10 +7,6 @@ from romancer.agent.amygdala import UpdateAmygdalaParameters
 from hotline_percept import HotlineActionPercept, HotlineMessagePercept, SendPublicMessage, \
     SendPrivateMessage
 
-class HotlineTuple(NamedTuple):
-    def __sub__(self, other):
-        print(f"This ROMANCERTuple {self} does not have subtraction defined.")
-
 
 class any_of(tuple):
 

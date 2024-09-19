@@ -75,17 +75,12 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         if mop_type == None:
             # raise MOPError("Do not add MOPs with mop_type=None.")
             mop_type = self.calc_type(absts, slots)
-        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type, is_default_mop=is_default_mop, is_core_cbr_mop=is_core_cbr_mop)
+        num_mops = len(self.mops)
+        new_mop = MOP(environment=self.environment, time=self.time, parent=self, mop_name=mop_name, absts=absts_as_mops, slots=slots, mop_type=mop_type, is_default_mop=is_default_mop, is_core_cbr_mop=is_core_cbr_mop, num_mops=num_mops)
         mop_name = new_mop.mop_name
         self.mops[mop_name] = new_mop
         for abst in absts_as_mops:
             new_mop.link_abst(abst) # link absts
-        ## this ought not happen and may be redundant, it results in abstractless mops
-        # if mop_type == 'mop':
-        #     self.install_abstraction(new_mop)
-        # elif mop_type == 'instance':
-        #     self.install_instance(new_mop, check_legal=False)
-        ##
         return new_mop
 
 
@@ -210,7 +205,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.add_mop(mop_name='M-NOT', absts={m_pattern}, slots={'abst_fn': not_constraint}, mop_type='mop', is_core_cbr_mop=True)
 
         self.add_mop(mop_name='M-FAILED-SOLUTION', mop_type='mop', is_core_cbr_mop=True)
-        
+    
 
     def clear_memory(self, install_foundation_mops=True):
         '''This method clears all current MOPs from memory and installs a new M-ROOT MOP. If install_foundation_mops is True, then it also installs the basic MOPs as well.'''
