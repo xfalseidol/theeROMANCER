@@ -5,7 +5,7 @@ rung_number,act_type,action_time,message,verb,subject_side,subject_action,subjec
 1,action,10000,SendPrivateMessage,DeterrentThreat,Adversary,Threat,4,Self,Threat,4,0.2,0.2,0,0,
 1,action,20000,,DoAction,Self,Threat,2,,,,0.2,0.3,0,0,
 ,,,,,,,,,,,,,,,
-1,deescalate_action,3600,SendPrivateMessage,ConcessionOffer,Adversary,VoluntaryConcession,1,Self,VoluntaryConcession,1,-0.2,-0.5,0.5,0.2,100
+1,deescalate_action,3600,SendPrivateMessage,ConcessionOffer,Adversary,VoluntaryConcession,1,Self,VoluntaryConcession,1,-0.2,-0.5,0.5,0.2,
 1,deescalate_action,25000,,DoAction,Self,VoluntaryConcession,1,,,,-0.2,-0.5,0.5,0.2,
 1,deescalate_action,35000,SendPrivateMessage,ConcessionOffer,Adversary,VoluntaryConcession,2,Self,VoluntaryConcession,2,-0.2,-0.5,0.5,0.2,
 1,deescalate_action,45000,,DoAction,Self,VoluntaryConcession,2,,,,-0.2,-0.5,0.5,0.2,
