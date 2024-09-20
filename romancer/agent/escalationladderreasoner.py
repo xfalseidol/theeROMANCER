@@ -36,18 +36,16 @@ class EscalationLadder(UserList):
                 chosen_i = cur_i
         return chosen_rung, chosen_i
 
-    def previous_rung(self, current_rung, default_retval=None):
+
+    def previous_rung(self, current_rung):
         '''The opposite of next_rung.'''
-        cur_i = self.data.index(current_rung)
-        chosen_rung = default_retval
-        chosen_i = cur_i - 1
-        if chosen_i >= 0:
-            try:
-                chosen_rung = self.data[chosen_i]
-            except IndexError:
-                chosen_rung = default_retval
-                chosen_i = cur_i
-        return chosen_rung, chosen_i
+        rung_index = self.data.index(current_rung)
+        if rung_index > 0:
+            previous_index = rung_index - 1
+            return self.data[previous_index], previous_index
+        else:
+            return current_rung, rung_index
+        
 
     # for deliberating into the future
     def next_matched_rung(self, current_rung, reasoner, amygdala):
@@ -264,7 +262,7 @@ class EscalationLadderReasoner(Reasoner):
             amygdala_rung, amygdala_rung_idx = self.current_rung, current_rung_idx
             why = "freeze"
         elif amygdala.FLIGHT_STR == amygdala_dominant_response:
-            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung, self.current_rung)
+            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung)
             why = "flight"
         curr_rungname = self.current_rung.name
         amygdala_rungname = amygdala_rung.name if amygdala_rung else "None"
@@ -280,11 +278,11 @@ class EscalationLadderReasoner(Reasoner):
         if chosen_rung != matched_rung: # what if I CHOSE a rung I didn't actually match with?
             # then I need to push a re-deliberate action in the future, once my amygdala is no longer dominant!
             self._push_redeliberate_action(max_time, amygdala)
-        elif chosen_rung_idx > current_rung_idx:
+        if chosen_rung_idx > current_rung_idx:
             self._escalate(chosen_rung, amygdala, why)
         elif chosen_rung_idx < current_rung_idx:
             if amygdala_dominant:
-                self._deescalate(None, self.current_rung.deescalation_actions, why)
+                self._deescalate(chosen_rung, self.current_rung.deescalation_actions, why)
             else:
                 self._deescalate(chosen_rung, None, why)
 
