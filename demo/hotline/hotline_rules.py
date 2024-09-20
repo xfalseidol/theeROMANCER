@@ -360,23 +360,27 @@ def ladder_csv_to_input_list(csvfile):
 # Returns (actionlexion, ladder, matchingrungs, escalate_actions, deescalate_actions)
 def load_ladder_inputs(csvfile, actor_mapping={}):
     input_list = ladder_csv_to_input_list(csvfile)
-    actionlexicon = None
-    ladder_desc = None
-    matching_rules = None
-    actions = None
-    deescalate_actions = None
-    for k, f in input_list.items():
-        if k == "action_lexicon":
-            actionlexicon = ActionLexicon(f)
-        elif k == "ladder_desc":
-            ladder_desc = load_ladder_rungs_csv(f)
-        elif k == "matching_rules":
-            matching_rules = load_matcher_csv(f, actionlexicon, actor_mapping)
-        elif k == "rungchange_actions":
-            actions = load_actions_csv(f, actionlexicon, "action", actor_mapping)
-            deescalate_actions = load_actions_csv(f, actionlexicon, "deescalate_action", actor_mapping)
-        else:
-            assert ValueError(f"Unknown input \"{k}\" in file {csvfile}")
-    if None in [actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions]:
-        print("Ladder input missing one or more of [action_lexicon, ladder_desc, matching_rules, rungchange_actions] ")
+
+    if "action_lexicon" in input_list:
+        actionlexicon = ActionLexicon(input_list["action_lexicon"])
+    else:
+        raise ValueError("Ladder input file must include action_lexicon")
+
+    if "ladder_desc" in input_list:
+        ladder_desc = load_ladder_rungs_csv(input_list["ladder_desc"])
+    else:
+        raise ValueError("Ladder input file must include ladder_desc")
+
+    if "matching_rules" in input_list:
+        matching_rules = load_matcher_csv(input_list["matching_rules"], actionlexicon, actor_mapping)
+    else:
+        raise ValueError("Ladder input file must include matching_rules")
+
+    if "rungchange_actions" in input_list:
+        f = input_list["rungchange_actions"]
+        actions = load_actions_csv(f, actionlexicon, "action", actor_mapping)
+        deescalate_actions = load_actions_csv(f, actionlexicon, "deescalate_action", actor_mapping)
+    else:
+        assert ValueError("Ladder input file must include rungchange_actions")
+
     return actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions
