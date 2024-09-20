@@ -348,30 +348,37 @@ def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
 
     return retval
 
+def ladder_csv_to_input_list(csvfile):
+    csvfile_path = os.path.dirname(csvfile)
+    retval = {}
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            thisfile = os.path.join(csvfile_path, row["filename"])
+            retval[row["input"]] = thisfile
+    return retval
+
 # Given a top-level CSV file pointing down the path of a full data-driven ladder, load in all everything described
 # Returns (actionlexion, ladder, matchingrungs, escalate_actions, deescalate_actions)
 def load_ladder_inputs(csvfile, actor_mapping={}):
-    csvfile_path = os.path.dirname(csvfile)
+    input_list = ladder_csv_to_input_list(csvfile)
     actionlexicon = None
     ladder_desc = None
     matching_rules = None
     actions = None
     deescalate_actions = None
-    with open(csvfile, "r", encoding="utf-8") as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            thisfile = os.path.join(csvfile_path, row["filename"])
-            if row["input"] == "action_lexicon":
-                actionlexicon = ActionLexicon(thisfile)
-            elif row["input"] == "ladder_desc":
-                ladder_desc = load_ladder_rungs_csv(thisfile)
-            elif row["input"] == "matching_rules":
-                matching_rules = load_matcher_csv(thisfile, actionlexicon, actor_mapping)
-            elif row["input"] == "rungchange_actions":
-                actions = load_actions_csv(thisfile, actionlexicon, "action", actor_mapping)
-                deescalate_actions = load_actions_csv(thisfile, actionlexicon, "deescalate_action", actor_mapping)
-            else:
-                assert ValueError(f"Unknown input \"{row["input"]}\" in file {csvfile}")
+    for k, f in input_list.items():
+        if k == "action_lexicon":
+            actionlexicon = ActionLexicon(f)
+        elif k == "ladder_desc":
+            ladder_desc = load_ladder_rungs_csv(f)
+        elif k == "matching_rules":
+            matching_rules = load_matcher_csv(f, actionlexicon, actor_mapping)
+        elif k == "rungchange_actions":
+            actions = load_actions_csv(f, actionlexicon, "action", actor_mapping)
+            deescalate_actions = load_actions_csv(f, actionlexicon, "deescalate_action", actor_mapping)
+        else:
+            assert ValueError(f"Unknown input \"{k}\" in file {csvfile}")
     if None in [actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions]:
         print("Ladder input missing one or more of [action_lexicon, ladder_desc, matching_rules, rungchange_actions] ")
     return actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions

@@ -107,9 +107,9 @@ class HotlineGUI:
             blue_sqlite = "blue_hotline_elcbr.sqlite"
             red_sqlite = "red_hotline_elcbr.sqlite"
             export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
-            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file, self.ladder_file)
+            export_elcbr_inputs_sqlite(blue_sqlite, self.ladder_file)
             export_cbr_sqlite(self.red_elcbr, red_sqlite)
-            export_elcbr_inputs_sqlite(blue_sqlite, actionlexicon, self.matching_rules_file, self.actions_file, self.ladder_file)
+            export_elcbr_inputs_sqlite(red_sqlite, self.ladder_file)
 
         savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
         savebutton.grid(row=4, column=0, padx=5, pady=5)
