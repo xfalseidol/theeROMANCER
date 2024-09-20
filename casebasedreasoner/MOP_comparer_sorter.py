@@ -75,7 +75,7 @@ class SimpleSlotSorter(MOPComparerSorter):
             elif isinstance(slot_val, MOP):
                 mop_name = slot_val.mop_name
                 curr_dict[slot] = slot_val.mop_name
-                recurse_mop_queue.append(slot_val.mop_name)
+                recurse_mop_queue.append(slot_val.slot_val)
             elif isinstance(slot_val, (str, int, float)):
                 curr_dict[slot] = slot_val
             elif callable(slot_val):
@@ -362,8 +362,8 @@ class HLRComparerSorter(MOPComparerSorter):
                 recurse_mop_queue.append(slot_val)
             elif isinstance(slot_val, MOP):
                 mop_name = slot_val.mop_name
-                curr_dict[slot] = slot_val.mop_name
-                recurse_mop_queue.append(slot_val.mop_name)
+                curr_dict[slot] = slot_val
+                recurse_mop_queue.append(slot_val)
             elif isinstance(slot_val, (str, int, float)):
                 curr_dict[slot] = slot_val
             elif callable(slot_val):
@@ -409,9 +409,9 @@ class HLRComparerSorter(MOPComparerSorter):
             p2_filler = p2.get_filler(p1_role)
             if p2_filler and isinstance(p2_filler, type(p1_filler)): # they are the same type of thing
                 if p1_role == 'actor' and isinstance(p2_filler, int):
-                    difference += (p2_filler - p1_filler) * 10 # actor mistmatch means we should probably ignore
+                    difference += (p2_filler != p1_filler) * 10 # actor mistmatch means we should probably ignore
                 elif isinstance(p2_filler, float) or isinstance(p2_filler, int):
-                    difference += p2_filler - p1_filler # action/weapon/etc mismatch equal to difference
+                    difference += abs(p2_filler - p1_filler) # action/weapon/etc mismatch equal to difference
                 elif isinstance(p2_filler, str):
                     difference += p1_filler != p2_filler # string mismatch has "size" 1
                 else:
@@ -420,7 +420,8 @@ class HLRComparerSorter(MOPComparerSorter):
                     except:
                         pass # fillers can't be subtracted
             else: # filler type mismatch means significant difference
-                difference += 10
+                difference += 100
+        return difference
                 
 
 
@@ -447,6 +448,8 @@ class HLRComparerSorter(MOPComparerSorter):
                     retval += 1
             elif isinstance(v1, (int, float)):
                 retval -= pow((v1 - v2), 2)
+            elif isinstance(v1, MOP) and v1.is_group():
+                retval -= self.compare_two_percept_groups(v1, v2)
             else:
                 if verbose:
                     print(f"Don't know how to compare two {type(v1)}")

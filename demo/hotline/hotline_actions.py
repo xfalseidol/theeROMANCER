@@ -86,11 +86,12 @@ class HotlineMessage(WatchlistItem):
     
 
 class HotlineRungChange(WatchlistItem):
-    def __init__(self, time, who, old_rung, new_rung):
+    def __init__(self, time, who, old_rung, new_rung, why):
         super().__init__(time)
         self.who = who
         self.old_rung = old_rung
         self.new_rung = new_rung
+        self.why = why
         self.params = None
 
 
@@ -111,11 +112,11 @@ class HotlineRungChange(WatchlistItem):
         readable_time = _sim_time_to_days(self.time)
         script_version = f"(Day {readable_time}) {agents_to_names[self.who]}: "
         if self.old_rung.id < self.new_rung.id:
-            script_version += f"I'm escalating from {self.old_rung.name} to {self.new_rung.name}."
+            script_version += f"I'm escalating from {self.old_rung.name} to {self.new_rung.name}. (because {self.why})"
         elif self.old_rung.id > self.new_rung.id:
-            script_version += f"I'm deescalating from {self.old_rung.name} to {self.new_rung.name}."
+            script_version += f"I'm deescalating from {self.old_rung.name} to {self.new_rung.name}. (because {self.why})"
         else:
-            script_version += f"A rung change event with no rung change; from {self.old_rung.name} to {self.new_rung.name}"
+            script_version += f"I've decided not to change rungs, at {self.new_rung.name}. (because {self.why})"
         stress =''#_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
@@ -164,7 +165,7 @@ def hotline_deliberate_action(o, m):
 
 
 def hotline_rung_change_dispatcher(sup, message):
-    item = HotlineRungChange(message.time, message.sender[1], message.old_rung, message.new_rung)
+    item = HotlineRungChange(message.time, message.sender[1], message.old_rung, message.new_rung, message.why)
     return item
 
 

@@ -191,20 +191,22 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
         super().export_plot("escladder_" + filename, f"{self.identity} Escalation Ladder")
     
-    def _escalate(self, next_rung, amygdala):
+    def _escalate(self, next_rung, amygdala, why="no reason"):
         previous_rung = self.current_rung
-        super()._escalate(next_rung, amygdala)
-        message = HotlineRungChangeMessage(uid=self.new_message_index(),
-                                               time = self.time,
+        if previous_rung.id < next_rung.id:
+            super()._escalate(next_rung, amygdala)
+            message = HotlineRungChangeMessage(uid=self.new_message_index(),
+                                                time = self.time,
                                                sender=(self.environment.uid, self.compute_self_uid()),
                                                recipient=(1,1),
                                                messagetype='HotlineRungChangeMessage',
                                                old_rung=previous_rung,
-                                               new_rung=next_rung)
-        heappush(self.planned_actions, (self.time, message, None))
+                                                new_rung=next_rung,
+                                                why=why)
+            heappush(self.planned_actions, (self.time, message, None))
 
 
-    def _deescalate(self, next_rung, enqueue_actions):
+    def _deescalate(self, next_rung, enqueue_actions, why="no reason"):
         previous_rung = self.current_rung
         super()._deescalate(next_rung, enqueue_actions)
         # next_rung = self.escalation_ladder.next_rung(self.current_rung)
@@ -214,7 +216,8 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                                                recipient=(1,1),
                                                messagetype='HotlineRungChangeMessage',
                                                old_rung=previous_rung,
-                                               new_rung=next_rung)
+                                               new_rung=next_rung,
+                                               why=why)
         heappush(self.planned_actions, (self.time, message, None))
 
     def _enqueue_actions(self, actions):

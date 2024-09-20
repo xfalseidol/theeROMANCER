@@ -103,7 +103,7 @@ def run_hotline(
     sup.dispatch_table['HotlinePrivateROMANCERMessage'] = hotline_private_message_dispatcher
     sup.dispatch_table['HotlineRungChangeMessage'] = hotline_rung_change_dispatcher
     # sup.dispatch_table['PersonlikeActionROMANCERMessage'] = push_personlike_action
-    sup.watchlist.push(Stop(time=86400 * 1))
+    sup.watchlist.push(Stop(time=86400 * 5))
 
     min_lat = deg2rad(-180)
     max_lat = deg2rad(180)
@@ -209,6 +209,7 @@ if __name__ == "__main__":
     env = SingleThreadEnvironment(sup, None, None)
     red_elcbr = EscalationLadderCBR(env, 0.0, comparer_sorter=HLRComparerSorter())
     run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=True, red_train_elcbr=True) # HLR vs HLR (training an ELCBR)
+    blue_elcbr.serialize("trainedHLR.pkl")
     print()
     blue_elcbr.display_memory()
     print("Rerunning simulation with trained Blue ELCBR...")

@@ -246,17 +246,12 @@ class EscalationLadderReasoner(Reasoner):
         current_rung_idx = self.escalation_ladder.rung_number(self.current_rung)
         # determine if a different rung is matched
         # Even if the amygdala is dominant, we want to do this if we're training the ELCBR
+        why = "reasoning"
         matched_rung, matched_rung_idx = self.match_rung(max_time, amygdala)
         if self.cbr_train:
                 self._remember_scenario(percepts = self.digested_percepts,
                                         current_rung_idx = current_rung_idx,
                                         next_rung_idx = matched_rung_idx)
-        # if matched_rung:
-        #     outcome = "no_change"
-        #     if matched_rung_idx > current_rung_idx:
-        #         outcome = "escalate"
-        #     elif matched_rung_idx < current_rung_idx:
-        #         outcome = "deescalate"
 
         amygdala_dominant_response = amygdala.dominant_response()
         amygdala_rung = None
@@ -264,11 +259,13 @@ class EscalationLadderReasoner(Reasoner):
         amygdala_dominant = (amygdala_dominant_response is not None)
         if amygdala.FIGHT_STR == amygdala_dominant_response:
             amygdala_rung, amygdala_rung_idx = self.escalation_ladder.next_rung(self.current_rung, self.current_rung)
+            why = "fight"
         elif amygdala.FREEZE_STR == amygdala_dominant_response:
             amygdala_rung, amygdala_rung_idx = self.current_rung, current_rung_idx
+            why = "freeze"
         elif amygdala.FLIGHT_STR == amygdala_dominant_response:
             amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung, self.current_rung)
-
+            why = "flight"
         curr_rungname = self.current_rung.name
         amygdala_rungname = amygdala_rung.name if amygdala_rung else "None"
         matched_rungname = matched_rung.name if matched_rung else "None"
@@ -285,12 +282,12 @@ class EscalationLadderReasoner(Reasoner):
             pass
             # self._push_empty_action(self.time + self.idle_time)
         elif chosen_rung_idx > current_rung_idx:
-            self._escalate(chosen_rung, amygdala)
+            self._escalate(chosen_rung, amygdala, why)
         elif chosen_rung_idx < current_rung_idx:
             if amygdala_dominant:
-                self._deescalate(None, self.current_rung.deescalation_actions)
+                self._deescalate(None, self.current_rung.deescalation_actions, why)
             else:
-                self._deescalate(chosen_rung, None)
+                self._deescalate(chosen_rung, None, why)
 
         amygdala.capture_plot()
     
@@ -336,7 +333,7 @@ class EscalationLadderReasoner(Reasoner):
         return params # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
 
 
-    def _escalate(self, next_rung, amygdala):
+    def _escalate(self, next_rung, amygdala, why="no reason"):
         next_rung.update_planned_actions(self)
         self.current_rung = next_rung
         self._enqueue_actions(next_rung.actions)
@@ -371,7 +368,7 @@ class EscalationLadderReasoner(Reasoner):
         return match_time
 
 
-    def _deescalate(self, next_rung, events_to_enqueue):
+    def _deescalate(self, next_rung, events_to_enqueue, why="no reason"):
         if next_rung is not None:
             next_rung.update_planned_actions(self)
             self.current_rung = next_rung
