@@ -1,5 +1,4 @@
 import sys, os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.percept import Percept
