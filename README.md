@@ -36,6 +36,6 @@ python3 ./hotline_demo_gui.py
 
 ## Developers
 
-Lead Researcher: Edward Geist <egeist@rand.org>
-Developers: Nancy Huerta <nhuerta@rand.org>, Gary Briggs <gbriggs@rand.org>
+**Lead Researcher**: Edward Geist <egeist@rand.org>  
+**Developers**: Nancy Huerta <nhuerta@rand.org>, Gary Briggs <gbriggs@rand.org>
 
