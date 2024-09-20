@@ -9,7 +9,6 @@ import inspect
 import types
 import textwrap
 
-from demo.hotline.hotline_rules import ladder_csv_to_input_list
 from romancer.environment.object import LoggedDict
 
 
@@ -138,19 +137,13 @@ def insert_csv_sqlite(dbconn, csvfile, tablename):
     dbconn.commit()
 
 
-# In cases where we're using an elbr, it is useful for the human using the db,
-#    to have store the EscalationLadder data [match rules, actions, etc] in the database
 # This code assumes it is called after export_cbr_sqlite. dbfile must exist
-def export_elcbr_inputs_sqlite(dbfile, ladder_csv=None):
+# Takes a map of {table_name => csv_filename} and does a naive insert.
+def include_extra_csv_files_in_sqlite(dbfile, input_list):
     if not os.path.exists(dbfile):
         assert ValueError("Can only import ELCBR rules into an existing database")
 
-    if ladder_csv is not None and not os.path.exists(ladder_csv):
-        assert ValueError(f"Ladder File CSV {ladder_csv} does not exist")
-
-    input_list = ladder_csv_to_input_list(ladder_csv)
-
-    print("Appending ELCBR rules into sqlite database")
+    print("Appending tables rules into sqlite database")
     t_start = time.time()
     conn = sqlite3.connect(dbfile)
     cursor = conn.cursor()
