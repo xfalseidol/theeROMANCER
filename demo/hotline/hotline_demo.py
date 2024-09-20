@@ -3,8 +3,7 @@ import csv
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
-from demo.hotline.hotline_rules import actionlexicon, load_matcher_csv, load_actions_csv, DoAction, \
-    load_ladder_rungs_csv, load_ladder_inputs
+from demo.hotline.hotline_rules import load_ladder_inputs
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.location import GeographicLocation

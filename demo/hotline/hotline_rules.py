@@ -99,8 +99,6 @@ class ActionLexicon:
         thisact = self.actionlexicon[actnum]
         return f"{thisact['side']}{thisact['action']}{thisact['suffix']}({actnum})"
 
-actionlexicon = ActionLexicon("data/action_lexicon.csv")
-
 class DoAction(NamedTuple):
     action: int
     deadline: any

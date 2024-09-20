@@ -5,7 +5,6 @@ from operator import add
 
 from romancer.supervisor.watchlist import WatchlistItem
 from hotline_percept import HotlineActionROMANCERMessage
-from hotline_rules import actionlexicon
 
 def _get_amygdala_display(params):
     if params:
@@ -17,11 +16,12 @@ def _get_amygdala_display(params):
 
 
 class HotlineAction(WatchlistItem):
-    def __init__(self, time, actor_id, action_id): # defined by an actor and an action
+    def __init__(self, time, actor_id, action_id, action_label=None): # defined by an actor and an action
         super().__init__(time)
         self.actor_id = actor_id
         self.action_id = action_id
         self.params = None
+        self.action_label = action_label if action_label is not None else "{actor_id}.{action_id}"
 
 
     def process(self, supervisor): # needs to force an ActionPercept?
@@ -43,8 +43,7 @@ class HotlineAction(WatchlistItem):
     def __str__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         readable_time = _sim_time_to_days(self.time)
-        script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
-        script_version += actionlexicon.getlabel(self.action_id)
+        script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action {self.action_label}"
         stress = '' #_get_amygdala_display(self.params)
         return f"{script_version:<75} {stress}"
 
