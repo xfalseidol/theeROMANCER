@@ -15,4 +15,5 @@ setuptools
 pytest
 networkx
 -e romancer
+-e casebasedreasoner
 
