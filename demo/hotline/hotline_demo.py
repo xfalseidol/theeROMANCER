@@ -52,8 +52,8 @@ red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescala
 
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
-        blue_initial_fight = 0.5, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
-        blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
+        blue_initial_fight = 0.0, blue_initial_flight = 0.5, blue_initial_freeze = 0.0,
+        blue_initial_pbf = 0.0001, blue_pbf_halflife = 10000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,

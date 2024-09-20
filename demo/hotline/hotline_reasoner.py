@@ -191,6 +191,17 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
         super().export_plot("escladder_" + filename, f"{self.identity} Escalation Ladder")
     
+    def _push_redeliberate_action(self, max_time, amygdala):
+        redeliberate_time = self.time + self.idle_time
+        redeliberate_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
+                                                                    time=redeliberate_time,
+                                                                    sender=(self.environment.uid, self.compute_self_uid()),
+                                                                    recipient=(1, 1),
+                                                                    messagetype = 'HotlineActionROMANCERMessage',
+                                                                    action_id = -1) # send action message to supervisor
+        heappush(self.planned_actions, (redeliberate_time, redeliberate_message, None))
+
+
     def _escalate(self, next_rung, amygdala, why="no reason"):
         previous_rung = self.current_rung
         if previous_rung.id < next_rung.id:

@@ -166,7 +166,7 @@ class EscalationLadderReasoner(Reasoner):
                  planned_actions = None, actions_taken = None, digested_percepts = None,
                  cbr = None, cbr_train=True, cbr_run=False):
         super().__init__(environment, time)
-        self.idle_time = 60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
+        self.idle_time = 60*60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
         self.escalation_ladder = escalation_ladder # an EscalationLadder instance
         self.identity = identity # 'blue' or 'red'
         self.planned_actions = list()
@@ -277,10 +277,9 @@ class EscalationLadderReasoner(Reasoner):
             chosen_rung = amygdala_rung
             chosen_rung_idx = amygdala_rung_idx
 
-        if chosen_rung_idx == current_rung_idx or chosen_rung_idx is None:
-            # No change. Ask me again in an hour
-            pass
-            # self._push_empty_action(self.time + self.idle_time)
+        if chosen_rung != matched_rung: # what if I CHOSE a rung I didn't actually match with?
+            # then I need to push a re-deliberate action in the future, once my amygdala is no longer dominant!
+            self._push_redeliberate_action(max_time, amygdala)
         elif chosen_rung_idx > current_rung_idx:
             self._escalate(chosen_rung, amygdala, why)
         elif chosen_rung_idx < current_rung_idx:
@@ -291,6 +290,23 @@ class EscalationLadderReasoner(Reasoner):
 
         amygdala.capture_plot()
     
+    def _determine_future_matching(self, max_time, amygdala):
+        present_time = self.time
+        if max_time > present_time:
+            self.forward_simulation(max_time, amygdala)
+            matched_rung, matched_rung_idx = self.match_rung(present_time, amygdala)
+            if matched_rung != self.current_rung: # there is a match in the future
+                match_time = self._find_approximate_match_time(present_time, max_time, matched_rung, amygdala)
+                # create a new WatchlistItem at future match time
+                heappush(self.planned_actions, (match_time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
+            self.max_deliberation_time = max_time  
+    
+    
+    def _push_redeliberate_action(self, max_time, amygdala):
+        # heappush(self.planned_actions, (self.time + self.idle_time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
+        pass
+
+
     def _remember_scenario(self, percepts, current_rung_idx, next_rung_idx):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
@@ -342,7 +358,6 @@ class EscalationLadderReasoner(Reasoner):
 
     def _enqueue_actions(self, actions):
         if len(actions) == 0 or actions is None:
-            # self._push_empty_action(self.time+self.idle_time)
             return
 
         for action in actions:

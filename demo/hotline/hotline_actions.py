@@ -43,9 +43,13 @@ class HotlineAction(WatchlistItem):
     def __str__(self):
         '''It is desirable to have a __repr__ method for WatchlistItems that allows them to be reconstituted and interpreted by humans.'''
         readable_time = _sim_time_to_days(self.time)
-        script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: I'm taking action "
-        script_version += actionlexicon.getlabel(self.action_id)
+        script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: "
         stress = '' #_get_amygdala_display(self.params)
+        if self.action_id == -1:
+            script_version += "Redeliberating..."
+        else:
+            script_version +=  "I'm taking action "
+            script_version += actionlexicon.getlabel(self.action_id)
         return f"{script_version:<75} {stress}"
 
 
