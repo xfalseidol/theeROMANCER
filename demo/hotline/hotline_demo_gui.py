@@ -28,7 +28,7 @@ class HotlineGUI:
 
         self.matching_rules_file = "data/matchingrules.csv"
         self.actions_file = "data/rungchange_actions.csv"
-        self.ladder_file = "data/ladder.csv"
+        self.ladder_file = "data/ladder_desc.csv"
 
         self.sliders = {}
         self.slidervalues = {}

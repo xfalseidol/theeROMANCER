@@ -46,13 +46,13 @@ def run_hotline(
         blue_initial_pbf = 0.0001, blue_pbf_halflife = 100000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
         blue_matching_rules_file = "data/matchingrules.csv", blue_actions_file = "data/rungchange_actions.csv",
-        blue_ladder_file = "data/ladder.csv",
+        blue_ladder_file = "data/ladder_desc.csv",
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
         red_matching_rules_file="data/matchingrules.csv", red_actions_file="data/rungchange_actions.csv",
-        red_ladder_file = "data/ladder.csv"
+        red_ladder_file = "data/ladder_desc.csv"
     ):
 
     blue_ladder_rung_inp = load_ladder_rungs_csv(blue_ladder_file)
