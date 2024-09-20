@@ -26,9 +26,7 @@ class HotlineGUI:
         self._BLUE_AMYG_COMBOKEY = "blue"
         self._RED_AMYG_COMBOKEY = "red"
 
-        self.matching_rules_file = "data/matchingrules.csv"
-        self.actions_file = "data/rungchange_actions.csv"
-        self.ladder_file = "data/ladder_desc.csv"
+        self.ladder_file = "data/ladder.csv"
 
         self.sliders = {}
         self.slidervalues = {}
@@ -138,8 +136,6 @@ class HotlineGUI:
         params["red_elcbr"] = self.red_elcbr
         params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
         params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
-        params["blue_matching_rules_file"] = params["red_matching_rules_file"] = self.matching_rules_file
-        params["blue_actions_file"] = params["red_actions_file"] = self.actions_file
         params["blue_ladder_file"] = params["red_ladder_file"] = self.ladder_file
 
         run_hotline(**params)

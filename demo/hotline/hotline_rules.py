@@ -1,4 +1,5 @@
 import csv
+import os.path
 from functools import reduce
 from operator import add
 from typing import NamedTuple
@@ -277,7 +278,7 @@ def load_ladder_rungs_csv(csvfile):
             rung_name = row['rung_name']
             retval.append((rung_number, rung_name))
     retval.sort(key=lambda x: x[0])
-    print(retval)
+    # print(retval)
     return retval
 
 # Return a map of rung_number to list of time-action tuples
@@ -346,3 +347,31 @@ def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
             rules.append((action_time, act, updateaymg))
 
     return retval
+
+# Given a top-level CSV file pointing down the path of a full data-driven ladder, load in all everything described
+# Returns (actionlexion, ladder, matchingrungs, escalate_actions, deescalate_actions)
+def load_ladder_inputs(csvfile, actor_mapping={}):
+    csvfile_path = os.path.dirname(csvfile)
+    actionlexicon = None
+    ladder_desc = None
+    matching_rules = None
+    actions = None
+    deescalate_actions = None
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            thisfile = os.path.join(csvfile_path, row["filename"])
+            if row["input"] == "action_lexicon":
+                actionlexicon = ActionLexicon(thisfile)
+            elif row["input"] == "ladder_desc":
+                ladder_desc = load_ladder_rungs_csv(thisfile)
+            elif row["input"] == "matching_rules":
+                matching_rules = load_matcher_csv(thisfile, actionlexicon, actor_mapping)
+            elif row["input"] == "rungchange_actions":
+                actions = load_actions_csv(thisfile, actionlexicon, "action", actor_mapping)
+                deescalate_actions = load_actions_csv(thisfile, actionlexicon, "deescalate_action", actor_mapping)
+            else:
+                assert ValueError(f"Unknown input \"{row["input"]}\" in file {csvfile}")
+    if None in [actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions]:
+        print("Ladder input missing one or more of [action_lexicon, ladder_desc, matching_rules, rungchange_actions] ")
+    return actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions
