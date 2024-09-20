@@ -60,7 +60,7 @@ class HotlineRungChangeMessage(NamedTuple):
     time: float # simulation time
     old_rung: int # the rung we changed from
     new_rung: int # the rung we changed to
-
+    why: str # why did the rung change happen
 
 class SendPublicMessage(NamedTuple):
     submessage: tuple

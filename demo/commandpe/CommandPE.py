@@ -1,3 +1,5 @@
+import sys, os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
@@ -60,8 +62,8 @@ def plot_amygdalas(times, stress_levels):
 
 thisdir = os.path.dirname(os.path.realpath(__file__))
 datadir = os.path.join(thisdir, "data")
-cpeinputfolder = os.path.join(datadir, "commandpe_input")
-cpeoutputfolder = os.path.join(datadir, "commandpe_output")
+cpeinputfolder = datadir # os.path.join(datadir, "commandpe_input")
+cpeoutputfolder = datadir # os.path.join(datadir, "commandpe_output")
 
 plot_times = []
 plot_rungs = []

@@ -58,7 +58,9 @@ class EscalationLadderCBR(CaseBasedReasoner):
                 best_sibling = self.name_mop(sorted_mops[0])
                 for sibling_name in sorted_mops:
                     sibling = self.name_mop(sibling_name)
-                    if sibling != mop and sibling.slots['current_rung'] == mop.slots['current_rung']:
+                    sibling_rung = sibling.slots['current_rung']
+                    current_rung = mop.slots['current_rung']
+                    if sibling != mop and sibling_rung == current_rung:
                         return sibling
                 return best_sibling
         else:
