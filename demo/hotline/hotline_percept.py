@@ -78,19 +78,13 @@ class SendPrivateMessage(NamedTuple):
     submessage: tuple
 
     def coerce_to_message(self, uid, time, sender, recipient, addressee=None):
-        return HotlinePrivateROMANCERMessage(uid, recipient, sender, 'HotlinePublicROMANCERMessage', time, self.submessage, target_uid=addressee)
-
-    def coerce_to_message(self, uid, time, sender, recipient, addressee=None):
         if addressee == None:
             new_addressee = 0
         else:
             new_addressee = addressee
-        if self.submessage[2] == None:
-            return HotlinePublicROMANCERMessage(uid, recipient, sender, 'HotlinePublicROMANCERMessage', time, self.submessage)
-        else:
-            c = self.submessage.class_of
-            new_submessage = c(self.submessage[0], self.submessage[1], self.submessage[2] + time)
-            return HotlinePublicROMANCERMessage(uid, recipient, sender, 'HotlinePublicROMANCERMessage', time, new_submessage)
+
+        deadline_time = 0 if self.submessage[2] is None else self.submessage[2]
+        return HotlinePublicROMANCERMessage(uid, recipient, sender, 'HotlinePublicROMANCERMessage', time + deadline_time, self.submessage)
 
     
 class HotlineMessagePercept(Percept):
