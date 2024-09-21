@@ -62,8 +62,8 @@ def plot_amygdalas(times, stress_levels):
 
 thisdir = os.path.dirname(os.path.realpath(__file__))
 datadir = os.path.join(thisdir, "data")
-cpeinputfolder = datadir # os.path.join(datadir, "commandpe_input")
-cpeoutputfolder = datadir # os.path.join(datadir, "commandpe_output")
+cpeinputfolder = os.path.join(datadir, "commandpe_input")
+cpeoutputfolder = os.path.join(datadir, "commandpe_output")
 
 plot_times = []
 plot_rungs = []

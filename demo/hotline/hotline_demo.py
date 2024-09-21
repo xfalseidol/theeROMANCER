@@ -1,22 +1,16 @@
-import context
-import csv
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
-from casebasedreasoner.util import export_cbr_sqlite, make_graphviz_graph
-from demo.hotline.hotline_rules import actionlexicon, load_matcher_csv, load_actions_csv, DoAction
+from demo.hotline.hotline_rules import load_ladder_inputs
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
-from romancer.environment.location import GeographicLocation
 from romancer.environment.dispositiontree import GeographicDispositionStump
-from romancer.agent.amygdala import UpdateAmygdalaParameters, Amygdala
-from romancer.agent.personlikeagent import push_personlike_action
-from romancer.agent.escalationladderreasoner import EscalationLadder, EscalationLadderReasoner
+from romancer.agent.amygdala import Amygdala
+from romancer.agent.escalationladderreasoner import EscalationLadder
 from romancer.agent.escalationladderagent import EscalationLadderAgent
 from hotline_reasoner import HotlineLadderRung, HotlineLadderReasoner
-from hotline_percept import HotlinePerceptionEngine, HotlinePerceptionFilter, SendPrivateMessage, SendPublicMessage, HotlineActionROMANCERMessage, HotlinePrivateROMANCERMessage, HotlinePublicROMANCERMessage
-from hotline_actions import hotline_action_dispatcher, hotline_public_message_dispatcher, hotline_private_message_dispatcher, hotline_deliberate_action, hotline_deterministic_action, hotline_rung_change_dispatcher
-from hotline_rules import DeterrentThreat, CompellentThreat, ConcessionOffer
-from numpy import deg2rad, rad2deg
+from hotline_percept import HotlinePerceptionEngine, HotlinePerceptionFilter
+from hotline_actions import hotline_action_dispatcher, hotline_public_message_dispatcher, hotline_private_message_dispatcher, hotline_deterministic_action, hotline_rung_change_dispatcher
+from numpy import deg2rad
 
 
 # We assume that the universe of possible actions is represented by a set of unique integers {1, ... 60}
@@ -36,42 +30,39 @@ from numpy import deg2rad, rad2deg
 # alternative ladders, we assume the pattern repeats twice per ladder rung ({1, ... 12} is the first rung, {13, ..., 24} is the
 # second, and so on)
 
-# Load all the tables from CSV ahead of time
 blue_mapping = { "Self": "Blue", "Adversary": "Red"}
 red_mapping = { "Self": "Red", "Adversary": "Blue"}
-matching_rules_file = "data/matchingrules.csv"
-actions_file = "data/rungchange_actions.csv"
-
-blue_matching_rules = load_matcher_csv(matching_rules_file, actionlexicon, blue_mapping)
-blue_actions = load_actions_csv(actions_file, actionlexicon, "action", blue_mapping)
-blue_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescalate_action", blue_mapping)
-
-red_matching_rules = load_matcher_csv(matching_rules_file, actionlexicon, red_mapping)
-red_actions = load_actions_csv(actions_file, actionlexicon, "action", red_mapping)
-red_deescalate_actions = load_actions_csv(actions_file, actionlexicon, "deescalate_action", red_mapping)
 
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
         blue_initial_fight = 0.0, blue_initial_flight = 0.5, blue_initial_freeze = 0.0,
         blue_initial_pbf = 0.1, blue_pbf_halflife = 10000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
+        blue_ladder_file = "data/ladder.csv",
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
+        red_ladder_file = "data/ladder.csv"
     ):
+
+    blue_action_lexicon, blue_ladder_rung_inp, blue_matching_rules, blue_actions, blue_deescalate_actions = load_ladder_inputs(blue_ladder_file, blue_mapping)
+    red_action_lexicon, red_ladder_rung_inp, red_matching_rules, red_actions, red_deescalate_actions = load_ladder_inputs(red_ladder_file, red_mapping)
+    actionlexicon = blue_action_lexicon
 
     blue_ladder_rungs = []
     red_ladder_rungs = []
-    for i, rungnum in enumerate(sorted(blue_matching_rules.keys())):
+    for (rungnum, rungname) in blue_ladder_rung_inp:
         blue_ladder_rungs.append(HotlineLadderRung(match_attributes = blue_matching_rules[rungnum],
                                                    actions = blue_actions[rungnum],
                                                    deescalation_actions = blue_deescalate_actions[rungnum],
-                                                   name = f"BlueRung{i+1}"))
+                                                   name = rungname))
+    for (rungnum, rungname) in red_ladder_rung_inp:
         red_ladder_rungs.append(HotlineLadderRung(match_attributes=red_matching_rules[rungnum],
                                                    actions=red_actions[rungnum],
                                                    deescalation_actions=red_deescalate_actions[rungnum],
-                                                   name= f"RedRung{i+1}"))
+                                                   name= rungname))
+
     blue_ladder_1 = EscalationLadder(blue_ladder_rungs)
     red_ladder_1 = EscalationLadder(red_ladder_rungs)
 
@@ -194,11 +185,11 @@ def run_hotline(
     # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
     sup.run(verbose = True)
 
-    # blue_reasoner.export_plot()
-    # blue_amygdala.export_plot()
+    blue_reasoner.export_plot()
+    blue_amygdala.export_plot()
 
-    # red_reasoner.export_plot()
-    # red_amygdala.export_plot()
+    red_reasoner.export_plot()
+    red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 
@@ -214,7 +205,7 @@ if __name__ == "__main__":
     print()
     blue_elcbr.display_memory()
     print("Rerunning simulation with trained Blue ELCBR...")
-    # run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=False, blue_run_elcbr=True) # HLR-ECLBR vs HLR    
+    # run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=False, blue_run_elcbr=True) # HLR-ECLBR vs HLR
     # run_hotline(blue_elcbr=blue_elcbr, red_elcbr=red_elcbr, blue_train_elcbr=False, blue_run_elcbr=True, red_train_elcbr=False, red_run_elcbr=True) # HLR-ECLBR vs HLR-ELCBR
     blue_elcbr.display_memory()
     # export_cbr_sqlite(blue_train_elcbr, "hotline_demo_blue_cbr.sqlite")

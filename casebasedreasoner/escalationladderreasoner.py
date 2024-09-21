@@ -10,8 +10,9 @@ from romancer.environment.object import LoggedDict
 
 
 class EscalationLadderCBR(CaseBasedReasoner):
-    def __init__(self, env, time, load_memory_from = None, verbose = False, comparer_sorter = None):
+    def __init__(self, env, time, load_memory_from = None, verbose = False, comparer_sorter = None, name="EscalationLadderCBR"):
         super().__init__(env, time)
+        self.name = name
         self.upper_threshold = 5  # how many net deviations from a known case are required to think the new case is more severe
         self.lower_threshold = -5 # how many net deviations from a known case are required to think the new case is less severe
         self.too_distant_threshold = 400 
@@ -175,6 +176,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
         counter = 1
         for percept in percepts:
             slots[counter] = self.create_percept_mop(percept)
+            counter+=1
         return self.add_mop(absts={'M_percept_group'}, slots=slots, mop_type='instance')
     
     '''Percept has attribute param_names'''
@@ -229,3 +231,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
                 print(spec.slots['percepts'])
                 print(spec.slots['outcome'])
                 print()
+
+    def __repr__(self):
+        # This needs to be replaced with something more useful
+        return f"{self.name}(EscalationLadderCBR)"

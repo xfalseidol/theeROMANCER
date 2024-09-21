@@ -1,9 +1,11 @@
-import context
+import os.path
+
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
-from casebasedreasoner.util import export_cbr_sqlite
+from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
+from demo.hotline.hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, filedialog
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
@@ -22,27 +24,41 @@ class HotlineGUI:
 
         self.amygdala_choices = {a.short_desc() : a for a in all_amygdala_archetypes}
         self.amygdala_combos = {}
+        self.ladder_entries = {}
         self._BLUE_AMYG_COMBOKEY = "blue"
         self._RED_AMYG_COMBOKEY = "red"
+
+        self.tk_red = "#ffbbbb"
+        self.tk_blue = "light blue"
+
+        self.red_ladder_file = "data/ladder.csv"
+        self.blue_ladder_file = "data/ladder.csv"
 
         self.sliders = {}
         self.slidervalues = {}
         self.slider_frame = tk.Frame(self.controls_frame)
-        self.slider_frame.grid(padx=10, pady=10, row=0, column=0)
+        self.slider_frame.grid(padx=5, pady=5, row=0, column=0)
 
-        self.create_slider("Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, 0, 0)
-        self.create_slider("Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1, 0)
-        self.create_slider("Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, 2, 0)
+        self.blue_slider_frame = tk.Frame(self.slider_frame, bg=self.tk_blue)
+        self.blue_slider_frame.grid(row=0, column=0, padx=5, pady=5)
 
-        self.create_slider("Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, 0, 1)
-        self.create_slider("Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1, 1)
-        self.create_slider("Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2, 1)
+        self.red_slider_frame = tk.Frame(self.slider_frame, bg=self.tk_red)
+        self.red_slider_frame.grid(row=0, column=1, padx=5, pady=5)
 
-        self.create_amygdala_choice("Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3, 0)
-        self.create_amygdala_choice("Red Amygdala", self._RED_AMYG_COMBOKEY, 3, 1)
+        self.create_slider(self.blue_slider_frame, "Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, 0)
+        self.create_slider(self.blue_slider_frame, "Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1)
+        self.create_slider(self.blue_slider_frame, "Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, 2)
+        self.create_amygdala_choice(self.blue_slider_frame, "Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3)
+        self.create_ladder_chooser(self.blue_slider_frame, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, 4)
 
-        self.blue_elcbr = EscalationLadderCBR(None, 0.0)
-        self.red_elcbr = EscalationLadderCBR(None, 0.0)
+        self.create_slider(self.red_slider_frame, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, 0)
+        self.create_slider(self.red_slider_frame, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1)
+        self.create_slider(self.red_slider_frame, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2)
+        self.create_amygdala_choice(self.red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, 3)
+        self.create_ladder_chooser(self.red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, 4)
+
+        self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR")
+        self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR")
 
         self.cbr_train_intval = tk.IntVar(value=1)
         self.cbr_run_intval = tk.IntVar(value=0)
@@ -62,29 +78,47 @@ class HotlineGUI:
         plt.show = show_capture
         self.run_hotline_guiparam()
 
+    def create_ladder_chooser(self, parent_frame, default_file, name, grid_row):
+        entry = tk.Entry(parent_frame)
+        entry.insert(0, default_file)
+        entry.grid(row=grid_row, column=1)
+        self.ladder_entries[name] = entry
 
-    def create_amygdala_choice(self, label, name, grid_row, grid_col):
+        def select_file():
+            file_path = filedialog.askopenfilename(title="Choose Ladder CSV File",
+                                                   initialdir=os.path.dirname(default_file),
+                                                   filetypes=[("CSV Files", "*.csv")])
+            if file_path:
+                rel_path = os.path.relpath(file_path)
+                entry.delete(0, tk.END)
+                entry.insert(0, rel_path)
+
+        button = tk.Button(parent_frame, text=f"Choose {name} Ladder", command=select_file)
+        button.grid(row=grid_row, column=0)
+
+
+    def create_amygdala_choice(self, parent_frame, label, name, grid_row):
         dropdown_options = [k for k in self.amygdala_choices.keys()]
         dropdown_var = tk.StringVar(value=dropdown_options[0])
         self.amygdala_combos[name] = dropdown_var
-        combo_label = ttk.Label(self.slider_frame, text=label)
-        combo_label.grid(row=grid_row, column=3 * grid_col, padx=5, pady=5, sticky="w")
-        dropdown = ttk.Combobox(self.slider_frame, textvariable=dropdown_var)
+        combo_label = ttk.Label(parent_frame, text=label)
+        combo_label.grid(row=grid_row, column=0, padx=5, pady=5, sticky="w")
+        dropdown = ttk.Combobox(parent_frame, textvariable=dropdown_var)
         dropdown['values'] = dropdown_options
         dropdown.set(dropdown_options[0])
         dropdown.bind("<<ComboboxSelected>>", self.on_slider_change)
-        dropdown.grid(row=grid_row, column=3 * grid_col + 1, padx=5, pady=5)
+        dropdown.grid(row=grid_row, column=1, padx=5, pady=5)
 
-    def create_slider(self, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x, grid_y):
-        slider_label = ttk.Label(self.slider_frame, text=sliderlabel)
-        slider_label.grid(row=grid_x, column=3*grid_y, padx=5, pady=5, sticky="w")
-        slider = ttk.Scale(self.slider_frame, from_=slidermin, to=slidermax, orient="horizontal")
+    def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x):
+        slider_label = ttk.Label(parent_frame, text=sliderlabel)
+        slider_label.grid(row=grid_x, column=0, padx=5, pady=5, sticky="w")
+        slider = ttk.Scale(parent_frame, from_=slidermin, to=slidermax, orient="horizontal")
         slider.set(sliderdefault)
-        slider.grid(row=grid_x, column=3*grid_y+1, padx=5, pady=5, sticky="ew")
+        slider.grid(row=grid_x, column=1, padx=5, pady=5, sticky="ew")
         slider.bind("<ButtonRelease-1>", self.on_slider_change)
         slider.bind("<Motion>", self.update_slider_values)
-        slider_value_label = ttk.Label(self.slider_frame, text=slider.get())
-        slider_value_label.grid(row=grid_x, column=3*grid_y+2, padx=5, pady=5, stick="e")
+        slider_value_label = ttk.Label(parent_frame, text=slider.get())
+        slider_value_label.grid(row=grid_x, column=2, padx=5, pady=5, stick="e")
         self.slidervalues[slider] = slider_value_label
         self.sliders[slidername] = slider
 
@@ -101,8 +135,15 @@ class HotlineGUI:
         run_check.grid(row=3, column=0, padx=5, pady=5)
 
         def save_func():
-            export_cbr_sqlite(self.blue_elcbr, "blue_hotline_elcbr.sqlite")
-            export_cbr_sqlite(self.red_elcbr, "red_hotline_elcbr.sqlite")
+            blue_sqlite = "blue_hotline_elcbr.sqlite"
+            red_sqlite = "red_hotline_elcbr.sqlite"
+
+            export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
+            blue_csvs = ladder_csv_to_input_list(self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get())
+            include_extra_csv_files_in_sqlite(blue_sqlite, blue_csvs)
+            export_cbr_sqlite(self.red_elcbr, red_sqlite)
+            red_csvs = ladder_csv_to_input_list(self.ladder_entries[self._RED_AMYG_COMBOKEY].get())
+            include_extra_csv_files_in_sqlite(red_sqlite, red_csvs)
 
         savebutton = ttk.Button(self.cbr_frame, text="Export CBRs", command=save_func)
         savebutton.grid(row=4, column=0, padx=5, pady=5)
@@ -129,6 +170,8 @@ class HotlineGUI:
         params["red_elcbr"] = self.red_elcbr
         params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
         params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
+        params["blue_ladder_file"] = self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get()
+        params["red_ladder_file"] = self.ladder_entries[self._RED_AMYG_COMBOKEY].get()
 
         run_hotline(**params)
         self.update_cbr_training_frame()

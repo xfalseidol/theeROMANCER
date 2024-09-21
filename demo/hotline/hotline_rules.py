@@ -1,4 +1,5 @@
 import csv
+import os.path
 from functools import reduce
 from operator import add
 from typing import NamedTuple
@@ -98,8 +99,6 @@ class ActionLexicon:
         thisact = self.actionlexicon[actnum]
         return f"{thisact['side']}{thisact['action']}{thisact['suffix']}({actnum})"
 
-actionlexicon = ActionLexicon("data/action_lexicon.csv")
-
 class DoAction(NamedTuple):
     action: int
     deadline: any
@@ -108,6 +107,7 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
     provocation: int  # action adversary could take that threatener wants to deter
     threat: int  # threatened action if recipient takes provocative action
     deadline: any  # float representing future time or None if no deadline given
+    actionlexicon: ActionLexicon # Lookup table for actions and descriptions
 
     def evaluate(self, reasoner, amygdala):
         '''Determine whether this threat is currently credible to reasoner given its internal state.'''
@@ -138,7 +138,7 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
         return False
 
     def __str__(self):
-        script_version = f"Don't take {actionlexicon.getlabel(self.provocation)} or else I'll take {actionlexicon.getlabel(self.threat)}"
+        script_version = f"Don't take {self.actionlexicon.getlabel(self.provocation)} or else I'll take {self.actionlexicon.getlabel(self.threat)}"
         if self.deadline:
             script_version += f", until {self.deadline}"
         script_version += "."
@@ -153,6 +153,7 @@ class CompellentThreat(
     demanded_action: int  # action adversary could take that threatener wants to compel (i.e., a concession)
     threat: int  # threatened action if recipient fails to take demanded action
     deadline: any  # float representing future time or None if no deadline given
+    actionlexicon: ActionLexicon # Lookup for actions to labels
 
     def evaluate(self, reasoner, amygdala):
         '''Determine whether this threat is currently credible to reasoner given its internal state.'''
@@ -183,7 +184,7 @@ class CompellentThreat(
         return False
 
     def __str__(self):
-        script_version = f"You must take {self.demanded_action} or else I'll take {self.threat}"
+        script_version = f"You must take {self.actionlexicon(self.demanded_action)} or else I'll take {self.actionlexicon(self.threat)}"
         if self.deadline:
             script_version += f"; you have until {self.deadline}"
         script_version += "."
@@ -257,14 +258,28 @@ def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
             if row['verb'] == 'ActionTaken':
                 rules.append(ActionTaken(actor_subj))
             elif row['verb'] == 'DeterrentThreat':
-                threat = DeterrentThreat(actor_subj, actor_obj, None)
+                threat = DeterrentThreat(actor_subj, actor_obj, None, actionlexicon)
                 rules.append(all_of([threat, min_resolve]))
             elif row['verb'] == 'CompellentThreat':
-                threat = CompellentThreat(actor_subj, actor_obj, None)
+                threat = CompellentThreat(actor_subj, actor_obj, None, actionlexicon)
                 rules.append(all_of([threat, min_resolve]))
 
     return {rung: any_of(rules) for rung, rules in retval.items()}
 
+# Return a ordered list of 2-tuples, with number,name
+def load_ladder_rungs_csv(csvfile):
+    retval = []
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if 0 == len(row["rung_number"].strip()):
+                continue
+            rung_number = int(row['rung_number'])
+            rung_name = row['rung_name']
+            retval.append((rung_number, rung_name))
+    retval.sort(key=lambda x: x[0])
+    # print(retval)
+    return retval
 
 # Return a map of rung_number to list of time-action tuples
 def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping={}):
@@ -298,13 +313,17 @@ def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
             if actor_subj is None:
                 print(f"Error in input. Could not find action number for {row['subject_side']}={subject_side} {row['subject_action']} {row['subject_suffix']}")
 
+            deadline_inp = row['deadline'].strip() if row['deadline'] is not None and len(row['deadline'].strip())>0 else None
+            deadline = int(deadline_inp) if deadline_inp is not None else None
+            if deadline is not None and deadline > 0:
+                print(f"Deadline {deadline}")
             act = None
             if row['verb'] == 'DoAction':
-                act = DoAction(actor_subj, None)
+                act = DoAction(actor_subj, deadline)
             elif row['verb'] == 'DeterrentThreat':
-                act = DeterrentThreat(actor_subj, actor_obj, None)
+                act = DeterrentThreat(actor_subj, actor_obj, deadline, actionlexicon)
             elif row['verb'] == 'ConcessionOffer':
-                act = ConcessionOffer(actor_subj, actor_obj, None)
+                act = ConcessionOffer(actor_subj, actor_obj, deadline)
             elif len(row['verb'].strip()) > 0:
                 print(f"Error in input, don't know what to do with verb column {row['verb']}")
                 continue
@@ -328,3 +347,42 @@ def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
             rules.append((action_time, act, updateaymg))
 
     return retval
+
+def ladder_csv_to_input_list(csvfile):
+    csvfile_path = os.path.dirname(csvfile)
+    retval = {}
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            thisfile = os.path.join(csvfile_path, row["filename"])
+            retval[row["input"]] = thisfile
+    return retval
+
+# Given a top-level CSV file pointing down the path of a full data-driven ladder, load in all everything described
+# Returns (actionlexion, ladder, matchingrungs, escalate_actions, deescalate_actions)
+def load_ladder_inputs(csvfile, actor_mapping={}):
+    input_list = ladder_csv_to_input_list(csvfile)
+
+    if "action_lexicon" in input_list:
+        actionlexicon = ActionLexicon(input_list["action_lexicon"])
+    else:
+        raise ValueError("Ladder input file must include action_lexicon")
+
+    if "ladder_desc" in input_list:
+        ladder_desc = load_ladder_rungs_csv(input_list["ladder_desc"])
+    else:
+        raise ValueError("Ladder input file must include ladder_desc")
+
+    if "matching_rules" in input_list:
+        matching_rules = load_matcher_csv(input_list["matching_rules"], actionlexicon, actor_mapping)
+    else:
+        raise ValueError("Ladder input file must include matching_rules")
+
+    if "rungchange_actions" in input_list:
+        f = input_list["rungchange_actions"]
+        actions = load_actions_csv(f, actionlexicon, "action", actor_mapping)
+        deescalate_actions = load_actions_csv(f, actionlexicon, "deescalate_action", actor_mapping)
+    else:
+        assert ValueError("Ladder input file must include rungchange_actions")
+
+    return actionlexicon, ladder_desc, matching_rules, actions, deescalate_actions

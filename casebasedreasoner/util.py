@@ -1,3 +1,4 @@
+import csv
 import os.path
 import time
 import sqlite3
@@ -110,6 +111,65 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
             out_dot.write(dot)
 
     return dot
+
+# Given a CSV file, just insert it into sqlite as a table.
+#  To avoid potential exploits, if any column names contain anything other than [a-zA-Z0-9_], refuse completely.
+# Does not bother guessing type. Uses SQLite's "NUMBER" which for this would:
+#   try integer, then real, and finally store as string if coercion didn't work
+def insert_csv_sqlite(dbconn, csvfile, tablename):
+    created_table = False
+    with open(csvfile, "r", encoding="utf-8") as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if 0 == len(row[reader.fieldnames[0]]):
+                continue
+            if not created_table:
+                cursor = dbconn.cursor()
+                print(f"Creating table {tablename}")
+                cols_types = [f"{col} NUMBER" for col in reader.fieldnames]
+                create_sql = (f"CREATE TABLE IF NOT EXISTS {tablename}"
+                              f" ({",".join(cols_types)})")
+                cursor.execute(create_sql)
+                created_table = True
+            val_bind = ",".join(["?" for _ in reader.fieldnames])
+            val_list = [row[k] for k in reader.fieldnames]
+            cursor.execute(f"INSERT INTO {tablename} VALUES ({val_bind})", val_list)
+    dbconn.commit()
+
+
+# This code assumes it is called after export_cbr_sqlite. dbfile must exist
+# Takes a map of {table_name => csv_filename} and does a naive insert.
+def include_extra_csv_files_in_sqlite(dbfile, input_list):
+    if not os.path.exists(dbfile):
+        assert ValueError("Can only import ELCBR rules into an existing database")
+
+    print("Appending tables rules into sqlite database")
+    t_start = time.time()
+    conn = sqlite3.connect(dbfile)
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys=ON")
+
+    for k, f in input_list.items():
+        insert_csv_sqlite(conn, f, k)
+
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS scenario_percepts_grouped AS
+        SELECT scenariomop.mopname, scenariomop.mopid, perceptslot.slotname,
+               perceptslot.val, COUNT(perceptslot.val) AS cnt,
+               action_lexicon.*
+           FROM mop scenariomop
+            INNER JOIN slot scenarioslot on scenariomop.mopid = scenarioslot.mopid AND scenarioslot.slotname='percepts'
+            INNER JOIN slot perceptgroupslot on scenarioslot.ref_mopid=perceptgroupslot.mopid
+            INNER JOIN slot perceptslot on perceptgroupslot.ref_mopid=perceptslot.mopid
+            LEFT JOIN action_lexicon ON perceptslot.val=action_lexicon.action_num AND perceptslot.slotname='action_taken'
+         WHERE scenariomop.mopname LIKE 'I-M_ELRScenario%'
+         GROUP BY scenariomop.mopid, perceptslot.slotname, perceptslot.val
+    ''')
+    conn.commit()
+    conn.close()
+    t_end = time.time()
+    print(f"SQLite write complete in {t_end-t_start:.2f} seconds")
+
 
 # Given a case based reasoner, export it to a sqlite database for visual inspection/experimentation
 def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True):

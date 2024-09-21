@@ -1,0 +1,5 @@
+input,filename,description
+action_lexicon,first_ladder/action_lexicon.csv,Description for all actions. Must be common across all ladders in a scenario
+ladder_desc,first_ladder/ladder_desc.csv,The ladder: rungs with names
+matching_rules,first_ladder/matchingrules.csv,Rules that will match for each rung
+rungchange_actions,first_ladder/rungchange_actions.csv,Actions to be taken when changing rungs
