@@ -107,6 +107,7 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
     provocation: int  # action adversary could take that threatener wants to deter
     threat: int  # threatened action if recipient takes provocative action
     deadline: any  # float representing future time or None if no deadline given
+    actionlexicon: ActionLexicon # Lookup table for actions and descriptions
 
     def evaluate(self, reasoner, amygdala):
         '''Determine whether this threat is currently credible to reasoner given its internal state.'''
@@ -137,7 +138,7 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
         return False
 
     def __str__(self):
-        script_version = f"Don't take {self.provocation} or else I'll take {self.threat}"
+        script_version = f"Don't take {self.actionlexicon.getlabel(self.provocation)} or else I'll take {self.actionlexicon.getlabel(self.threat)}"
         if self.deadline:
             script_version += f", until {self.deadline}"
         script_version += "."
@@ -152,6 +153,7 @@ class CompellentThreat(
     demanded_action: int  # action adversary could take that threatener wants to compel (i.e., a concession)
     threat: int  # threatened action if recipient fails to take demanded action
     deadline: any  # float representing future time or None if no deadline given
+    actionlexicon: ActionLexicon # Lookup for actions to labels
 
     def evaluate(self, reasoner, amygdala):
         '''Determine whether this threat is currently credible to reasoner given its internal state.'''
@@ -182,7 +184,7 @@ class CompellentThreat(
         return False
 
     def __str__(self):
-        script_version = f"You must take {self.demanded_action} or else I'll take {self.threat}"
+        script_version = f"You must take {self.actionlexicon(self.demanded_action)} or else I'll take {self.actionlexicon(self.threat)}"
         if self.deadline:
             script_version += f"; you have until {self.deadline}"
         script_version += "."
@@ -256,10 +258,10 @@ def load_matcher_csv(csvfile, actionlexicon, actor_mapping={}):
             if row['verb'] == 'ActionTaken':
                 rules.append(ActionTaken(actor_subj))
             elif row['verb'] == 'DeterrentThreat':
-                threat = DeterrentThreat(actor_subj, actor_obj, None)
+                threat = DeterrentThreat(actor_subj, actor_obj, None, actionlexicon)
                 rules.append(all_of([threat, min_resolve]))
             elif row['verb'] == 'CompellentThreat':
-                threat = CompellentThreat(actor_subj, actor_obj, None)
+                threat = CompellentThreat(actor_subj, actor_obj, None, actionlexicon)
                 rules.append(all_of([threat, min_resolve]))
 
     return {rung: any_of(rules) for rung, rules in retval.items()}
@@ -319,7 +321,7 @@ def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
             if row['verb'] == 'DoAction':
                 act = DoAction(actor_subj, deadline)
             elif row['verb'] == 'DeterrentThreat':
-                act = DeterrentThreat(actor_subj, actor_obj, deadline)
+                act = DeterrentThreat(actor_subj, actor_obj, deadline, actionlexicon)
             elif row['verb'] == 'ConcessionOffer':
                 act = ConcessionOffer(actor_subj, actor_obj, deadline)
             elif len(row['verb'].strip()) > 0:
