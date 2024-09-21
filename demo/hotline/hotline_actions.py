@@ -21,7 +21,7 @@ class HotlineAction(WatchlistItem):
         self.actor_id = actor_id
         self.action_id = action_id
         self.params = None
-        self.action_label = action_label if action_label is not None else "{actor_id}.{action_id}"
+        self.action_label = action_label if action_label is not None else f"{actor_id}.{action_id}"
 
 
     def process(self, supervisor): # needs to force an ActionPercept?

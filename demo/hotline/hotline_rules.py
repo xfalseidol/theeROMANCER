@@ -137,7 +137,7 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
         return False
 
     def __str__(self):
-        script_version = f"Don't take {actionlexicon.getlabel(self.provocation)} or else I'll take {actionlexicon.getlabel(self.threat)}"
+        script_version = f"Don't take {self.provocation} or else I'll take {self.threat}"
         if self.deadline:
             script_version += f", until {self.deadline}"
         script_version += "."
