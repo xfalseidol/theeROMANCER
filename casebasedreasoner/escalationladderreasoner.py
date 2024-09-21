@@ -176,6 +176,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
         counter = 1
         for percept in percepts:
             slots[counter] = self.create_percept_mop(percept)
+            counter+=1
         return self.add_mop(absts={'M_percept_group'}, slots=slots, mop_type='instance')
     
     '''Percept has attribute param_names'''
