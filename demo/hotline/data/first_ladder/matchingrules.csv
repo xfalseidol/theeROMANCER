@@ -1,9 +1,7 @@
 rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_action,object_suffix,min_adversary_resolve
 ,,,,,,,,
 1,ActionTaken,Adversary,Threat,1,,,,
-1,ActionTaken,Self,Threat,1,,,,
 1,ActionTaken,Adversary,Threat,2,,,,
-1,ActionTaken,Self,Threat,2,,,,
 ,,,,,,,,
 1,DeterrentThreat,Adversary,Threat,1,Self,Threat,1,
 1,DeterrentThreat,Adversary,Threat,2,Self,Threat,2,0.85
@@ -12,9 +10,7 @@ rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_a
 ,,,,,,,,
 ,,,,,,,,
 2,ActionTaken,Adversary,Threat,3,,,,
-2,ActionTaken,Self,Threat,3,,,,
 2,ActionTaken,Adversary,Threat,4,,,,
-2,ActionTaken,Self,Threat,4,,,,
 ,,,,,,,,
 2,DeterrentThreat,Adversary,Threat,3,Self,Threat,3,
 2,DeterrentThreat,Adversary,Threat,4,Self,Threat,4,0.85
@@ -23,9 +19,7 @@ rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_a
 ,,,,,,,,
 ,,,,,,,,
 3,ActionTaken,Adversary,Threat,5,,,,
-3,ActionTaken,Self,Threat,5,,,,
 3,ActionTaken,Adversary,Threat,6,,,,
-3,ActionTaken,Self,Threat,6,,,,
 ,,,,,,,,
 3,DeterrentThreat,Adversary,Threat,5,Self,Threat,5,
 3,DeterrentThreat,Adversary,Threat,6,Self,Threat,6,0.85
@@ -34,9 +28,7 @@ rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_a
 ,,,,,,,,
 ,,,,,,,,
 4,ActionTaken,Adversary,Threat,7,,,,
-4,ActionTaken,Self,Threat,7,,,,
 4,ActionTaken,Adversary,Threat,8,,,,
-4,ActionTaken,Self,Threat,8,,,,
 ,,,,,,,,
 4,DeterrentThreat,Adversary,Threat,7,Self,Threat,7,
 4,DeterrentThreat,Adversary,Threat,8,Self,Threat,8,0.85
@@ -45,9 +37,7 @@ rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_a
 ,,,,,,,,
 ,,,,,,,,
 5,ActionTaken,Adversary,Threat,9,,,,
-5,ActionTaken,Self,Threat,9,,,,
 5,ActionTaken,Adversary,Threat,10,,,,
-5,ActionTaken,Self,Threat,10,,,,
 ,,,,,,,,
 5,DeterrentThreat,Adversary,Threat,9,Self,Threat,9,0.85
 5,CompellentThreat,Adversary,CompelledConcession,10,Self,Threat,10,0.5

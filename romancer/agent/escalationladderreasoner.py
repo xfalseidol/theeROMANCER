@@ -36,18 +36,16 @@ class EscalationLadder(UserList):
                 chosen_i = cur_i
         return chosen_rung, chosen_i
 
-    def previous_rung(self, current_rung, default_retval=None):
+
+    def previous_rung(self, current_rung):
         '''The opposite of next_rung.'''
-        cur_i = self.data.index(current_rung)
-        chosen_rung = default_retval
-        chosen_i = cur_i - 1
-        if chosen_i >= 0:
-            try:
-                chosen_rung = self.data[chosen_i]
-            except IndexError:
-                chosen_rung = default_retval
-                chosen_i = cur_i
-        return chosen_rung, chosen_i
+        rung_index = self.data.index(current_rung)
+        if rung_index > 0:
+            previous_index = rung_index - 1
+            return self.data[previous_index], previous_index
+        else:
+            return current_rung, rung_index
+        
 
     # for deliberating into the future
     def next_matched_rung(self, current_rung, reasoner, amygdala):
@@ -166,7 +164,7 @@ class EscalationLadderReasoner(Reasoner):
                  planned_actions = None, actions_taken = None, digested_percepts = None,
                  cbr = None, cbr_train=True, cbr_run=False):
         super().__init__(environment, time)
-        self.idle_time = 60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
+        self.idle_time = 60*60 # Anytime we need to just throw a dummy event in the queue, use this delay on it
         self.escalation_ladder = escalation_ladder # an EscalationLadder instance
         self.identity = identity # 'blue' or 'red'
         self.planned_actions = list()
@@ -264,7 +262,7 @@ class EscalationLadderReasoner(Reasoner):
             amygdala_rung, amygdala_rung_idx = self.current_rung, current_rung_idx
             why = "freeze"
         elif amygdala.FLIGHT_STR == amygdala_dominant_response:
-            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung, self.current_rung)
+            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung)
             why = "flight"
         curr_rungname = self.current_rung.name
         amygdala_rungname = amygdala_rung.name if amygdala_rung else "None"
@@ -277,20 +275,36 @@ class EscalationLadderReasoner(Reasoner):
             chosen_rung = amygdala_rung
             chosen_rung_idx = amygdala_rung_idx
 
-        if chosen_rung_idx == current_rung_idx or chosen_rung_idx is None:
-            # No change. Ask me again in an hour
-            pass
-            # self._push_empty_action(self.time + self.idle_time)
-        elif chosen_rung_idx > current_rung_idx:
+        if chosen_rung != matched_rung: # what if I CHOSE a rung I didn't actually match with?
+            # then I need to push a re-deliberate action in the future, once my amygdala is no longer dominant!
+            self._push_redeliberate_action(max_time, amygdala)
+        if chosen_rung_idx > current_rung_idx:
             self._escalate(chosen_rung, amygdala, why)
         elif chosen_rung_idx < current_rung_idx:
             if amygdala_dominant:
-                self._deescalate(None, self.current_rung.deescalation_actions, why)
+                self._deescalate(chosen_rung, self.current_rung.deescalation_actions, why)
             else:
                 self._deescalate(chosen_rung, None, why)
 
         amygdala.capture_plot()
     
+    def _determine_future_matching(self, max_time, amygdala):
+        present_time = self.time
+        if max_time > present_time:
+            self.forward_simulation(max_time, amygdala)
+            matched_rung, matched_rung_idx = self.match_rung(present_time, amygdala)
+            if matched_rung != self.current_rung: # there is a match in the future
+                match_time = self._find_approximate_match_time(present_time, max_time, matched_rung, amygdala)
+                # create a new WatchlistItem at future match time
+                heappush(self.planned_actions, (match_time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
+            self.max_deliberation_time = max_time  
+    
+    
+    def _push_redeliberate_action(self, max_time, amygdala):
+        # heappush(self.planned_actions, (self.time + self.idle_time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
+        pass
+
+
     def _remember_scenario(self, percepts, current_rung_idx, next_rung_idx):
         if self.cbr:
             # must ensure we pass percepts as a list of dictionaries and current_rung_match_attributes is a dictionary
@@ -342,7 +356,6 @@ class EscalationLadderReasoner(Reasoner):
 
     def _enqueue_actions(self, actions):
         if len(actions) == 0 or actions is None:
-            # self._push_empty_action(self.time+self.idle_time)
             return
 
         for action in actions:

@@ -1,4 +1,5 @@
 action_num,side,action,suffix
+-1,-1,Redeliberate,-1
 1,Red,Threat,1
 2,Blue,Threat,1
 3,Red,CompelledConcession,1
