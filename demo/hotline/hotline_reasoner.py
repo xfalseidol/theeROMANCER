@@ -1,10 +1,9 @@
 import csv
 
-from demo.hotline.hotline_rules import DoAction
 from romancer.agent.escalationladderreasoner import EscalationLadderRung, EscalationLadderReasoner
 from typing import NamedTuple
 from hotline_percept import SendPrivateMessage, SendPublicMessage, HotlineMessagePercept, HotlineActionPercept, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage, HotlineRungChangeMessage
-from hotline_rules import DeterrentThreat, CompellentThreat, ConcessionOffer
+from hotline_rules import DoAction, DeterrentThreat, CompellentThreat, ConcessionOffer
 from heapq import heappush, heappop
 import matplotlib.pyplot as plt
 

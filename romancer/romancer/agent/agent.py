@@ -1,5 +1,5 @@
-from environment.object import RomancerObject
-from environment.loglist import Logpoint
+from romancer.environment.object import RomancerObject
+from romancer.environment.loglist import Logpoint
 from typing import NamedTuple
 
 class PerceptionFilter():

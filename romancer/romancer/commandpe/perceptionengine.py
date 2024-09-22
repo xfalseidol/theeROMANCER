@@ -1,6 +1,6 @@
-from environment.perceptionengine import PerceptionEngine
-from environment.percept import Percept
-from agent.agent import PerceptionFilter
+from romancer.environment.perceptionengine import PerceptionEngine
+from romancer.environment.percept import Percept
+from romancer.agent.agent import PerceptionFilter
 from numpy import inf
 
 
