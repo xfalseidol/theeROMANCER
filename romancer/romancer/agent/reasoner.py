@@ -1,4 +1,4 @@
-from environment.object import ImprovedRomancerObject
+from romancer.environment.object import ImprovedRomancerObject
 
 class Reasoner(ImprovedRomancerObject):
 

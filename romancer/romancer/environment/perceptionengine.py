@@ -1,4 +1,4 @@
-from environment.percept import Percept
+from romancer.environment.percept import Percept
 from operator import ne
 
 def make_observer(obj, attr, value):
