@@ -1,6 +1,6 @@
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
-from demo.hotline.hotline_rules import load_ladder_inputs
+from hotline_rules import load_ladder_inputs
 from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor, Stop
 from romancer.environment.singlethreadenvironment import SingleThreadEnvironment
 from romancer.environment.dispositiontree import GeographicDispositionStump
