@@ -1,4 +1,4 @@
-from supervisor.watchlist import Watchlist
+from romancer.supervisor.watchlist import Watchlist
 import numpy as np
 
 class Supervisor():

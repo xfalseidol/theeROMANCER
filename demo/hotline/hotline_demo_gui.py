@@ -2,7 +2,7 @@ import os.path
 
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
-from demo.hotline.hotline_rules import ladder_csv_to_input_list
+from hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
 import tkinter as tk
 from tkinter import ttk, filedialog

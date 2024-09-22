@@ -1,9 +1,9 @@
 from numpy import pi, sin, cos, sqrt, rad2deg, deg2rad, inf
-from environment.location import GeographicLocation
+from romancer.environment.location import GeographicLocation
 from pathlib import Path
 import matplotlib.patheffects as pe
 from scipy.optimize import root_scalar
-from supervisor.singlethreadsupervisor import SingleThreadSupervisor
+from romancer.supervisor.singlethreadsupervisor import SingleThreadSupervisor
 
 EARTH_RADIUS_KM = 6378 
 KM_PER_DEGREE = 111

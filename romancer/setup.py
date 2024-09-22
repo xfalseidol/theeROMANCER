@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ROMANCER',
+    name='romancer',
     version='0.1.0',
-    description='ROMANCER',
+    description='romancer',
     author='Edward Geist',
     author_email='egeist@rand.org',
     packages=find_packages(),
