@@ -105,7 +105,6 @@ class HotlineRungChange(WatchlistItem):
         if params:
             agent.amygdala.update_parameters(params)
         self.params = agent.amygdala.current_amygdala_parameters()
-        self.params = agent.amygdala.current_amygdala_parameters()
 
 
     def __repr__(self):
