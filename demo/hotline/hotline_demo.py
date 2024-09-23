@@ -185,11 +185,11 @@ def run_hotline(
     # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
     sup.run(verbose = True)
 
-    # blue_reasoner.export_plot()
-    # blue_amygdala.export_plot()
+    blue_reasoner.export_plot()
+    blue_amygdala.export_plot()
 
-    # red_reasoner.export_plot()
-    # red_amygdala.export_plot()
+    red_reasoner.export_plot()
+    red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 
