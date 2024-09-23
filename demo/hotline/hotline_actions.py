@@ -46,7 +46,7 @@ class HotlineAction(WatchlistItem):
         script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: "
         stress = '' #_get_amygdala_display(self.params)
         if self.action_id == -1:
-            script_version += "Redeliberating..."
+            script_version += f"Redeliberating... (because expected amygdala domincance change)"
         else:
             script_version +=  "I'm taking action "
             script_version += self.action_label
@@ -174,7 +174,7 @@ def hotline_rung_change_dispatcher(sup, message):
 
 
 def _sim_time_to_days(time):
-    return round(time / (3600 * 24), 2) # divided by seconds in a day
+    return round(time / (3600 * 24), 3) # divided by seconds in a day
 
 
 agents_to_names = {6: 'RED', 10: 'BLUE'}

@@ -35,8 +35,8 @@ red_mapping = { "Self": "Red", "Adversary": "Blue"}
 
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
-        blue_initial_fight = 0.0, blue_initial_flight = 0.5, blue_initial_freeze = 0.0,
-        blue_initial_pbf = 0.1, blue_pbf_halflife = 10000.0, blue_max_pbf = 1.0,
+        blue_initial_fight = 0.0, blue_initial_flight = 0.0, blue_initial_freeze = 0.8,
+        blue_initial_pbf = 0.3, blue_pbf_halflife = 10000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
         blue_ladder_file = "data/ladder.csv",
 
@@ -185,11 +185,11 @@ def run_hotline(
     # an agent has a list of planned actions, which will get queried whenever someone wants the agent's next_deliberate_action (the next deliberate action gets transformed into a message)
     sup.run(verbose = True)
 
-    blue_reasoner.export_plot()
-    blue_amygdala.export_plot()
+    # blue_reasoner.export_plot()
+    # blue_amygdala.export_plot()
 
-    red_reasoner.export_plot()
-    red_amygdala.export_plot()
+    # red_reasoner.export_plot()
+    # red_amygdala.export_plot()
     # introduce ladders with asymmetries for comparison; start with minor asymmetry (e.g. associating a few actions with a rung above or
     # below its initial position)
 

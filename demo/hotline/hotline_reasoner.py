@@ -191,7 +191,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         super().export_plot("escladder_" + filename, f"{self.identity} Escalation Ladder")
     
     def _push_redeliberate_action(self, max_time, amygdala):
-        redeliberate_time = self.time + self.idle_time
+        redeliberate_time = self._find_amygdala_dominance_change_time(max_time,amygdala)
         redeliberate_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
                                                                     time=redeliberate_time,
                                                                     sender=(self.environment.uid, self.compute_self_uid()),
@@ -201,34 +201,33 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         heappush(self.planned_actions, (redeliberate_time, redeliberate_message, None))
 
 
-    def _escalate(self, next_rung, amygdala, why="no reason"):
-        previous_rung = self.current_rung
-        if previous_rung.id < next_rung.id:
-            super()._escalate(next_rung, amygdala)
-            message = HotlineRungChangeMessage(uid=self.new_message_index(),
-                                                time = self.time,
-                                               sender=(self.environment.uid, self.compute_self_uid()),
-                                               recipient=(1,1),
-                                               messagetype='HotlineRungChangeMessage',
-                                               old_rung=previous_rung,
-                                                new_rung=next_rung,
-                                                why=why)
-            heappush(self.planned_actions, (self.time, message, None))
-
-
-    def _deescalate(self, next_rung, enqueue_actions, why="no reason"):
-        previous_rung = self.current_rung
-        super()._deescalate(next_rung, enqueue_actions)
-        # next_rung = self.escalation_ladder.next_rung(self.current_rung)
+    def _push_rung_change_action(self, old_rung, new_rung, why):
         message = HotlineRungChangeMessage(uid=self.new_message_index(),
-                                               time = self.time,
-                                               sender=(self.environment.uid, self.compute_self_uid()),
-                                               recipient=(1,1),
-                                               messagetype='HotlineRungChangeMessage',
-                                               old_rung=previous_rung,
-                                               new_rung=next_rung,
-                                               why=why)
+                                            time = self.time,
+                                            sender=(self.environment.uid, self.compute_self_uid()),
+                                            recipient=(1,1),
+                                            messagetype='HotlineRungChangeMessage',
+                                            old_rung=old_rung,
+                                            new_rung=new_rung,
+                                            why=why)
         heappush(self.planned_actions, (self.time, message, None))
+
+    # def _escalate(self, next_rung, amygdala, why="no reason"):
+    #     super()._escalate(next_rung, amygdala)
+        
+    # def _deescalate(self, next_rung, enqueue_actions, why="no reason"):
+    #     previous_rung = self.current_rung
+    #     super()._deescalate(next_rung, enqueue_actions)
+    #     # next_rung = self.escalation_ladder.next_rung(self.current_rung)
+    #     message = HotlineRungChangeMessage(uid=self.new_message_index(),
+    #                                            time = self.time,
+    #                                            sender=(self.environment.uid, self.compute_self_uid()),
+    #                                            recipient=(1,1),
+    #                                            messagetype='HotlineRungChangeMessage',
+    #                                            old_rung=previous_rung,
+    #                                            new_rung=next_rung,
+    #                                            why=why)
+    #     heappush(self.planned_actions, (self.time, message, None))
 
     def _enqueue_actions(self, actions):
         '''Need to override this to account for more compact action descriptions.'''

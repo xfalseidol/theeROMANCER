@@ -313,17 +313,17 @@ def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=
             if actor_subj is None:
                 print(f"Error in input. Could not find action number for {row['subject_side']}={subject_side} {row['subject_action']} {row['subject_suffix']}")
 
-            deadline_inp = row['deadline'].strip() if row['deadline'] is not None and len(row['deadline'].strip())>0 else None
-            deadline = int(deadline_inp) if deadline_inp is not None else None
-            if deadline is not None and deadline > 0:
-                print(f"Deadline {deadline}")
+            # deadline_inp = row['deadline'].strip() if row['deadline'] is not None and len(row['deadline'].strip())>0 else None
+            # deadline = int(deadline_inp) if deadline_inp is not None else None
+            # if deadline is not None and deadline > 0:
+            #     print(f"Deadline {deadline}")
             act = None
             if row['verb'] == 'DoAction':
-                act = DoAction(actor_subj, deadline)
+                act = DoAction(actor_subj, None)
             elif row['verb'] == 'DeterrentThreat':
-                act = DeterrentThreat(actor_subj, actor_obj, deadline, actionlexicon)
+                act = DeterrentThreat(actor_subj, actor_obj, None, actionlexicon)
             elif row['verb'] == 'ConcessionOffer':
-                act = ConcessionOffer(actor_subj, actor_obj, deadline)
+                act = ConcessionOffer(actor_subj, actor_obj, None)
             elif len(row['verb'].strip()) > 0:
                 print(f"Error in input, don't know what to do with verb column {row['verb']}")
                 continue
