@@ -127,8 +127,7 @@ def insert_csv_sqlite(dbconn, csvfile, tablename):
                 cursor = dbconn.cursor()
                 print(f"Creating table {tablename}")
                 cols_types = [f"{col} NUMBER" for col in reader.fieldnames]
-                create_sql = (f"CREATE TABLE IF NOT EXISTS {tablename}"
-                              f" ({",".join(cols_types)})")
+                create_sql = (f"CREATE TABLE IF NOT EXISTS {tablename} ({','.join(cols_types)})")
                 cursor.execute(create_sql)
                 created_table = True
             val_bind = ",".join(["?" for _ in reader.fieldnames])
