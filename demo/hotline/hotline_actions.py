@@ -46,7 +46,7 @@ class HotlineAction(WatchlistItem):
         script_version = f"(Day {readable_time}) {agents_to_names[self.actor_id]}: "
         stress = '' #_get_amygdala_display(self.params)
         if self.action_id == -1:
-            script_version += f"Redeliberating... (because expected amygdala dominaance change)"
+            script_version += f"Redeliberating... (because expected amygdala dominance change)"
         else:
             script_version +=  "I'm taking action "
             script_version += self.action_label

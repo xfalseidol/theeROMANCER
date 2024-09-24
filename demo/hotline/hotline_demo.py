@@ -155,7 +155,7 @@ def run_hotline(
 
     blue_cur_rung = None # change to different rung to start above bottom of escalation ladder (implicitly rung1)
     blue_planned_actions = [] # change to force planned blue actions, this will be heapified so it needs to be (time, action) tuples
-    blue_actions_taken = None # change to give Blue NCA history of actions taken
+    blue_actions_taken = None # change to give Blue NCA history of actions takencd
     blue_digested_percepts = None # change to give Blue NCA history of digested percepts
 
     blue_reasoner = HotlineLadderReasoner(environment = env, time = env.time, escalation_ladder = blue_ladder_1,
