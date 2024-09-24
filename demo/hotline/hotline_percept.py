@@ -172,36 +172,31 @@ class HotlinePerceptionFilter(PerceptionFilter):
         cur_params = self.agent.amygdala.current_amygdala_parameters()
         
         def digest_submessage(submessage):
-            c = submessage.class_obj # fetch submessage's class constructor
-            l = list()
-            for i in range(2):
-                if submessage[i] in self.substitutions:
-                    l.append(self.substitutions[submessage[i]])
-                elif submessage[i] not in self.known:
-                    l.append(self.wildcard)
-                else:
-                    l.append(submessage[i])
-            l.append(submessage[2]) # append deadline or None
-            return c(*l) # construct new DeterrentThreat, CompellentThreat, or ConcessionOffer using substitutions
+            if hasattr(submessage, 'class_obj'):
+                c = submessage.class_obj # fetch submessage's class constructor
+                l = list()
+                for i in range(2):
+                    if submessage[i] in self.substitutions:
+                        l.append(self.substitutions[submessage[i]])
+                    elif submessage[i] not in self.known:
+                        l.append(self.wildcard)
+                    else:
+                        l.append(submessage[i])
+                l.append(submessage[2]) # append deadline or None
+                return c(*l) # construct new DeterrentThreat, CompellentThreat, or ConcessionOffer using substitutions
 
         if isinstance(percept, HotlineActionPercept):
             updated_percept = HotlineActionPercept(actor=percept.actor, action_taken=percept.action_taken, amygdala_params=cur_params)
         elif isinstance(percept, HotlineMessagePercept):
             edited_messages = list()
             for message in percept.messages:
-                submessages = (digest_submessage(s) for s in message)
-                if isinstance(message, PublicMessage):
-                    edited_messages.append(PublicMessage(contents=tuple(submessages)))
-                elif isinstance(message, PrivateMessage):
-                    edited_messages.append(PrivateMessage(contents=tuple(submessages), recipient=message.recipient))
+                edited_messages.append(message)
+                # submessages = (digest_submessage(s) for s in message)
+                # if isinstance(message, HotlinePublicROMANCERMessage):
+                #     edited_messages.append(PublicMessage(contents=tuple(submessages)))
+                # elif isinstance(message, HotlinePrivateROMANCERMessage):
+                #     edited_messages.append(PrivateMessage(contents=tuple(submessages), recipient=message.recipient))
             updated_percept = HotlineMessagePercept(messages=tuple(edited_messages), amygdala_params=cur_params)
 
         
         self.agent.reasoner.enqueue_digested_percept(updated_percept, self.agent.time)
-
-
-                
-                
-            
-
-        

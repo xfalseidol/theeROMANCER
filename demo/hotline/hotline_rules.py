@@ -3,7 +3,7 @@ import os.path
 from functools import reduce
 from operator import add
 from typing import NamedTuple
-
+import operator
 from romancer.agent.amygdala import UpdateAmygdalaParameters
 from hotline_percept import HotlineActionPercept, HotlineMessagePercept, SendPublicMessage, \
     SendPrivateMessage
@@ -115,16 +115,14 @@ class DeterrentThreat(NamedTuple):  # "Don't Do (provocation) or else I'll (thre
         # The reduce(add, []) function doesn't work right if something in the list is a tuple, convert those to list items
         l = [percept.messages for percept in reasoner.digested_percepts if
                                 isinstance(percept, HotlineMessagePercept) and len(percept.messages)>0]
-        i = 0
-        while i < len(l):
-            if isinstance(l[i], tuple):
-                for q in l.pop(i):
-                    l.append(q)
-            else:
-                i+=1
-
-        messages = reduce(add, l, [])
-        submessages = reduce(add, [message.contents for message in messages], [])
+        
+        messages = []
+        for item in l:
+            for element in item:
+                messages.append(element)
+        submessages = []
+        for message in messages:
+            submessages.append(message.contents)
         deterrent_threats = filter(lambda m: isinstance(m, DeterrentThreat), submessages)
 
         for dt in deterrent_threats:
@@ -161,16 +159,13 @@ class CompellentThreat(
         # The reduce(add, []) function doesn't work right if something in the list is a tuple, convert those to list items
         l = [percept.messages for percept in reasoner.digested_percepts if
                                 isinstance(percept, HotlineMessagePercept) and len(percept.messages)>0]
-        i = 0
-        while i < len(l):
-            if isinstance(l[i], tuple):
-                for q in l.pop(i):
-                    l.append(q)
-            else:
-                i+=1
-
-        messages = reduce(add, l, [])
-        submessages = reduce(add, [message.contents for message in messages], [])
+        messages = []
+        for item in l:
+            for element in item:
+                messages.append(element)
+        submessages = []
+        for message in messages:
+            submessages.append(message.contents)
         compellent_threats = filter(lambda m: isinstance(m, CompellentThreat), submessages)
 
         for ct in compellent_threats:

@@ -4,7 +4,7 @@ from functools import reduce
 from operator import add
 
 from romancer.supervisor.watchlist import WatchlistItem
-from hotline_percept import HotlineActionROMANCERMessage
+from hotline_percept import HotlineActionROMANCERMessage, PublicMessage, PrivateMessage
 
 def _get_amygdala_display(params):
     if params:
@@ -71,9 +71,12 @@ class HotlineMessage(WatchlistItem):
             agent.amygdala.update_parameters(params)
         self.params = agent.amygdala.current_amygdala_parameters()
         if self.public:
-            supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[], public_messages=[self.message])
+            public_message = PublicMessage(contents=(self.message.submessage))
+            supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[], public_messages=[public_message])
         else:
-            supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[self.message], public_messages=[])
+            recipient = 0
+            private_message = PrivateMessage(contents=(self.message.submessage), recipient=recipient)
+            supervisor.environment.perception_engine.force_message_percept(self.time, private_messages=[private_message], public_messages=[])
         supervisor.check_for_percepts = True # actions likely to trigger percepts
 
 

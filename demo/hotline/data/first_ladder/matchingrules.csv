@@ -21,7 +21,6 @@ rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_a
 3,ActionTaken,Adversary,Threat,5,,,,
 3,ActionTaken,Adversary,Threat,6,,,,
 ,,,,,,,,
-3,DeterrentThreat,Adversary,Threat,5,Self,Threat,5,
 3,DeterrentThreat,Adversary,Threat,6,Self,Threat,6,0.85
 3,CompellentThreat,Adversary,CompelledConcession,7,Self,Threat,7,0.5
 3,CompellentThreat,Adversary,CompelledConcession,8,Self,Threat,8,0.2
@@ -30,7 +29,6 @@ rung_number,verb,subject_side,subject_action,subject_suffix,object_side,object_a
 4,ActionTaken,Adversary,Threat,7,,,,
 4,ActionTaken,Adversary,Threat,8,,,,
 ,,,,,,,,
-4,DeterrentThreat,Adversary,Threat,7,Self,Threat,7,
 4,DeterrentThreat,Adversary,Threat,8,Self,Threat,8,0.85
 4,CompellentThreat,Adversary,CompelledConcession,9,Self,Threat,9,0.5
 4,CompellentThreat,Adversary,CompelledConcession,10,Self,Threat,10,0.2

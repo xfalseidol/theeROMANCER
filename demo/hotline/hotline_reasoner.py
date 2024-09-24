@@ -4,8 +4,9 @@ from romancer.agent.escalationladderreasoner import EscalationLadderRung, Escala
 from typing import NamedTuple
 from hotline_percept import SendPrivateMessage, SendPublicMessage, HotlineMessagePercept, HotlineActionPercept, HotlineActionROMANCERMessage, HotlinePublicROMANCERMessage, HotlineRungChangeMessage
 from hotline_rules import DoAction, DeterrentThreat, CompellentThreat, ConcessionOffer
-from heapq import heappush, heappop
+from heapq import heapify, heappush, heappop
 import matplotlib.pyplot as plt
+from functools import reduce
 
 
 # First, we define a mini-DSL for rung-matching rules
@@ -108,25 +109,38 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         # made good on their deterrent or compellent threats
         actions = {percept.action_taken for percept in self.digested_percepts if isinstance(percept, HotlineActionPercept)}
         messages = set()
-        # messages = reduce(messages.add, [percept.messages for percept in self.digested_percepts if isinstance(percept, HotlineMessagePercept)])
         submessages = set()
-        # submessages = reduce(submessages.add, [message.contents for message in messages])
-        threats = filter(lambda m: isinstance(m, DeterrentThreat) or isinstance(m, CompellentThreat), submessages)
-        # filter deterrent threats where provocation never took place
-        threats = filter(lambda m: isinstance(m, DeterrentThreat) and m.provocation not in actions, threats)
-        # filter compellent threats where demanded action was taken
-        threats = filter(lambda m: isinstance(m, CompellentThreat) and m.demanded_action in actions, threats)
+        for percept in self.digested_percepts:
+            if isinstance(percept, HotlineMessagePercept):
+                for message in percept.messages:
+                    messages.add(message)
+                    submessages.add(message.contents)
+        threats = set()
+        for m in submessages:
+            m_type = type(m)
+            if isinstance(m, DeterrentThreat) or isinstance(m, CompellentThreat):
+                threats.add(m)
+        ## an exprired threat is: any threat where the deadline is past
+        expired_threats = {threat for threat in threats if threat.deadline and threat.deadline <= self.time}
+        ## a fulfilled threat is a:
+        ### - deterrent threat where threat.provocation took place and threat.threat also took place
+        ### - compellent threat where threat.demanded_action did not take place and threat.threat also took place
+        deterrent_threats = {threat for threat in threats if isinstance(threat, DeterrentThreat) and threat.provocation in actions and threat.threat in actions}
+        compellent_threats = {threat for threat in threats if isinstance(threat, CompellentThreat) and threat.demanded_action not in actions and threat.threat in actions}
+        fulfilled_threats = deterrent_threats.union(compellent_threats)
+        # open_ended_threats = {threat for threat in threats if not threat.deadline or threat.deadline > self.time}
         if self.identity == 'Red':
-            adversary_threats = {threat for threat in threats if threat.threat % 2 != 0} # red actions assumed to be odd
+            # a threat is a fulfilled by adversary to red if threat.threat is even (blue is even)
+            num_fulfilled_threats = len({threat for threat in fulfilled_threats if threat.threat % 2 == 0 and threat.threat in actions}) # red actions assumed to be odd
+            expired_threats = {threat for threat in expired_threats if threat.threat % 2 == 0 and threat.threat not in actions}
         elif self.identity == 'Blue':
-            adversary_threats = {threat for threat in threats if threat.threat % 2 == 0} # blue actions assumed to be even
-        open_ended_threats = {threat for threat in adversary_threats if not threat.deadline}
-        expired_threats = {threat for threat in adversary_threats if threat.deadline and threat.deadline <= self.time}
+            # a threat is an adversary threat to blue if threat.threat is odd (red is odd)
+            num_fulfilled_threats = len({threat for threat in fulfilled_threats if threat.threat % 2 == 1 and threat.threat in actions}) # blue actions assumed to be odd
+            expired_threats = {threat for threat in expired_threats if threat.threat % 2 == 1 and threat.threat not in actions}
         # add to adversary resolve based on number of fulfilled threats
-        fulfilled_threats = len(actions & {threat.threat for threat in adversary_threats})
-        delta_fulfilled = fulfilled_threats - self._fulfilled_threats
-        delta_fulfilled_open_ended_threats = len(actions & {threat.threat for threat in open_ended_threats}) - self._fulfilled_open_ended_threats
-        delta_unfulfilled_expired_threats = len({threat.threat for threat in expired_threats} - actions) - self._unfulfilled_expired_threats
+        delta_fulfilled = num_fulfilled_threats - self._fulfilled_threats
+        # delta_fulfilled_open_ended_threats = len(actions & {threat.threat for threat in open_ended_threats}) - self._fulfilled_open_ended_threats
+        delta_unfulfilled_expired_threats = len(expired_threats) - self._unfulfilled_expired_threats
         # We do an opposite adjustment on the basis of whether the opponent has ever made any concessions (resolve cannot fall below 0)
         concessions = filter(lambda m: isinstance(m, ConcessionOffer), submessages)
         if self.identity == 'Red':
@@ -136,7 +150,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         delta_adversary_concessions = len(adversary_concessions) - self._no_adversary_concessions
         if delta_adversary_concessions != 0:
             self._no_adversary_concessions = len(adversary_concessions)
-        delta_resolve = (delta_fulfilled_open_ended_threats - delta_fulfilled) * 0.3 + (delta_fulfilled - delta_fulfilled_open_ended_threats) * 0.1 - delta_unfulfilled_expired_threats * 0.1 - delta_adversary_concessions * 0.3
+        delta_resolve = delta_fulfilled * 0.3 - delta_unfulfilled_expired_threats * 0.1 - delta_adversary_concessions * 0.3
         if delta_resolve != 0.0:
             self.perceived_adversary_resolve = self.perceived_adversary_resolve + delta_resolve
             if self.perceived_adversary_resolve > self.max_adversary_resolve:
@@ -155,6 +169,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
                 self.resolve = self.max_resolve
             elif self.resolve < 0:
                 self.resolve = 0
+        self._fulfilled_threats += num_fulfilled_threats
         self._plot_resolve.append( (self.time, self.resolve) )
         self._plot_perceived_resolve.append((self.time, self.perceived_adversary_resolve) )
 
@@ -191,14 +206,18 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         super().export_plot("escladder_" + filename, f"{self.identity} Escalation Ladder")
     
     def _push_redeliberate_action(self, max_time, amygdala):
-        redeliberate_time = self._find_amygdala_dominance_change_time(max_time,amygdala)
+        if self.redeliberate_action in self.planned_actions:
+            self.planned_actions.remove(self.redeliberate_action)
+        redeliberate_time = self._find_amygdala_dominance_change_time(max_time, amygdala)
         redeliberate_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
                                                                     time=redeliberate_time,
                                                                     sender=(self.environment.uid, self.compute_self_uid()),
                                                                     recipient=(1, 1),
                                                                     messagetype = 'HotlineActionROMANCERMessage',
                                                                     action_id = -1) # send action message to supervisor
-        heappush(self.planned_actions, (redeliberate_time, redeliberate_message, None))
+        self.redeliberate_action = (redeliberate_time, redeliberate_message, None)
+        heapify(self.planned_actions)
+        heappush(self.planned_actions, self.redeliberate_action)
 
 
     def _push_rung_change_action(self, old_rung, new_rung, why):
