@@ -41,8 +41,8 @@ class Reasoner(ImprovedRomancerObject):
             pass # no deliberation needed
         else:
             cur_time = self.time
-            self.forward_simulation(max_time, amygdala) # amygdala needs to be passed as well as the future histories evolve jointly
-            self.rewind(cur_time)
+            self.forward_simulation(cur_time, amygdala) # amygdala needs to be passed as well as the future histories evolve jointly
+            # self.rewind(cur_time)
 
 
     @property

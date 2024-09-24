@@ -25,17 +25,12 @@ class EscalationLadder(UserList):
 
     def next_rung(self, current_rung, default_retval=None):
         '''This method returns the next rung on the escalation ladder after current_rung, or None if current_rung is the top rung.'''
-        cur_i = self.data.index(current_rung)
-        chosen_rung = default_retval
-        chosen_i = cur_i + 1
-        if chosen_i < len(self.data):
-            try:
-                chosen_rung = self.data[chosen_i]
-            except IndexError:
-                chosen_rung = default_retval
-                chosen_i = cur_i
-        return chosen_rung, chosen_i
-
+        rung_index = self.data.index(current_rung)
+        if rung_index < len(self.data) - 1:
+            next_index = rung_index + 1
+            return self.data[next_index], next_index
+        else:
+            return current_rung, rung_index
 
     def previous_rung(self, current_rung):
         '''The opposite of next_rung.'''
@@ -192,6 +187,8 @@ class EscalationLadderReasoner(Reasoner):
         self.cbr = cbr
         self.cbr_train = cbr_train
         self.cbr_run = cbr_run
+        self.redeliberate_action = None
+        self.redeliberate_action = None
         self.capture_plot()
 
     def reset_reasoner(self, rung_num=0):
@@ -241,6 +238,7 @@ class EscalationLadderReasoner(Reasoner):
         '''
 
         super().deliberate(max_time, amygdala)
+        current_rung = self.current_rung
         current_rung_idx = self.escalation_ladder.rung_number(self.current_rung)
         # determine if a different rung is matched
         # Even if the amygdala is dominant, we want to do this if we're training the ELCBR
@@ -251,16 +249,19 @@ class EscalationLadderReasoner(Reasoner):
                                         current_rung_idx = current_rung_idx,
                                         next_rung_idx = matched_rung_idx)
 
+
         amygdala_dominant_response = amygdala.dominant_response()
         amygdala_rung = None
         amygdala_rung_idx = None
         amygdala_dominant = (amygdala_dominant_response is not None)
         if amygdala.FIGHT_STR == amygdala_dominant_response:
-            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.next_rung(self.current_rung, self.current_rung)
+            amygdala_rung, amygdala_rung_idx = self.escalation_ladder.next_rung(self.current_rung)
             why = "fight"
         elif amygdala.FREEZE_STR == amygdala_dominant_response:
             amygdala_rung, amygdala_rung_idx = self.current_rung, current_rung_idx
             why = "freeze"
+            if matched_rung != amygdala_rung: # we only want to declare failure to chnage rungs if we SHOULD have changed rungs
+                self._push_rung_change_action(current_rung, amygdala_rung, why)
         elif amygdala.FLIGHT_STR == amygdala_dominant_response:
             amygdala_rung, amygdala_rung_idx = self.escalation_ladder.previous_rung(self.current_rung)
             why = "flight"
@@ -275,35 +276,70 @@ class EscalationLadderReasoner(Reasoner):
             chosen_rung = amygdala_rung
             chosen_rung_idx = amygdala_rung_idx
 
-        if chosen_rung != matched_rung: # what if I CHOSE a rung I didn't actually match with?
-            # then I need to push a re-deliberate action in the future, once my amygdala is no longer dominant!
-            self._push_redeliberate_action(max_time, amygdala)
         if chosen_rung_idx > current_rung_idx:
             self._escalate(chosen_rung, amygdala, why)
+            self._push_rung_change_action(current_rung, chosen_rung, why)
         elif chosen_rung_idx < current_rung_idx:
             if amygdala_dominant:
                 self._deescalate(chosen_rung, self.current_rung.deescalation_actions, why)
             else:
                 self._deescalate(chosen_rung, None, why)
+            self._push_rung_change_action(current_rung, chosen_rung, why)
+
+        # we need to redeliberate AFTER escalation/deescalation, because those events cause us to clear our planned actions
+        if chosen_rung != matched_rung: # what if I chose a rung I didn't actually match with?
+            # then I need to push a re-deliberate action in the future, once my amygdala is no longer dominant!
+            self._push_redeliberate_action(max_time, amygdala)
 
         amygdala.capture_plot()
     
-    def _determine_future_matching(self, max_time, amygdala):
-        present_time = self.time
-        if max_time > present_time:
-            self.forward_simulation(max_time, amygdala)
-            matched_rung, matched_rung_idx = self.match_rung(present_time, amygdala)
-            if matched_rung != self.current_rung: # there is a match in the future
-                match_time = self._find_approximate_match_time(present_time, max_time, matched_rung, amygdala)
-                # create a new WatchlistItem at future match time
-                heappush(self.planned_actions, (match_time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
-            self.max_deliberation_time = max_time  
+
+    def _find_amygdala_dominance_change_time(self, max_time, amygdala):
+        # def dominant_at_time(t):
+        #     if t < self.time:
+        #         amygdala.rewind(t)
+        #     elif t > self.time:
+        #         amygdala.forward_simulation(t)
+        #     amygdala_dominant_response = amygdala.dominant_response()
+        #     amygdala_dominant = (amygdala_dominant_response is not None)
+        #     if amygdala_dominant:
+        #         return 1
+        #     else:
+        #         return -1
+            
+
+        # present_time = self.time
+        # dominance_change_time = optimize.bisect(dominant_at_time, present_time, max_time)
+        # return dominance_change_time
+        
+        pad_time = 10 # to ensure the dominance change time actually lets pbf level decay below threshold
+        dominance_change_time = amygdala.get_dominance_change_time()    
+        return dominance_change_time + pad_time
+
+
+    def _escalate(self, next_rung, amygdala, why="no reason"):
+        next_rung.update_planned_actions(self)
+        self.current_rung = next_rung
+        self._enqueue_actions(next_rung.actions)
+        self.capture_plot()
+
+
+    def _deescalate(self, next_rung, events_to_enqueue, why="no reason"):
+        if next_rung is not None:
+            next_rung.update_planned_actions(self)
+            self.current_rung = next_rung
+        if events_to_enqueue is not None:
+            self._enqueue_actions(events_to_enqueue)
+        self.capture_plot()    
     
-    
+
     def _push_redeliberate_action(self, max_time, amygdala):
         # heappush(self.planned_actions, (self.time + self.idle_time, tuple(), UpdateAmygdalaParameters(0, 0, 0, 0)))
         pass
 
+
+    def _push_rung_change_action(self, next_rung, why):
+        pass
 
     def _remember_scenario(self, percepts, current_rung_idx, next_rung_idx):
         if self.cbr:
@@ -347,12 +383,6 @@ class EscalationLadderReasoner(Reasoner):
         return params # the caller should use these to update the agent's amygdala parameters; much of the time taking action should reduce pbf, inclination to fight or flight
 
 
-    def _escalate(self, next_rung, amygdala, why="no reason"):
-        next_rung.update_planned_actions(self)
-        self.current_rung = next_rung
-        self._enqueue_actions(next_rung.actions)
-        self.capture_plot()
-
 
     def _enqueue_actions(self, actions):
         if len(actions) == 0 or actions is None:
@@ -365,29 +395,6 @@ class EscalationLadderReasoner(Reasoner):
             # action_messages = self.untaken_actions(action_messages, reasoner)
             heappush(self.planned_actions, (action_time, tuple(action_messages), update_params))
 
-
-    def _find_approximate_match_time(self, pres_time, max_time, matched_rung, amygdala):
-        def matched_at_time(t): # adjust objects to correct time, determine if there's a match
-            if t < self.time:
-                self.rewind(t)
-                amygdala.rewind(t)
-            elif t > self.time:
-                self.forward_simulation(t, amygdala)
-            if matched_rung.rung_matched(self, amygdala):
-                return 1
-            else:
-                return -1
-        match_time = optimize.bisect(matched_at_time, pres_time, max_time)
-        return match_time
-
-
-    def _deescalate(self, next_rung, events_to_enqueue, why="no reason"):
-        if next_rung is not None:
-            next_rung.update_planned_actions(self)
-            self.current_rung = next_rung
-        if events_to_enqueue is not None:
-            self._enqueue_actions(events_to_enqueue)
-        self.capture_plot()
 
     def capture_plot(self):
         self.plot_time.append(self.time)

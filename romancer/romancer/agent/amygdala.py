@@ -120,7 +120,7 @@ class Amygdala(ImprovedRomancerObject):
 
     def current_amygdala_parameters(self):
         # print(f"T={self.time} {self.name} FIGHT {self.fight}")
-        '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any. Note that it does not update and log self.pbf.'''
+        '''This method returns a CurrentAmygdalaParameters object reflecting the present cortisol level and dominant reseponse, if any.'''
         delta_t = self.time - self.last_pbf_update_time # maybe check for negative value and raise exception if so
         halflife_eps = 0.0000001
         if self.pbf_halflife < halflife_eps:
@@ -186,6 +186,15 @@ class Amygdala(ImprovedRomancerObject):
     def dominant_response(self):
         dominant_response = self.current_amygdala_parameters().current_dominant_response
         return dominant_response
+    
+    
+    def get_dominance_change_time(self):
+        if self.dominant_response() is not None:
+            # calculate time until we decay below threshold
+            delta_t = -self.pbf_halflife * math.log(self.response_threshhold / self.pbf, 2)
+            return self.time + delta_t
+        else: # already non-dominant, current time is the answer
+            return self.time
 
     @staticmethod
     def short_desc():
