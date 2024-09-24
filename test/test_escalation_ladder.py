@@ -150,11 +150,6 @@ class EscalationLadderTest(unittest.TestCase):
         assert current_rung_number == 3
 
 
-    def reset_reasoner(self):
-        self.reasoner.rewind(0)
-        self.reasoner.current_rung = self.reasoner.escalation_ladder[0]
-
-   
     def get_rung_1(self):
         rung_1_match_attributes = {"weapon_class": 0}
         rung_1_blue_actions = ["Routine Patrols", "Training Exercises"]
