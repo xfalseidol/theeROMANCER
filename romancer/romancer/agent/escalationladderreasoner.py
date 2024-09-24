@@ -338,7 +338,7 @@ class EscalationLadderReasoner(Reasoner):
         pass
 
 
-    def _push_rung_change_action(self, next_rung, why):
+    def _push_rung_change_action(self, current_rung, next_rung, why=""):
         pass
 
     def _remember_scenario(self, percepts, current_rung_idx, next_rung_idx):

@@ -220,7 +220,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         heappush(self.planned_actions, self.redeliberate_action)
 
 
-    def _push_rung_change_action(self, old_rung, new_rung, why):
+    def _push_rung_change_action(self, old_rung, new_rung, why=""):
         message = HotlineRungChangeMessage(uid=self.new_message_index(),
                                             time = self.time,
                                             sender=(self.environment.uid, self.compute_self_uid()),
