@@ -189,9 +189,9 @@ class HotlineGUI:
                 column = 1
 
             row = 5
-            if any(["RESOLVE" in t for t in titles]):
+            if any(["LADDER" in t for t in titles]):
                 row = 1
-            elif any(["LADDER" in t for t in titles]):
+            elif any(["RESOLVE" in t for t in titles]):
                 row = 2
             elif any(["MOOD" in t for t in titles]):
                 row = 3
