@@ -30,7 +30,7 @@ class CaseBasedReasoner(ImprovedRomancerObject):
         self.mops = LoggedDict(dict(), self, 'mops') # collection of all MOPs used by this case-based reasoner
         self.clear_memory(True) # install basic MOPs
         self.decision_making_ability = None  # A number in the range 0..1. If None, use normal get_sibling
-        # self.mop_comparer_sorter = SimpleSlotSorter() # For comparing and sorting MOPs for stochastic decision making
+        self.mop_comparer_sorter = SimpleSlotSorter() # For comparing and sorting MOPs for stochastic decision making
         self.rng = random.Random()  # Used by the stochastic mop selector
         self.deleted_mops = [] # Capture mops that are deleted for logging to database later
 
