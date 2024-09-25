@@ -2,9 +2,8 @@ import os.path
 
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
-from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
+from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite, make_networkx_graph
 
-from casebasedreasoner.casebasedreasoner.util import make_networkx_graph
 from hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
 import tkinter as tk
