@@ -72,7 +72,18 @@ class HotlineGUI:
         # self.run_button.pack()
 
         self.chartframe = ttk.Frame(self.root)
-        self.chartframe.pack()
+        self.chartframe.pack(fill=tk.BOTH, expand=True)
+
+        matplotlib_fontsize = 6
+        plt.rcParams.update({
+            "font.size": matplotlib_fontsize,
+            "axes.titlesize": matplotlib_fontsize,
+            "axes.labelsize": matplotlib_fontsize,
+            "xtick.labelsize": matplotlib_fontsize,
+            "ytick.labelsize": matplotlib_fontsize,
+            "legend.fontsize": matplotlib_fontsize,
+            "figure.titlesize": matplotlib_fontsize+2,
+        })
 
         def show_capture():
             self.hotline_show()
@@ -93,6 +104,7 @@ class HotlineGUI:
                 rel_path = os.path.relpath(file_path)
                 entry.delete(0, tk.END)
                 entry.insert(0, rel_path)
+                self.run_hotline_guiparam()
 
         button = tk.Button(parent_frame, text=f"Choose {name} Ladder", command=select_file)
         button.grid(row=grid_row, column=0)
@@ -179,7 +191,12 @@ class HotlineGUI:
 
     def hotline_show(self):
         fig = plt.gcf()
-        fig.set_size_inches(5, 2)
+        width_px = self.chartframe.winfo_width()
+        height_px = self.chartframe.winfo_height()
+        # Four charts high, two wide
+        width_in = max(3, (width_px / fig.dpi) / 2.0)
+        height_in = max(1.5, (height_px / fig.dpi) / 4.0)
+        fig.set_size_inches(width_in, height_in)
         if self.n_charts <= len(self.canvases):
             canvas = FigureCanvasTkAgg(fig, master=self.chartframe)
             titles = [ax.get_title().upper() for ax in fig.axes]
@@ -207,6 +224,7 @@ class HotlineGUI:
             self.canvases[self.n_charts].figure = fig
             self.canvases[self.n_charts].draw()
         self.n_charts += 1
+        self.chartframe.pack()
 
 
 if __name__ == "__main__":
