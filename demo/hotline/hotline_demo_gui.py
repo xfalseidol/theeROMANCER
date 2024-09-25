@@ -191,6 +191,8 @@ class HotlineGUI:
         fig.set_size_inches(width_in, height_in)
         pos = nx.spring_layout(g)
         nx.draw(g, pos, ax=ax, with_labels=True, node_color="lightblue", edge_color="gray", node_size=10, font_size=10)
+        for widget in self.cbr_graph_frame.winfo_children():
+            widget.destroy()
         canvas = FigureCanvasTkAgg(fig, master=self.cbr_graph_frame)
         canvas.draw()
         canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
