@@ -1,5 +1,6 @@
 import os.path
 
+from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
 from hotline_rules import ladder_csv_to_input_list
@@ -57,8 +58,8 @@ class HotlineGUI:
         self.create_amygdala_choice(self.red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, 3)
         self.create_ladder_chooser(self.red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, 4)
 
-        self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR")
-        self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR")
+        self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR", comparer_sorter=HLRComparerSorter())
+        self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR", comparer_sorter=HLRComparerSorter())
 
         self.cbr_train_intval = tk.IntVar(value=1)
         self.cbr_run_intval = tk.IntVar(value=0)
