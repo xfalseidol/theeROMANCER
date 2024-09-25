@@ -3,11 +3,14 @@ import os.path
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
+
+from casebasedreasoner.casebasedreasoner.util import make_networkx_graph
 from hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
 import tkinter as tk
 from tkinter import ttk, filedialog
 import matplotlib.pyplot as plt
+import networkx as nx
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from romancer.agent.amygdala import all_amygdala_archetypes
@@ -19,6 +22,7 @@ class HotlineGUI:
         self.canvases = []
         self.root = tk.Tk()
         self.root.title("ROMANCER Hotline")
+        self.root.wm_minsize(1024, 768)
 
         self.controls_frame = tk.Frame(self.root)
         self.controls_frame.pack()
@@ -67,12 +71,15 @@ class HotlineGUI:
         self.cbr_frame = tk.Frame(self.controls_frame)
         self.cbr_frame.grid(row=0, column=1)
 
-        #
-        # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
-        # self.run_button.pack()
+        self.output_notebook = ttk.Notebook(self.root)
 
-        self.chartframe = ttk.Frame(self.root)
-        self.chartframe.pack(fill=tk.BOTH, expand=True)
+        self.chartframe = ttk.Frame(self.output_notebook)
+        self.cbr_graph_frame = ttk.Frame(self.output_notebook)
+
+        self.output_notebook.add(self.chartframe, text="Run Charts")
+        self.output_notebook.add(self.cbr_graph_frame, text="Blue CBR Graph")
+
+        self.output_notebook.pack(fill=tk.BOTH, expand=True)
 
         matplotlib_fontsize = 6
         plt.rcParams.update({
@@ -173,6 +180,21 @@ class HotlineGUI:
     def mainloop(self):
         self.root.mainloop()
 
+    def render_graph(self, cbrinst):
+        g = make_networkx_graph(cbrinst, ["M_percept", "M_percept_group"])
+        fig, ax = plt.subplots(figsize=(10, 10))
+
+        width_px = float(self.cbr_graph_frame.winfo_width())
+        height_px = float(self.cbr_graph_frame.winfo_height())
+        width_in = width_px / fig.dpi
+        height_in = height_px / fig.dpi
+        fig.set_size_inches(width_in, height_in)
+        pos = nx.spring_layout(g)
+        nx.draw(g, pos, ax=ax, with_labels=True, node_color="lightblue", edge_color="gray", node_size=10, font_size=10)
+        canvas = FigureCanvasTkAgg(fig, master=self.cbr_graph_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
+
     def run_hotline_guiparam(self):
         self.n_charts = 0
         cbr_train = True if self.cbr_train_intval and self.cbr_train_intval.get()>0 else False
@@ -188,15 +210,16 @@ class HotlineGUI:
         params["red_ladder_file"] = self.ladder_entries[self._RED_AMYG_COMBOKEY].get()
 
         run_hotline(**params)
+        self.render_graph(self.blue_elcbr)
         self.update_cbr_training_frame()
 
     def hotline_show(self):
         fig = plt.gcf()
-        width_px = self.chartframe.winfo_width()
-        height_px = self.chartframe.winfo_height()
         # Four charts high, two wide
-        width_in = max(3, (width_px / fig.dpi) / 2.0)
-        height_in = max(1.5, (height_px / fig.dpi) / 4.0)
+        width_px = float(self.chartframe.winfo_width()) / 2.0
+        height_px = float(self.chartframe.winfo_height()) / 4.0
+        width_in = max(3.0, (width_px / fig.dpi))
+        height_in = max(1.5, (height_px / fig.dpi))
         fig.set_size_inches(width_in, height_in)
         if self.n_charts <= len(self.canvases):
             canvas = FigureCanvasTkAgg(fig, master=self.chartframe)
@@ -220,12 +243,13 @@ class HotlineGUI:
             print()
             canvas.draw()
             canvas.get_tk_widget().grid(row=row, column=column)
+            canvas.get_tk_widget().config(width=width_px, height=height_px)
             self.canvases.append(canvas)
         else:
             self.canvases[self.n_charts].figure = fig
+            self.canvases[self.n_charts].get_tk_widget().config(width=width_px, height=height_px)
             self.canvases[self.n_charts].draw()
         self.n_charts += 1
-        self.chartframe.pack()
 
 
 if __name__ == "__main__":
