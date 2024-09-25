@@ -2,9 +2,8 @@ import os.path
 
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
-from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
+from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite, make_networkx_graph
 
-from casebasedreasoner.casebasedreasoner.util import make_networkx_graph
 from hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
 import tkinter as tk
@@ -32,6 +31,9 @@ class HotlineGUI:
         self.ladder_entries = {}
         self._BLUE_AMYG_COMBOKEY = "blue"
         self._RED_AMYG_COMBOKEY = "red"
+
+        self.CHARTS_ACROSS = 2
+        self.CHARTS_DOWN = 4
 
         self.tk_red = "#ffbbbb"
         self.tk_blue = "light blue"
@@ -96,6 +98,19 @@ class HotlineGUI:
             self.hotline_show()
         plt.show = show_capture
 
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        self.chartframe.grid_rowconfigure(0, weight=1)
+        self.chartframe.grid_columnconfigure(0, weight=1)
+
+        def update_canvas_sizes(evt):
+            new_width_px = self.chartframe.winfo_width() / self.CHARTS_ACROSS
+            new_height_px = self.chartframe.winfo_height() / self.CHARTS_DOWN
+            for canvas in self.canvases:
+                canvas.get_tk_widget().config(width=new_width_px, height=new_height_px)
+            self.cbr_graph_frame.config(width=self.chartframe.winfo_width(), height=self.chartframe.winfo_height())
+
+        self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
 
     def create_ladder_chooser(self, parent_frame, default_file, name, grid_row):
@@ -218,8 +233,8 @@ class HotlineGUI:
     def hotline_show(self):
         fig = plt.gcf()
         # Four charts high, two wide
-        width_px = float(self.chartframe.winfo_width()) / 2.0
-        height_px = float(self.chartframe.winfo_height()) / 4.0
+        width_px = float(self.chartframe.winfo_width()) / self.CHARTS_ACROSS
+        height_px = float(self.chartframe.winfo_height()) / self.CHARTS_DOWN
         width_in = max(3.0, (width_px / fig.dpi))
         height_in = max(1.5, (height_px / fig.dpi))
         fig.set_size_inches(width_in, height_in)

@@ -12,7 +12,7 @@ import networkx as nx
 
 from romancer.environment.object import LoggedDict
 
-from casebasedreasoner.casebasedreasoner.mop import MOP
+from casebasedreasoner.mop import MOP
 
 
 def make_networkx_graph(cbrinst, exclude_mops_specced_from=None, include_inheritance_edges=True, include_slot_edges=True):
