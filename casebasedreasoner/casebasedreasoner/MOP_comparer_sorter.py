@@ -75,7 +75,7 @@ class SimpleSlotSorter(MOPComparerSorter):
             elif isinstance(slot_val, MOP):
                 mop_name = slot_val.mop_name
                 curr_dict[slot] = slot_val.mop_name
-                recurse_mop_queue.append(slot_val.slot_val)
+                recurse_mop_queue.append(slot_val)
             elif isinstance(slot_val, (str, int, float)):
                 curr_dict[slot] = slot_val
             elif callable(slot_val):
