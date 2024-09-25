@@ -23,7 +23,7 @@ def not_constraint(constraint, filler, slots):
 class CaseBasedReasoner(ImprovedRomancerObject):
     ''''''
 
-    def __init__(self, environment, time):
+    def __init__(self, environment, time=0.0):
         super().__init__(environment, time)
         self.mop_seq = 0 # Increasing with every addition/deletion
         self.unlogged_attrs.append('mops')
