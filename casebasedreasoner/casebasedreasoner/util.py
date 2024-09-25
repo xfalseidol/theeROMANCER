@@ -8,8 +8,43 @@ from casebasedreasoner import cbr, mop
 import inspect
 import types
 import textwrap
+import networkx as nx
 
 from romancer.environment.object import LoggedDict
+
+from casebasedreasoner.casebasedreasoner.mop import MOP
+
+
+def make_networkx_graph(cbrinst, exclude_mops_specced_from=None, include_inheritance_edges=True, include_slot_edges=True):
+    slot_edge_weight = 1.0
+    spec_edge_weight = 0.1
+    if exclude_mops_specced_from is None:
+        exclude_mops_specced_from = []
+    abstmops = [cbrinst.mops[m] for m in exclude_mops_specced_from]
+
+    g = nx.DiGraph()
+    # All nodes that end up in the graph
+    mop_nodes = set()
+    # Insert all nodes, then insert all edges
+    for mopname in cbrinst.mops:
+        thismop = cbrinst.mops[mopname]
+        has_specced_from = any(abst.is_abstraction(thismop) for abst in abstmops)
+        if not has_specced_from:
+            mop_nodes.add(mopname)
+            g.add_node(thismop)
+
+    for mopname in mop_nodes:
+        thismop = cbrinst.mops[mopname]
+        if include_inheritance_edges:
+            for othermop in thismop.specs:
+                if othermop.mop_name in mop_nodes:
+                    g.add_edge(thismop, othermop.mop_name, weight=spec_edge_weight, name="spec")
+        if include_slot_edges:
+            for slotkey, slotval in thismop.slots.items():
+                if slotval in mop_nodes or (isinstance(slotval, MOP) and slotval.mop_name in mop_nodes):
+                    g.add_edge(thismop, slotval, weight=slot_edge_weight, name="slot")
+
+    return g
 
 
 def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, include_slot_edges=True):
