@@ -88,7 +88,8 @@ class HotlineGUI:
         def show_capture():
             self.hotline_show()
         plt.show = show_capture
-        self.run_hotline_guiparam()
+
+        self.root.after(200, self.run_hotline_guiparam)
 
     def create_ladder_chooser(self, parent_frame, default_file, name, grid_row):
         entry = tk.Entry(parent_frame)
