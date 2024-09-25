@@ -1,12 +1,16 @@
 import os.path
 
+from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
 from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite
+
+from casebasedreasoner.casebasedreasoner.util import make_networkx_graph
 from hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
 import tkinter as tk
 from tkinter import ttk, filedialog
 import matplotlib.pyplot as plt
+import networkx as nx
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 from romancer.agent.amygdala import all_amygdala_archetypes
@@ -18,6 +22,7 @@ class HotlineGUI:
         self.canvases = []
         self.root = tk.Tk()
         self.root.title("ROMANCER Hotline")
+        self.root.wm_minsize(1024, 768)
 
         self.controls_frame = tk.Frame(self.root)
         self.controls_frame.pack()
@@ -57,8 +62,8 @@ class HotlineGUI:
         self.create_amygdala_choice(self.red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, 3)
         self.create_ladder_chooser(self.red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, 4)
 
-        self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR")
-        self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR")
+        self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR", comparer_sorter=HLRComparerSorter())
+        self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR", comparer_sorter=HLRComparerSorter())
 
         self.cbr_train_intval = tk.IntVar(value=1)
         self.cbr_run_intval = tk.IntVar(value=0)
@@ -66,17 +71,32 @@ class HotlineGUI:
         self.cbr_frame = tk.Frame(self.controls_frame)
         self.cbr_frame.grid(row=0, column=1)
 
-        #
-        # self.run_button = ttk.Button(self.root, text="Run", command=self.run_hotline_guiparam)
-        # self.run_button.pack()
+        self.output_notebook = ttk.Notebook(self.root)
 
-        self.chartframe = ttk.Frame(self.root)
-        self.chartframe.pack()
+        self.chartframe = ttk.Frame(self.output_notebook)
+        self.cbr_graph_frame = ttk.Frame(self.output_notebook)
+
+        self.output_notebook.add(self.chartframe, text="Run Charts")
+        self.output_notebook.add(self.cbr_graph_frame, text="Blue CBR Graph")
+
+        self.output_notebook.pack(fill=tk.BOTH, expand=True)
+
+        matplotlib_fontsize = 6
+        plt.rcParams.update({
+            "font.size": matplotlib_fontsize,
+            "axes.titlesize": matplotlib_fontsize,
+            "axes.labelsize": matplotlib_fontsize,
+            "xtick.labelsize": matplotlib_fontsize,
+            "ytick.labelsize": matplotlib_fontsize,
+            "legend.fontsize": matplotlib_fontsize,
+            "figure.titlesize": matplotlib_fontsize+2,
+        })
 
         def show_capture():
             self.hotline_show()
         plt.show = show_capture
-        self.run_hotline_guiparam()
+
+        self.root.after(200, self.run_hotline_guiparam)
 
     def create_ladder_chooser(self, parent_frame, default_file, name, grid_row):
         entry = tk.Entry(parent_frame)
@@ -92,6 +112,7 @@ class HotlineGUI:
                 rel_path = os.path.relpath(file_path)
                 entry.delete(0, tk.END)
                 entry.insert(0, rel_path)
+                self.run_hotline_guiparam()
 
         button = tk.Button(parent_frame, text=f"Choose {name} Ladder", command=select_file)
         button.grid(row=grid_row, column=0)
@@ -159,6 +180,23 @@ class HotlineGUI:
     def mainloop(self):
         self.root.mainloop()
 
+    def render_graph(self, cbrinst):
+        g = make_networkx_graph(cbrinst, ["M_percept", "M_percept_group"])
+        fig, ax = plt.subplots(figsize=(10, 10))
+
+        width_px = float(self.cbr_graph_frame.winfo_width())
+        height_px = float(self.cbr_graph_frame.winfo_height())
+        width_in = width_px / fig.dpi
+        height_in = height_px / fig.dpi
+        fig.set_size_inches(width_in, height_in)
+        pos = nx.spring_layout(g)
+        nx.draw(g, pos, ax=ax, with_labels=True, node_color="lightblue", edge_color="gray", node_size=10, font_size=10)
+        for widget in self.cbr_graph_frame.winfo_children():
+            widget.destroy()
+        canvas = FigureCanvasTkAgg(fig, master=self.cbr_graph_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(expand=True, fill=tk.BOTH)
+
     def run_hotline_guiparam(self):
         self.n_charts = 0
         cbr_train = True if self.cbr_train_intval and self.cbr_train_intval.get()>0 else False
@@ -174,11 +212,17 @@ class HotlineGUI:
         params["red_ladder_file"] = self.ladder_entries[self._RED_AMYG_COMBOKEY].get()
 
         run_hotline(**params)
+        self.render_graph(self.blue_elcbr)
         self.update_cbr_training_frame()
 
     def hotline_show(self):
         fig = plt.gcf()
-        fig.set_size_inches(5, 2)
+        # Four charts high, two wide
+        width_px = float(self.chartframe.winfo_width()) / 2.0
+        height_px = float(self.chartframe.winfo_height()) / 4.0
+        width_in = max(3.0, (width_px / fig.dpi))
+        height_in = max(1.5, (height_px / fig.dpi))
+        fig.set_size_inches(width_in, height_in)
         if self.n_charts <= len(self.canvases):
             canvas = FigureCanvasTkAgg(fig, master=self.chartframe)
             titles = [ax.get_title().upper() for ax in fig.axes]
@@ -189,9 +233,9 @@ class HotlineGUI:
                 column = 1
 
             row = 5
-            if any(["RESOLVE" in t for t in titles]):
+            if any(["LADDER" in t for t in titles]):
                 row = 1
-            elif any(["LADDER" in t for t in titles]):
+            elif any(["RESOLVE" in t for t in titles]):
                 row = 2
             elif any(["MOOD" in t for t in titles]):
                 row = 3
@@ -201,9 +245,11 @@ class HotlineGUI:
             print()
             canvas.draw()
             canvas.get_tk_widget().grid(row=row, column=column)
+            canvas.get_tk_widget().config(width=width_px, height=height_px)
             self.canvases.append(canvas)
         else:
             self.canvases[self.n_charts].figure = fig
+            self.canvases[self.n_charts].get_tk_widget().config(width=width_px, height=height_px)
             self.canvases[self.n_charts].draw()
         self.n_charts += 1
 

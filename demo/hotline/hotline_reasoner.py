@@ -209,13 +209,14 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         if self.redeliberate_action in self.planned_actions:
             self.planned_actions.remove(self.redeliberate_action)
         redeliberate_time = self._find_amygdala_dominance_change_time(max_time, amygdala)
+        next_redeliberate_time = self.environment.time + max(redeliberate_time, self.idle_time)
         redeliberate_message = HotlineActionROMANCERMessage(uid=self.new_message_index(),
-                                                                    time=redeliberate_time,
+                                                                    time=next_redeliberate_time,
                                                                     sender=(self.environment.uid, self.compute_self_uid()),
                                                                     recipient=(1, 1),
                                                                     messagetype = 'HotlineActionROMANCERMessage',
                                                                     action_id = -1) # send action message to supervisor
-        self.redeliberate_action = (redeliberate_time, redeliberate_message, None)
+        self.redeliberate_action = (next_redeliberate_time, redeliberate_message, None)
         heapify(self.planned_actions)
         heappush(self.planned_actions, self.redeliberate_action)
 

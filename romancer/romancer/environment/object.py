@@ -532,7 +532,7 @@ class LoggedDict(UserDict):
 
 class ImprovedRomancerObject():
 
-    def __init__(self, environment, time):
+    def __init__(self, environment=None, time=0.0):
         super().__setattr__('unlogged_attrs', dir(self) + ['unlogged_attrs', 'inbox', 'outbox', 'environment', 'uid', 'message_index', 'time', 'loglist', 'repr_list']) # needed for object's custom __setattr__ to work correctly; will dir(self) catch all the class methods?
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent

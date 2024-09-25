@@ -1,13 +1,11 @@
-from context import *
-from casebasedreasoner import cbr
+from casebasedreasoner.casebasedreasoner import cbr
+from casebasedreasoner.mop import MOP
 from casebasedreasoner.util import make_graphviz_graph, export_cbr_sqlite, load_cbr_sqlite
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
 import os
 import subprocess
-
-import romancer.supervisor.singlethreadsupervisor
 
 class Judge(cbr.CaseBasedReasoner):
     def judge(self, case_slots): # in book, this takes slots, turns them into a mop, and installs it
@@ -33,7 +31,7 @@ class Judge(cbr.CaseBasedReasoner):
         counter = 1
         escalations = {}
         for event in mop.get_filler('events').group_to_list():
-            severity = event.path_filler('action', 'severity')
+#            severity = event.path_filler('action', 'severity')
             severity = event.path_filler(('action', 'severity'))
             escalation = severity - previous_severity
             previous_severity = severity
@@ -151,9 +149,7 @@ class Judge(cbr.CaseBasedReasoner):
 
 
 
-sup = romancer.supervisor.singlethreadsupervisor.SingleThreadSupervisor()
-env = romancer.environment.singlethreadenvironment.SingleThreadEnvironment(sup, None, None)
-judge = Judge(env, env.time)
+judge = Judge()
 
 # create different mops
 al = judge.add_mop(mop_name='I-M-AL', absts={'M-ACTOR'}, mop_type='instance', is_default_mop=True)
@@ -305,8 +301,8 @@ judge.add_mop(mop_name='M-CALC-RETALIATION-MOTIVE',
 
 judge.add_mop(mop_name='M-COMPARE', absts={'M-PATTERN'}, mop_type='mop', slots={'abst_fn': judge.compare_constraint, 'to': 
             judge.name_mop('M-ROLE'), 'compare_fn': judge.name_mop('M-FUNCTION')}, is_default_mop=True)
-judge.add_mop(mop_name='M-EQUAL', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.equals}, is_default_mop=True)
-judge.add_mop(mop_name='M-LESS-THAN', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': romancer.MOP.less_than}, is_default_mop=True)
+judge.add_mop(mop_name='M-EQUAL', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': MOP.equals}, is_default_mop=True)
+judge.add_mop(mop_name='M-LESS-THAN', absts={'M-COMPARE'}, mop_type='mop', slots={'compare_fn': MOP.less_than}, is_default_mop=True)
 sentence = judge.add_mop(mop_name='SENTENCE', absts={'M-ROLE'}, mop_type='instance', is_default_mop=True)
 judge.add_mop(mop_name='OLD-SEVERITY', absts={'M-ROLE'}, mop_type='instance', is_default_mop=True)
 
