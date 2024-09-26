@@ -51,6 +51,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
     def get_sibling_scenario(self, pattern, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
         if self.decision_making_ability is not None:
+            # Use an intelligent/stochastic degrade algorithm if possible
             mop_name = mop.mop_name
             compare_mops = [sibling for sibling in self.get_all_siblings(mop) if sibling != mop]
             sorted_mops = self.mop_comparer_sorter.compare_mops_and_sort(self, mop_name, compare_mops)
@@ -66,14 +67,14 @@ class EscalationLadderCBR(CaseBasedReasoner):
                     if sibling != mop: # and sibling_rung == current_rung:
                         return sibling
                 return best_sibling
-        else:
-            for abst in mop.absts: # goes up one layer in abstraction
-                for spec in abst.specs: # looks at all specializations
-                    if isinstance(spec, MOP) and \
-                        spec.is_instance_mop() and \
-                        spec != mop and not spec.is_abstraction(self.name_mop('M-FAILED-SOLUTION')) and \
-                        spec.slots['current_rung'] == mop.slots['current_rung']:
-                                        sibling = spec
+        # Fall through to get_sibling per Schank
+        for abst in mop.absts: # goes up one layer in abstraction
+            for spec in abst.specs: # looks at all specializations
+                if isinstance(spec, MOP) and \
+                    spec.is_instance_mop() and \
+                    spec != mop and not spec.is_abstraction(self.name_mop('M-FAILED-SOLUTION')) and \
+                    spec.slots['current_rung'] == mop.slots['current_rung']:
+                                    sibling = spec
         return sibling
 
 
