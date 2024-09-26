@@ -159,23 +159,16 @@ class HotlineGUI:
         cbr_train_frame = ttk.Frame(parent_frame, width=400)
         cbr_train_frame.pack(side=tk.LEFT, fill=tk.Y)
 
-        bluelabel = ttk.Label(cbr_train_frame, textvariable=self.blue_cbr_status)
-        bluelabel.pack()
-        redlabel = ttk.Label(cbr_train_frame, textvariable=self.red_cbr_status)
-        redlabel.pack()
-
         train_check = ttk.Checkbutton(cbr_train_frame, text="Train CBRs", variable=self.cbr_train_intval)
-        train_check.pack()
+        train_check.pack(fill=tk.X)
         run_check = ttk.Checkbutton(cbr_train_frame, text="Run CBRs", variable=self.cbr_run_intval)
-        run_check.pack()
-        savebutton = ttk.Button(cbr_train_frame, text="Export CBRs", command=self.save_cbr_func)
-        savebutton.pack()
+        run_check.pack(fill=tk.X)
 
         run_many_button = ttk.Button(cbr_train_frame, text="Stochastify", command=self.stochastify_click)
-        run_many_button.pack()
+        run_many_button.pack(fill=tk.X)
 
         cancel_training_button = ttk.Button(cbr_train_frame, text="Cancel Training", command=self.canceltraining_click)
-        cancel_training_button.pack()
+        cancel_training_button.pack(fill=tk.X)
 
         cbr_training_frame = ttk.Frame(cbr_train_frame)
         cbr_training_frame.pack()
@@ -191,6 +184,13 @@ class HotlineGUI:
 
         cbr_stochastify_status = ttk.Label(cbr_train_frame, textvariable=self.stochastify_status)
         cbr_stochastify_status.pack()
+
+        bluelabel = ttk.Label(cbr_train_frame, textvariable=self.blue_cbr_status)
+        bluelabel.pack()
+        redlabel = ttk.Label(cbr_train_frame, textvariable=self.red_cbr_status)
+        redlabel.pack()
+        savebutton = ttk.Button(cbr_train_frame, text="Export CBRs", command=self.save_cbr_func)
+        savebutton.pack(fill=tk.X)
         return cbr_graph_frame
 
 
@@ -235,28 +235,30 @@ class HotlineGUI:
 
     def run_many_times(self, n_train_times=10, n_run_times=20, orig_n_train_times=None, orig_n_run_times=None):
         if self.cancel_stochastify:
-            self.training_progress.step(0)
-            self.running_progress.step(0)
             self.stochastify_status.set(f"Training cancelled")
             return
 
         if orig_n_train_times is None:
-            self.training_progress.configure(maximum=n_train_times)
+            self.training_progress.configure(maximum=n_train_times, variable=tk.IntVar(value=0))
             orig_n_train_times = n_train_times
         if orig_n_run_times is None:
-            self.running_progress.configure(maximum=n_run_times)
+            self.training_progress.configure(maximum=n_run_times, variable=tk.IntVar(value=0))
             orig_n_run_times = n_run_times
 
         next_n_run_times = n_run_times
         next_n_train_times = n_train_times
 
         if 0 < n_train_times:
+            self.stochastify_status.set(f"Train: {n_train_times}")
             self.cbr_run_intval.set(0)
             self.cbr_train_intval.set(1)
+            self.training_progress.step()
             next_n_train_times -= 1
         elif 0 < n_run_times:
+            self.stochastify_status.set(f"Run: {n_run_times}")
             self.cbr_run_intval.set(1)
             self.cbr_train_intval.set(0)
+            self.running_progress.step()
             next_n_run_times -= 1
         else:
             self.stochastify_status.set("Stochastified")
@@ -266,10 +268,7 @@ class HotlineGUI:
 
         self.run_hotline_guiparam()
 
-        self.training_progress.step(orig_n_train_times-n_train_times)
-        self.running_progress.step(orig_n_run_times-n_run_times)
-
-        self.root.after(300, self.run_many_times, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
+        self.root.after(1000, self.run_many_times, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
 
     def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x):
         slider_label = ttk.Label(parent_frame, text=sliderlabel)
