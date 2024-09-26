@@ -110,6 +110,9 @@ class HotlineGUI:
                 canvas.get_tk_widget().config(width=new_width_px, height=new_height_px)
             self.cbr_graph_frame.config(width=self.chartframe.winfo_width(), height=self.chartframe.winfo_height())
 
+        run_many_button = tk.Button(self.root, text=f"Stochastify", command=self.run_many_times)
+        run_many_button.pack()
+
         self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
 
@@ -144,6 +147,13 @@ class HotlineGUI:
         dropdown.set(dropdown_options[0])
         dropdown.bind("<<ComboboxSelected>>", self.on_slider_change)
         dropdown.grid(row=grid_row, column=1, padx=5, pady=5)
+
+    def run_many_times(self, n_times=10):
+        if 0 == n_times:
+            return
+        self.run_hotline_guiparam()
+        self.root.after(200, self.run_many_times, n_times-1)
+        print(f"Running many times. remaining n={n_times}")
 
     def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x):
         slider_label = ttk.Label(parent_frame, text=sliderlabel)
