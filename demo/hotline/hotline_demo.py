@@ -130,6 +130,7 @@ def run_hotline(
                                          identity = 'Red', current_rung = red_cur_rung, planned_actions = None,
                                          actions_taken = red_actions_taken, digested_percepts = red_digested_percepts,
                                          cbr=red_elcbr, cbr_train=red_train_elcbr, cbr_run=red_run_elcbr)
+    red_elcbr.parent_elr = red_reasoner
 
     red_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
@@ -162,7 +163,7 @@ def run_hotline(
                                           identity = 'Blue', current_rung = blue_cur_rung, planned_actions = blue_planned_actions,
                                           actions_taken = blue_actions_taken, digested_percepts = blue_digested_percepts,
                                           cbr=blue_elcbr, cbr_train=blue_train_elcbr, cbr_run=blue_run_elcbr)
-
+    blue_elcbr.parent_elr = blue_reasoner
     blue_perception_filter = HotlinePerceptionFilter(agent=None, known = {i for i in range(61)}, substitutions = {}, wildcard=-1)
 
     blue_nca = EscalationLadderAgent(environment = env, time = start_time, perception_filter = blue_perception_filter, amygdala = blue_amygdala, reasoner = blue_reasoner, name="Blue NCA")
