@@ -10,9 +10,10 @@ from romancer.environment.object import LoggedDict
 
 
 class EscalationLadderCBR(CaseBasedReasoner):
-    def __init__(self, env, time, load_memory_from = None, verbose = False, comparer_sorter = None, name="EscalationLadderCBR"):
+    def __init__(self, env, time, load_memory_from = None, verbose = False, comparer_sorter = None, name="EscalationLadderCBR", parent_elr=None):
         super().__init__(env, time)
         self.name = name
+        self.parent_elr = parent_elr
         self.upper_threshold = 5  # how many net deviations from a known case are required to think the new case is more severe
         self.lower_threshold = -5 # how many net deviations from a known case are required to think the new case is less severe
         self.too_distant_threshold = 400 
@@ -30,6 +31,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
             self.add_mop(mop_name='M_percept', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
             self.add_mop(mop_name='M_percept_group', absts={'M-GROUP'}, slots={1: self.name_mop('M_percept')}, is_default_mop=True)
             ## potential outcomes
+            self.add_mop(mop_name="M_rung", absts={'M-EVENT'}, mop_type='mop', is_default_mop=True)
             self.add_mop(mop_name='M_ELRScenario_outcome', absts={'M-EVENT'}, mop_type = 'mop', is_default_mop=True)
             self.add_mop(mop_name='I_M_escalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
             self.add_mop(mop_name='I_M_deescalate_outcome', absts={'M_ELRScenario_outcome'}, mop_type='instance', is_default_mop=True)
@@ -47,10 +49,25 @@ class EscalationLadderCBR(CaseBasedReasoner):
                          is_default_mop=True
             )
 
+    def get_rung_mop(self, rung_num):
+        ''' Returns the mop associated with this rung, creating it if necessary'''
+        mop_name = f"I_M_rung_{rung_num}"
+        if mop_name not in self.mops:
+            slots = {'rung_num': rung_num}
+            # Include a name if we can find one
+            if self.parent_elr is not None:
+                ladder = self.parent_elr.escalation_ladder
+                elrung = self.parent_elr.escalation_ladder[rung_num]
+                if elrung is not None and elrung.name is not None:
+                    slots['rung_name'] = elrung.name
+
+            self.add_mop(mop_name=mop_name, absts={'M_rung'}, slots=slots, mop_type='instance', is_default_mop=True)
+        return self.name_mop(mop_name)
 
     def get_sibling_scenario(self, pattern, mop):
         '''Finds a sibling of MOP. It is only defined for instance MOPs.'''
         if self.decision_making_ability is not None:
+            # Use an intelligent/stochastic degrade algorithm if possible
             mop_name = mop.mop_name
             compare_mops = [sibling for sibling in self.get_all_siblings(mop) if sibling != mop]
             sorted_mops = self.mop_comparer_sorter.compare_mops_and_sort(self, mop_name, compare_mops)
@@ -58,19 +75,22 @@ class EscalationLadderCBR(CaseBasedReasoner):
                 best_sibling = self.name_mop(sorted_mops[0])
                 for sibling_name in sorted_mops:
                     sibling = self.name_mop(sibling_name)
-                    sibling_rung = sibling.slots['current_rung']
-                    current_rung = mop.slots['current_rung']
-                    if sibling != mop and sibling_rung == current_rung:
+                    if "next_rung" not in sibling.slots.keys():
+                        print(f"MOP {sibling_name} does not have a next_rung associated with it, moving on")
+                        continue
+                    # sibling_rung = sibling.slots['current_rung']
+                    # current_rung = mop.slots['current_rung']
+                    if sibling != mop: # and sibling_rung == current_rung:
                         return sibling
                 return best_sibling
-        else:
-            for abst in mop.absts: # goes up one layer in abstraction
-                for spec in abst.specs: # looks at all specializations
-                    if isinstance(spec, MOP) and \
-                        spec.is_instance_mop() and \
-                        spec != mop and not spec.is_abstraction(self.name_mop('M-FAILED-SOLUTION')) and \
-                        spec.slots['current_rung'] == mop.slots['current_rung']:
-                                        sibling = spec
+        # Fall through to get_sibling per Schank
+        for abst in mop.absts: # goes up one layer in abstraction
+            for spec in abst.specs: # looks at all specializations
+                if isinstance(spec, MOP) and \
+                    spec.is_instance_mop() and \
+                    spec != mop and not spec.is_abstraction(self.name_mop('M-FAILED-SOLUTION')) and \
+                    spec.slots['current_rung'] == mop.slots['current_rung']:
+                                    sibling = spec
         return sibling
 
 
@@ -201,6 +221,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
         slots = {'percepts': percept_group, 'current_rung': current_rung}
         if next_rung:
             slots['next_rung'] = next_rung
+            slots['matched_rung'] = self.get_rung_mop(next_rung)
         if outcome:
             slots['outcome'] = outcome
         return slots

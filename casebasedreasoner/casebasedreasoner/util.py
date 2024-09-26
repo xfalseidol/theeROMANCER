@@ -300,7 +300,8 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
             print(f" ... {progress}/{n_mops}")
         progress += 1
         # Yes, all the subselects are slow. If it turns out to matter, can grab the lot later
-        abstrows = [(this_mop.mop_name, abst.mop_name) for abst in this_mop.absts]
+        absts = [abst if isinstance(abst, MOP) else cbrinst.mops[abst] for abst in this_mop.absts]
+        abstrows = [(this_mop.mop_name, abst.mop_name) for abst in absts]
         cursor.executemany("INSERT INTO mop_abst(mopid, abstmopid) VALUES"
                            " ((SELECT mopid FROM mop WHERE mopname=?), (SELECT mopid FROM mop WHERE mopname=?))", abstrows)
 
@@ -386,6 +387,17 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
                   FROM mop_spec;
     ''')
 
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS nodes_nopercepts AS
+            SELECT * FROM nodes WHERE label NOT LIKE 'I-M_percept%'
+    ''')
+
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS edges_nopercepts AS
+             SELECT * FROM edges
+                 WHERE source IN (SELECT id FROM nodes_nopercepts)
+                   AND target IN (SELECT id FROM nodes_nopercepts);
+   ''')
 
     # Rapid inspection
     # Peers are mops that derive from the same abstraction as this one does

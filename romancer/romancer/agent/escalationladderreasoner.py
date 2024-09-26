@@ -314,7 +314,7 @@ class EscalationLadderReasoner(Reasoner):
         
         pad_time = 10 # to ensure the dominance change time actually lets pbf level decay below threshold
         dominance_change_time = amygdala.get_dominance_change_time()    
-        return dominance_change_time + pad_time
+        return max(dominance_change_time, 0) + pad_time
 
 
     def _escalate(self, next_rung, amygdala, why="no reason"):
