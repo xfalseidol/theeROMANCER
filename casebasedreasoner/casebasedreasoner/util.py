@@ -387,6 +387,17 @@ def export_cbr_sqlite(cbrinst, dbfile, extramethodnames=[], deleteifexists=True)
                   FROM mop_spec;
     ''')
 
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS nodes_nopercepts AS
+            SELECT * FROM nodes WHERE label NOT LIKE 'I-M_percept%'
+    ''')
+
+    cursor.execute('''
+        CREATE VIEW IF NOT EXISTS edges_nopercepts AS
+             SELECT * FROM edges
+                 WHERE source IN (SELECT id FROM nodes_nopercepts)
+                   AND target IN (SELECT id FROM nodes_nopercepts);
+   ''')
 
     # Rapid inspection
     # Peers are mops that derive from the same abstraction as this one does
