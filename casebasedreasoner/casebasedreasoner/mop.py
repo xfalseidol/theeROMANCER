@@ -128,8 +128,9 @@ class MOP(ImprovedRomancerObject):
 
         # loop over self's absts:
         for abst in self.absts:
-            all_absts.append(abst) # add the immediate abst
-            all_absts += abst.calc_all_abstractions() # add the absts of that abst
+            this_abst = abst if isinstance(abst, MOP) else self.parent.mops[abst]
+            all_absts.append(this_abst) # add the immediate abst
+            all_absts += this_abst.calc_all_abstractions() # add the absts of that abst
 
             # # call calc_all_absts on each abstraction
             # all_absts.update(abst.calc_all_abstractions())
