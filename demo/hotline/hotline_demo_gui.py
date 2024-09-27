@@ -50,7 +50,13 @@ class HotlineGUI:
         style = ttk.Style()
         style.configure("BlueFrame.TFrame", background=self.TK_BLUE)
         style.configure("RedFrame.TFrame", background=self.TK_RED)
+        style.configure("Blue.TLabel", background=self.TK_BLUE)
+        style.configure("Red.TLabel", background=self.TK_RED)
+        style.configure("Blue.Horizontal.TScale", background=self.TK_BLUE)
+        style.configure("Red.Horizontal.TScale", background=self.TK_RED)
         style.configure("StochastifyFrame.TFrame", background=self.TK_GREEN)
+        style.configure("Stochastify.TLabel", background=self.TK_GREEN)
+        style.configure("Stochastify.TCheckbutton", background=self.TK_GREEN)
 
         self.controls_frame = ttk.Frame(self.root)
         self.controls_frame.pack()
@@ -127,7 +133,7 @@ class HotlineGUI:
 
         update_every_s = tk.IntVar(value=1)
         stochastify_checked = tk.IntVar(value=0)
-        update_lbl = ttk.Label(frame, text="Update Every (s):")
+        update_lbl = ttk.Label(frame, text="Re-run every (s):", style="Stochastify.TLabel")
         update_lbl.pack()
         update_spinner = ttk.Spinbox(frame, from_=1, to=30, textvariable=update_every_s)
         update_spinner.pack()
@@ -142,7 +148,7 @@ class HotlineGUI:
             # print(f"Stoochastifying every {next_time_ms}")
             a = frame.after(next_time_ms, run_stochastify)
 
-        run_check = ttk.Checkbutton(frame, text="Stochastify", variable=stochastify_checked, command=run_stochastify)
+        run_check = ttk.Checkbutton(frame, text="Stochastify", variable=stochastify_checked, command=run_stochastify, style="Stochastify.TCheckbutton")
         run_check.pack()
 
         blank_lbl = ttk.Label(frame, text="")
@@ -158,16 +164,16 @@ class HotlineGUI:
         red_slider_frame = ttk.Frame(slider_frame, style="RedFrame.TFrame")
         red_slider_frame.grid(row=0, column=1, padx=5, pady=5)
 
-        self.create_slider(blue_slider_frame, "Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, 0)
-        self.create_slider(blue_slider_frame, "Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1)
-        self.create_slider(blue_slider_frame, "Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, 2)
-        self.create_amygdala_choice(blue_slider_frame, "Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3)
+        self.create_slider(blue_slider_frame, "Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, 0, "Blue.TLabel", "Blue.Horizontal.TScale")
+        self.create_slider(blue_slider_frame, "Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1, "Blue.TLabel", "Blue.Horizontal.TScale")
+        self.create_slider(blue_slider_frame, "Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, 2, "Blue.TLabel", "Blue.Horizontal.TScale")
+        self.create_amygdala_choice(blue_slider_frame, "Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3, "Blue.TLabel")
         self.create_ladder_chooser(blue_slider_frame, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, 4)
 
-        self.create_slider(red_slider_frame, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, 0)
-        self.create_slider(red_slider_frame, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1)
-        self.create_slider(red_slider_frame, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2)
-        self.create_amygdala_choice(red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, 3)
+        self.create_slider(red_slider_frame, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, 0, "Red.TLabel", "Red.Horizontal.TScale")
+        self.create_slider(red_slider_frame, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1, "Red.TLabel", "Red.Horizontal.TScale")
+        self.create_slider(red_slider_frame, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2, "Red.TLabel", "Red.Horizontal.TScale")
+        self.create_amygdala_choice(red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, 3, "Red.TLabel")
         self.create_ladder_chooser(red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, 4)
 
     def save_cbr_func(self):
@@ -241,11 +247,11 @@ class HotlineGUI:
         button.grid(row=grid_row, column=0)
 
 
-    def create_amygdala_choice(self, parent_frame, label, name, grid_row):
+    def create_amygdala_choice(self, parent_frame, label, name, grid_row, labelstyle):
         dropdown_options = [k for k in self.amygdala_choices.keys()]
         dropdown_var = tk.StringVar(value=dropdown_options[0])
         self.amygdala_combos[name] = dropdown_var
-        combo_label = ttk.Label(parent_frame, text=label)
+        combo_label = ttk.Label(parent_frame, text=label, style=labelstyle)
         combo_label.grid(row=grid_row, column=0, padx=5, pady=5, sticky="w")
         dropdown = ttk.Combobox(parent_frame, textvariable=dropdown_var)
         dropdown['values'] = dropdown_options
@@ -297,15 +303,15 @@ class HotlineGUI:
 
         self.root.after(200, self.run_many_times, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
 
-    def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x):
-        slider_label = ttk.Label(parent_frame, text=sliderlabel)
+    def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x, labelstyle, sliderstyle):
+        slider_label = ttk.Label(parent_frame, text=sliderlabel, style=labelstyle)
         slider_label.grid(row=grid_x, column=0, padx=5, pady=5, sticky="w")
-        slider = ttk.Scale(parent_frame, from_=slidermin, to=slidermax, orient="horizontal")
+        slider = ttk.Scale(parent_frame, from_=slidermin, to=slidermax, orient="horizontal", style=sliderstyle)
         slider.set(sliderdefault)
         slider.grid(row=grid_x, column=1, padx=5, pady=5, sticky="ew")
         slider.bind("<ButtonRelease-1>", self.on_slider_change)
         slider.bind("<Motion>", self.update_slider_values)
-        slider_value_label = ttk.Label(parent_frame, text=slider.get())
+        slider_value_label = ttk.Label(parent_frame, text=slider.get(), style=labelstyle)
         slider_value_label.grid(row=grid_x, column=2, padx=5, pady=5, stick="e")
         self.slidervalues[slider] = slider_value_label
         self.sliders[slidername] = slider
