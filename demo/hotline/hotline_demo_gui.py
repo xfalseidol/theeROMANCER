@@ -25,6 +25,7 @@ class HotlineGUI:
 
     TK_RED = "#ffbbbb"
     TK_BLUE = "light blue"
+    TK_GREEN = "light green"
 
     def __init__(self):
         # Non-GUI objects
@@ -46,6 +47,11 @@ class HotlineGUI:
         self.root.title("ROMANCER Hotline")
         self.root.wm_minsize(1024, 768)
 
+        style = ttk.Style()
+        style.configure("BlueFrame.TFrame", background=self.TK_BLUE)
+        style.configure("RedFrame.TFrame", background=self.TK_RED)
+        style.configure("StochastifyFrame.TFrame", background=self.TK_GREEN)
+
         self.controls_frame = ttk.Frame(self.root)
         self.controls_frame.pack()
 
@@ -61,6 +67,7 @@ class HotlineGUI:
 
         slider_frame = ttk.Frame(self.controls_frame)
         self.create_amygdala_inputs(slider_frame)
+        self.create_stochastify_inputs(slider_frame)
 
         # Status items for updating
         self.cbr_train_intval = tk.IntVar(value=0)
@@ -99,10 +106,10 @@ class HotlineGUI:
             self.hotline_show()
         plt.show = show_capture
 
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_columnconfigure(0, weight=1)
-        self.chartframe.grid_rowconfigure(0, weight=1)
-        self.chartframe.grid_columnconfigure(0, weight=1)
+        # self.root.grid_rowconfigure(0, weight=1)
+        # self.root.grid_columnconfigure(0, weight=1)
+        # self.chartframe.grid_rowconfigure(0, weight=1)
+        # self.chartframe.grid_columnconfigure(0, weight=1)
 
         def update_canvas_sizes(evt):
             new_width_px = self.chartframe.winfo_width() / self.CHARTS_ACROSS
@@ -114,12 +121,36 @@ class HotlineGUI:
         self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
 
+    def create_stochastify_inputs(self, slider_frame):
+        frame = ttk.Frame(slider_frame, style = "StochastifyFrame.TFrame")
+        frame.grid(row=0, column=2, padx=5, pady=5)
+
+        update_every_s = tk.IntVar(value=1)
+        stochastify_checked = tk.IntVar(value=0)
+        update_lbl = ttk.Label(frame, text="Update Every (s):")
+        update_lbl.pack()
+        update_spinner = ttk.Spinbox(frame, from_=1, to=30, textvariable=update_every_s)
+        update_spinner.pack()
+
+        # Use closure to avoid needing to store more stuff in class
+        def run_stochastify():
+            is_checked = stochastify_checked.get() > 0
+            if not is_checked:
+                return
+            self.run_hotline_guiparam()
+            next_time_ms = 1000 * update_every_s.get()
+            # print(f"Stoochastifying every {next_time_ms}")
+            a = frame.after(next_time_ms, run_stochastify)
+
+        run_check = ttk.Checkbutton(frame, text="Stochastify", variable=stochastify_checked, command=run_stochastify)
+        run_check.pack()
+
+        blank_lbl = ttk.Label(frame, text="")
+        blank_lbl.pack(expand=True, fill=tk.BOTH)
+
+
     def create_amygdala_inputs(self, slider_frame):
         slider_frame.grid(padx=5, pady=5, row=0, column=0)
-
-        style = ttk.Style()
-        style.configure("BlueFrame.TFrame", background=self.TK_BLUE)
-        style.configure("RedFrame.TFrame", background=self.TK_RED)
 
         blue_slider_frame = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
         blue_slider_frame.grid(row=0, column=0, padx=5, pady=5)
