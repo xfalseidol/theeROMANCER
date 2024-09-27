@@ -191,7 +191,7 @@ class Amygdala(ImprovedRomancerObject):
     def get_dominance_change_time(self):
         if self.dominant_response() is not None:
             # calculate time until we decay below threshold
-            delta_t = -self.pbf_halflife * math.log(self.response_threshhold / self.pbf, 2)
+            delta_t = -self.pbf_halflife * math.log(max(self.response_threshhold, 10e-10) / self.pbf, 2)
             return self.time + delta_t
         else: # already non-dominant, current time is the answer
             return self.time
