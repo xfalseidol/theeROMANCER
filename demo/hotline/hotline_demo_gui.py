@@ -35,7 +35,7 @@ class HotlineGUI:
         self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR", comparer_sorter=HLRComparerSorter())
 
         # If we are stochastifying, hitting cancel sets this
-        self.cancel_stochastify = False
+        self.cancel_training = False
 
         # The charts come in via matplotlib.show(), we don't know what to expect. This tracks them.
         self.n_charts = 0
@@ -49,9 +49,8 @@ class HotlineGUI:
         self.controls_frame = ttk.Frame(self.root)
         self.controls_frame.pack()
 
-        # Progress bars during training
+        # Progress bar during training
         self.training_progress = None
-        self.running_progress = None
 
         # Track all the GUI elements we need to draw from
         self.amygdala_choices = {a.short_desc() : a for a in all_amygdala_archetypes}
@@ -64,7 +63,7 @@ class HotlineGUI:
         self.create_amygdala_inputs(slider_frame)
 
         # Status items for updating
-        self.cbr_train_intval = tk.IntVar(value=1)
+        self.cbr_train_intval = tk.IntVar(value=0)
         self.cbr_run_intval = tk.IntVar(value=0)
 
         self.blue_cbr_status = tk.StringVar()
@@ -165,7 +164,7 @@ class HotlineGUI:
         run_check = ttk.Checkbutton(cbr_train_frame, text="Run CBRs", variable=self.cbr_run_intval)
         run_check.pack(fill=tk.X)
 
-        run_many_button = ttk.Button(cbr_train_frame, text="Stochastify", command=self.stochastify_click)
+        run_many_button = ttk.Button(cbr_train_frame, text="Train", command=self.train_click)
         run_many_button.pack(fill=tk.X)
 
         cancel_training_button = ttk.Button(cbr_train_frame, text="Cancel Training", command=self.canceltraining_click)
@@ -174,14 +173,10 @@ class HotlineGUI:
         cbr_training_frame = ttk.Frame(cbr_train_frame)
         cbr_training_frame.pack()
 
-        train_label = ttk.Label(cbr_training_frame, text="Training...")
+        train_label = ttk.Label(cbr_training_frame, text="Training Progress")
         train_label.pack()
         self.training_progress = ttk.Progressbar(cbr_training_frame)
         self.training_progress.pack(fill=tk.X, expand=True)
-        train_label = ttk.Label(cbr_training_frame, text="Running...")
-        train_label.pack()
-        self.running_progress = ttk.Progressbar(cbr_training_frame)
-        self.running_progress.pack(fill=tk.X, expand=True)
 
         cbr_stochastify_status = ttk.Label(cbr_train_frame, textvariable=self.stochastify_status)
         cbr_stochastify_status.pack()
@@ -228,49 +223,48 @@ class HotlineGUI:
         dropdown.grid(row=grid_row, column=1, padx=5, pady=5)
 
     def canceltraining_click(self):
-        self.cancel_stochastify = True
+        self.cancel_training = True
 
-    def stochastify_click(self):
-        self.cancel_stochastify = False
+    def train_click(self):
+        self.cancel_training = False
         thread = threading.Thread(target=self.run_many_times)
         thread.start()
 
     def run_many_times(self, n_train_times=10, n_run_times=20, orig_n_train_times=None, orig_n_run_times=None):
-        if self.cancel_stochastify:
+        if self.cancel_training:
             self.stochastify_status.set(f"Training cancelled")
             return
 
         if orig_n_train_times is None:
-            self.training_progress.configure(maximum=n_train_times, variable=tk.IntVar(value=0))
+            self.training_progress.configure(maximum=n_train_times + n_run_times, variable=tk.IntVar(value=0))
             orig_n_train_times = n_train_times
         if orig_n_run_times is None:
-            self.training_progress.configure(maximum=n_run_times, variable=tk.IntVar(value=0))
             orig_n_run_times = n_run_times
 
         next_n_run_times = n_run_times
         next_n_train_times = n_train_times
 
         if 0 < n_train_times:
-            self.stochastify_status.set(f"Train: {n_train_times}")
+            self.stochastify_status.set(f"Train: {orig_n_train_times-n_train_times+1}/{orig_n_train_times}")
             self.cbr_run_intval.set(0)
             self.cbr_train_intval.set(1)
-            self.training_progress.step()
             next_n_train_times -= 1
         elif 0 < n_run_times:
-            self.stochastify_status.set(f"Run: {n_run_times}")
+            self.stochastify_status.set(f"Run: {orig_n_run_times-n_run_times+1}/{orig_n_run_times}")
             self.cbr_run_intval.set(1)
             self.cbr_train_intval.set(0)
-            self.running_progress.step()
             next_n_run_times -= 1
         else:
-            self.stochastify_status.set("Stochastified")
+            self.stochastify_status.set("Training Complete")
             return
 
         # self.stochastify_status.set(f"Training: {orig_n_train_times-n_train_times}/{orig_n_train_times}\nRunning: {orig_n_run_times-n_run_times}/{orig_n_run_times}")
 
         self.run_hotline_guiparam()
 
-        self.root.after(1000, self.run_many_times, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
+        self.training_progress.step()
+
+        self.root.after(200, self.run_many_times, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
 
     def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x):
         slider_label = ttk.Label(parent_frame, text=sliderlabel)
@@ -325,8 +319,8 @@ class HotlineGUI:
         params = { k: v.get() for k, v in self.sliders.items() }
         params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
         params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
-        params["blue_elcbr"] = self.blue_elcbr
-        params["red_elcbr"] = self.red_elcbr
+        params["blue_elcbr"] = self.blue_elcbr if cbr_train or cbr_run else None
+        params["red_elcbr"] = self.red_elcbr if cbr_train or cbr_run else None
         params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
         params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
         params["blue_ladder_file"] = self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get()
