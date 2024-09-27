@@ -254,7 +254,7 @@ class EscalationLadderCBR(CaseBasedReasoner):
     
 
     def add_ELRScenario(self, percepts, current_rung, next_rung):
-        existing_mop = self.find_existing_percept_mop(percepts, ["actor", "action_taken"])
+        existing_mop = self.find_existing_percept_mop(percepts, ["actor", "action_taken", "messages"])
         if None != existing_mop:
             return
 
