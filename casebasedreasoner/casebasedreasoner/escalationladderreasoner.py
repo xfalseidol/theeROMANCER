@@ -56,7 +56,6 @@ class EscalationLadderCBR(CaseBasedReasoner):
             slots = {'rung_num': rung_num}
             # Include a name if we can find one
             if self.parent_elr is not None:
-                ladder = self.parent_elr.escalation_ladder
                 elrung = self.parent_elr.escalation_ladder[rung_num]
                 if elrung is not None and elrung.name is not None:
                     slots['rung_name'] = elrung.name
@@ -205,8 +204,35 @@ class EscalationLadderCBR(CaseBasedReasoner):
         for param in percept.param_names:
             slots[param] = getattr(percept, param)
         return self.add_mop(absts={'M_percept'}, slots=slots, mop_type='instance')
-    
 
+    def find_existing_percept_mop(self, percepts, percept_match_keys):
+        ''' Given the percepts here, find a MOP that is precisely the same as this set of percepts, if it exists
+        percept_match_keys is a List of keys, that, if the percepts align on these, then that is sufficient for "sameness"
+        '''
+
+
+        # Base to compare against
+        this_percept_set = set()
+        for percept in percepts:
+            percept_dict = {k: getattr(percept, k, None) for k in percept_match_keys}
+            this_percept_set.add(frozenset(percept_dict.items()))
+
+        percept_group_mop = self.mops['M_percept_group']
+        for mopname in self.mops:
+            thismop = self.mops[mopname]
+            # Set of dictionaries
+            mop_props = set()
+            if percept_group_mop.is_abstraction(thismop) and percept_group_mop.mop_name != thismop.mop_name:
+                for percept_mop in thismop.slots.values():
+                    this_map = { k: percept_mop.slots.get(k, None) for k in percept_match_keys}
+                    mop_props.add(frozenset(this_map.items()))
+            if mop_props == this_percept_set:
+                return thismop
+        return None
+
+    # For now, this code assumes that percepts is a list of objects.
+    #  In future, will want to work with arbitrary structures handled by create_mop_percepts_slots_r
+    #  But will then also need to make more complex find_existing_percept_mop, etc, to account for this
     def make_scenario_slots(self, percepts, current_rung, next_rung=None):
         percept_group = self.create_percept_group(percepts)
         # outcome
@@ -228,6 +254,10 @@ class EscalationLadderCBR(CaseBasedReasoner):
     
 
     def add_ELRScenario(self, percepts, current_rung, next_rung):
+        existing_mop = self.find_existing_percept_mop(percepts, ["actor", "action_taken"])
+        if None != existing_mop:
+            return
+
         slots = self.make_scenario_slots(percepts, current_rung, next_rung)
         ## create the new scenario
         self.add_mop(absts={'M_ELRScenario'},
