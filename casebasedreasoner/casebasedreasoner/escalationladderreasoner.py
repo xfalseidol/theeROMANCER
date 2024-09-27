@@ -12,6 +12,9 @@ from romancer.environment.object import LoggedDict
 class EscalationLadderCBR(CaseBasedReasoner):
     def __init__(self, env, time, load_memory_from = None, verbose = False, comparer_sorter = None, name="EscalationLadderCBR", parent_elr=None):
         super().__init__(env, time)
+        self.duplicate_scenario_cnt = 0
+        self.scenario_cnt = 0
+
         self.name = name
         self.parent_elr = parent_elr
         self.upper_threshold = 5  # how many net deviations from a known case are required to think the new case is more severe
@@ -210,7 +213,6 @@ class EscalationLadderCBR(CaseBasedReasoner):
         percept_match_keys is a List of keys, that, if the percepts align on these, then that is sufficient for "sameness"
         '''
 
-
         # Base to compare against
         this_percept_set = set()
         for percept in percepts:
@@ -225,7 +227,11 @@ class EscalationLadderCBR(CaseBasedReasoner):
             if percept_group_mop.is_abstraction(thismop) and percept_group_mop.mop_name != thismop.mop_name:
                 for percept_mop in thismop.slots.values():
                     this_map = { k: percept_mop.slots.get(k, None) for k in percept_match_keys}
-                    mop_props.add(frozenset(this_map.items()))
+                    item = frozenset(this_map.items())
+                    # Early out if possible
+                    if item not in this_percept_set:
+                        break
+                    mop_props.add(item)
             if mop_props == this_percept_set:
                 return thismop
         return None
@@ -252,11 +258,15 @@ class EscalationLadderCBR(CaseBasedReasoner):
             slots['outcome'] = outcome
         return slots
     
-
+    # This function is only used during "training"; during rollout, normal CBR behaviour is followed
     def add_ELRScenario(self, percepts, current_rung, next_rung):
         existing_mop = self.find_existing_percept_mop(percepts, ["actor", "action_taken", "messages"])
         if None != existing_mop:
+            self.duplicate_scenario_cnt += 1
             return
+        self.scenario_cnt += 1
+
+        # print(f"Scenario/dup: {self.scenario_cnt}/{self.duplicate_scenario_cnt}")
 
         slots = self.make_scenario_slots(percepts, current_rung, next_rung)
         ## create the new scenario
