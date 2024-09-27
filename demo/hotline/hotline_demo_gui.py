@@ -1,4 +1,5 @@
 import os.path
+import threading
 
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
@@ -231,7 +232,8 @@ class HotlineGUI:
 
     def stochastify_click(self):
         self.cancel_stochastify = False
-        self.run_many_times()
+        thread = threading.Thread(target=self.run_many_times)
+        thread.start()
 
     def run_many_times(self, n_train_times=10, n_run_times=20, orig_n_train_times=None, orig_n_run_times=None):
         if self.cancel_stochastify:

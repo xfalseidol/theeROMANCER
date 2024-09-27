@@ -1,3 +1,5 @@
+import time
+
 from romancer.supervisor.supervisor import Supervisor
 from romancer.supervisor.watchlist import WatchlistItem
 
@@ -394,6 +396,7 @@ class SingleThreadSupervisor(Supervisor):
             self.check_for_percepts = False
 
 
+
     def perceive_and_deliberate(self, max_time, verbose=False):
         '''This method is supposed to be called as part of process_next_watchlist_item(), in cases where new percepts have been generated and agents need to deliberate about those percepts. It tells the environment to run the perception engine and command those agents that receive percepts to assess whether they will take deliberate actions before the next predicted event time. If such actions are planned, they will be messaged to the supervisor when bring_watchlist_up_to_date is next called.'''
         self.environment.perceive_and_deliberate(max_time)
@@ -412,4 +415,5 @@ class SingleThreadSupervisor(Supervisor):
         while len(self.watchlist) > 0 and not self.paused: # loop as long as watchlist items remain and self.paused is False
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_next_watchlist_item() # process next watchlist event
+            time.sleep(0.001) # Let other threads have a bite of the CPU [eg a GUI that needs updating]
         self.environment.finalise()
