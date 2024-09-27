@@ -81,6 +81,7 @@ class min_adversary_resolve(NamedTuple):
 
 class ActionLexicon:
     def __init__(self, csvfile):
+        self.csvfile = csvfile
         self.actionlexicon = {}
         with open(csvfile, "r", encoding="utf-8") as csvfile:
             reader = csv.DictReader(csvfile)
@@ -98,6 +99,9 @@ class ActionLexicon:
     def getlabel(self, actnum):
         thisact = self.actionlexicon[actnum]
         return f"{thisact['side']}{thisact['action']}{thisact['suffix']}({actnum})"
+
+    def __repr__(self):
+        return f"ActionLexicon_{self.csvfile}"
 
 class DoAction(NamedTuple):
     action: int
