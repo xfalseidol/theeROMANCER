@@ -221,22 +221,32 @@ class HotlineGUI:
 
     def add_cbr_gui(self, parent_frame):
 
-        cbr_graph_frame = ttk.Frame(parent_frame)
-        cbr_graph_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        parent_frame.grid_rowconfigure(0, weight=1)
+        parent_frame.grid_columnconfigure(0, weight=0)
+        parent_frame.grid_columnconfigure(1, weight=1)
 
         cbr_train_frame = ttk.Frame(parent_frame, width=400)
-        cbr_train_frame.pack(side=tk.LEFT, fill=tk.Y)
+        cbr_train_frame.grid(row=0, column=0, sticky="ns")
+
+        cbr_graph_frame = ttk.Frame(parent_frame)
+        cbr_graph_frame.grid(row=0, column=1, sticky="nsew")
+
+
+        # self.root.grid_rowconfigure(0, weight=1)
+        # self.root.grid_columnconfigure(0, weight=1)
+        # self.chartframe.grid_rowconfigure(0, weight=1)
+        # self.chartframe.grid_columnconfigure(0, weight=1)
 
         train_check = ttk.Checkbutton(cbr_train_frame, text="Train CBRs", variable=self.cbr_train_intval)
-        train_check.pack(fill=tk.X)
+        train_check.pack(fill=tk.X, padx=5, pady=5)
         run_check = ttk.Checkbutton(cbr_train_frame, text="Run CBRs", variable=self.cbr_run_intval)
-        run_check.pack(fill=tk.X)
+        run_check.pack(fill=tk.X, padx=5, pady=5)
 
         run_many_button = ttk.Button(cbr_train_frame, text="Train", command=self.train_click)
-        run_many_button.pack(fill=tk.X)
+        run_many_button.pack(fill=tk.X, padx=5, pady=5)
 
         cancel_training_button = ttk.Button(cbr_train_frame, text="Cancel Training", command=self.canceltraining_click)
-        cancel_training_button.pack(fill=tk.X)
+        cancel_training_button.pack(fill=tk.X, padx=5, pady=5)
 
         cbr_training_frame = ttk.Frame(cbr_train_frame)
         cbr_training_frame.pack()
@@ -244,15 +254,15 @@ class HotlineGUI:
         train_label = ttk.Label(cbr_training_frame, text="Training Progress")
         train_label.pack()
         self.training_progress = ttk.Progressbar(cbr_training_frame)
-        self.training_progress.pack(fill=tk.X, expand=True)
+        self.training_progress.pack(fill=tk.X, expand=True, padx=5, pady=5)
 
         cbr_stochastify_status = ttk.Label(cbr_train_frame, textvariable=self.stochastify_status)
         cbr_stochastify_status.pack()
 
         bluelabel = ttk.Label(cbr_train_frame, textvariable=self.blue_cbr_status)
-        bluelabel.pack()
+        bluelabel.pack(padx=5, pady=5)
         redlabel = ttk.Label(cbr_train_frame, textvariable=self.red_cbr_status)
-        redlabel.pack()
+        redlabel.pack(padx=5, pady=5)
         savebutton = ttk.Button(cbr_train_frame, text="Export CBRs", command=self.save_cbr_func)
         savebutton.pack(fill=tk.X)
         return cbr_graph_frame
