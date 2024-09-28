@@ -88,13 +88,14 @@ class HotlineGUI:
 
         self.chartframe = ttk.Frame(self.output_notebook)
         self.cbr_frame = ttk.Frame(self.output_notebook)
-
+        self.about_frame = ttk.Frame(self.output_notebook)
 
         self.output_notebook.add(self.chartframe, text="Run Charts")
         self.output_notebook.add(self.cbr_frame, text="Blue CBR")
+        self.output_notebook.add(self.about_frame, text="About")
 
         self.cbr_graph_frame = self.add_cbr_gui(self.cbr_frame)
-
+        self.add_about_frame(self.about_frame)
         self.output_notebook.pack(fill=tk.BOTH, expand=True)
 
         matplotlib_fontsize = 6
@@ -126,6 +127,36 @@ class HotlineGUI:
 
         self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
+
+    def add_about_frame(self, frame):
+        logofile = "./randlogo.png"
+        if os.path.exists(logofile):
+            img = tk.PhotoImage(file=logofile)
+            label = ttk.Label(frame, image=img)
+            label.image = img # Keep a refernce to avoid GC
+            label.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
+
+        text_label = ttk.Label(frame, text="ROMANCER", font=("Helvetica", 24))
+        text_label.grid(row=0, column=1, sticky="sw", padx=5, pady=(0, 5))
+
+        text_frame = ttk.Frame(frame)
+        text_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=5)
+
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL)
+
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        scrollbar.config(command=text_widget.yview)
+        scrollbar.pack(side="right", fill="y")
+        text_widget.pack(side="left", fill="both", expand=True)
+
+        body_file = "../../README.md"
+        if os.path.exists(body_file):
+            with open(body_file, "r") as file:
+                markdown_text = file.read()
+                text_widget.insert(tk.END, markdown_text)
+
+        frame.columnconfigure(1, weight=1)
+        frame.rowconfigure(1, weight=1)
 
     def create_stochastify_inputs(self, slider_frame):
         frame = ttk.Frame(slider_frame, style = "StochastifyFrame.TFrame")
