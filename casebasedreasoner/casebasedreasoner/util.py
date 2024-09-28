@@ -15,11 +15,15 @@ from romancer.environment.object import LoggedDict
 from casebasedreasoner.mop import MOP
 
 
-def make_networkx_graph(cbrinst, exclude_mops_specced_from=None, include_inheritance_edges=True, include_slot_edges=True):
+def make_networkx_graph(cbrinst, exclude_mops_specced_from=None, exclude_specific_mops=None,
+                        include_inheritance_edges=True, include_slot_edges=True):
     slot_edge_weight = 1.0
     spec_edge_weight = 0.1
     if exclude_mops_specced_from is None:
         exclude_mops_specced_from = []
+    if exclude_specific_mops is None:
+        exclude_specific_mops = []
+
     abstmops = [cbrinst.mops[m] for m in exclude_mops_specced_from]
 
     g = nx.DiGraph()
@@ -29,7 +33,7 @@ def make_networkx_graph(cbrinst, exclude_mops_specced_from=None, include_inherit
     for mopname in cbrinst.mops:
         thismop = cbrinst.mops[mopname]
         has_specced_from = any(abst.is_abstraction(thismop) for abst in abstmops)
-        if not has_specced_from:
+        if not has_specced_from and not mopname in exclude_specific_mops:
             mop_nodes.add(mopname)
             g.add_node(thismop)
 

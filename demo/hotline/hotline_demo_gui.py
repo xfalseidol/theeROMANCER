@@ -1,4 +1,5 @@
 import os.path
+import threading
 
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
@@ -24,6 +25,7 @@ class HotlineGUI:
 
     TK_RED = "#ffbbbb"
     TK_BLUE = "light blue"
+    TK_GREEN = "light green"
 
     def __init__(self):
         # Non-GUI objects
@@ -34,7 +36,7 @@ class HotlineGUI:
         self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR", comparer_sorter=HLRComparerSorter())
 
         # If we are stochastifying, hitting cancel sets this
-        self.cancel_stochastify = False
+        self.cancel_training = False
 
         # The charts come in via matplotlib.show(), we don't know what to expect. This tracks them.
         self.n_charts = 0
@@ -45,12 +47,22 @@ class HotlineGUI:
         self.root.title("ROMANCER Hotline")
         self.root.wm_minsize(1024, 768)
 
+        style = ttk.Style()
+        style.configure("BlueFrame.TFrame", background=self.TK_BLUE)
+        style.configure("RedFrame.TFrame", background=self.TK_RED)
+        style.configure("Blue.TLabel", background=self.TK_BLUE)
+        style.configure("Red.TLabel", background=self.TK_RED)
+        style.configure("Blue.Horizontal.TScale", background=self.TK_BLUE)
+        style.configure("Red.Horizontal.TScale", background=self.TK_RED)
+        style.configure("StochastifyFrame.TFrame", background=self.TK_GREEN)
+        style.configure("Stochastify.TLabel", background=self.TK_GREEN)
+        style.configure("Stochastify.TCheckbutton", background=self.TK_GREEN)
+
         self.controls_frame = ttk.Frame(self.root)
         self.controls_frame.pack()
 
-        # Progress bars during training
+        # Progress bar during training
         self.training_progress = None
-        self.running_progress = None
 
         # Track all the GUI elements we need to draw from
         self.amygdala_choices = {a.short_desc() : a for a in all_amygdala_archetypes}
@@ -61,27 +73,29 @@ class HotlineGUI:
 
         slider_frame = ttk.Frame(self.controls_frame)
         self.create_amygdala_inputs(slider_frame)
+        self.create_stochastify_inputs(slider_frame)
 
         # Status items for updating
-        self.cbr_train_intval = tk.IntVar(value=1)
+        self.cbr_train_intval = tk.IntVar(value=0)
         self.cbr_run_intval = tk.IntVar(value=0)
 
         self.blue_cbr_status = tk.StringVar()
         self.red_cbr_status = tk.StringVar()
-        self.stochastify_status = tk.StringVar()
+        self.train_status = tk.StringVar()
 
         # Main outputs go into tabs
         self.output_notebook = ttk.Notebook(self.root)
 
         self.chartframe = ttk.Frame(self.output_notebook)
         self.cbr_frame = ttk.Frame(self.output_notebook)
-
+        self.about_frame = ttk.Frame(self.output_notebook)
 
         self.output_notebook.add(self.chartframe, text="Run Charts")
-        self.output_notebook.add(self.cbr_frame, text="Blue CBR")
+        self.output_notebook.add(self.cbr_frame, text="CBR Training")
+        self.output_notebook.add(self.about_frame, text="About")
 
         self.cbr_graph_frame = self.add_cbr_gui(self.cbr_frame)
-
+        self.add_about_frame(self.about_frame)
         self.output_notebook.pack(fill=tk.BOTH, expand=True)
 
         matplotlib_fontsize = 6
@@ -99,10 +113,10 @@ class HotlineGUI:
             self.hotline_show()
         plt.show = show_capture
 
-        self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_columnconfigure(0, weight=1)
-        self.chartframe.grid_rowconfigure(0, weight=1)
-        self.chartframe.grid_columnconfigure(0, weight=1)
+        # self.root.grid_rowconfigure(0, weight=1)
+        # self.root.grid_columnconfigure(0, weight=1)
+        # self.chartframe.grid_rowconfigure(0, weight=1)
+        # self.chartframe.grid_columnconfigure(0, weight=1)
 
         def update_canvas_sizes(evt):
             new_width_px = self.chartframe.winfo_width() / self.CHARTS_ACROSS
@@ -114,12 +128,64 @@ class HotlineGUI:
         self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
 
+    def add_about_frame(self, frame):
+        logofile = "./randlogo.png"
+        if os.path.exists(logofile):
+            img = tk.PhotoImage(file=logofile)
+            label = ttk.Label(frame, image=img)
+            label.image = img # Keep a refernce to avoid GC
+            label.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
+
+        text_label = ttk.Label(frame, text="ROMANCER", font=("Helvetica", 24))
+        text_label.grid(row=0, column=1, sticky="sw", padx=5, pady=(0, 5))
+
+        text_frame = ttk.Frame(frame)
+        text_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=5)
+
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL)
+
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        scrollbar.config(command=text_widget.yview)
+        scrollbar.pack(side="right", fill="y")
+        text_widget.pack(side="left", fill="both", expand=True)
+
+        body_file = "../../README.md"
+        if os.path.exists(body_file):
+            with open(body_file, "r") as file:
+                markdown_text = file.read()
+                text_widget.insert(tk.END, markdown_text)
+
+        frame.columnconfigure(1, weight=1)
+        frame.rowconfigure(1, weight=1)
+
+    def create_stochastify_inputs(self, slider_frame):
+        frame = ttk.Frame(slider_frame, style = "StochastifyFrame.TFrame")
+        slider_frame.grid_columnconfigure(2, weight=1)
+        frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+
+        update_every_s = tk.IntVar(value=1)
+        stochastify_checked = tk.IntVar(value=0)
+        update_lbl = ttk.Label(frame, text="Re-run every (s):", style="Stochastify.TLabel")
+        update_lbl.pack()
+        update_spinner = ttk.Spinbox(frame, from_=1, to=30, textvariable=update_every_s)
+        update_spinner.pack(padx=30)
+
+        # Use closure to avoid needing to store more stuff in class
+        def run_stochastify():
+            is_checked = stochastify_checked.get() > 0
+            if not is_checked:
+                return
+            self.run_hotline_guiparam()
+            next_time_ms = 1000 * update_every_s.get()
+            # print(f"Stoochastifying every {next_time_ms}")
+            a = frame.after(next_time_ms, run_stochastify)
+
+        run_check = ttk.Checkbutton(frame, text="Stochastify", variable=stochastify_checked, command=run_stochastify, style="Stochastify.TCheckbutton")
+        run_check.pack()
+
+
     def create_amygdala_inputs(self, slider_frame):
         slider_frame.grid(padx=5, pady=5, row=0, column=0)
-
-        style = ttk.Style()
-        style.configure("BlueFrame.TFrame", background=self.TK_BLUE)
-        style.configure("RedFrame.TFrame", background=self.TK_RED)
 
         blue_slider_frame = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
         blue_slider_frame.grid(row=0, column=0, padx=5, pady=5)
@@ -127,17 +193,37 @@ class HotlineGUI:
         red_slider_frame = ttk.Frame(slider_frame, style="RedFrame.TFrame")
         red_slider_frame.grid(row=0, column=1, padx=5, pady=5)
 
-        self.create_slider(blue_slider_frame, "Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, 0)
-        self.create_slider(blue_slider_frame, "Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, 1)
-        self.create_slider(blue_slider_frame, "Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, 2)
-        self.create_amygdala_choice(blue_slider_frame, "Blue Amygdala", self._BLUE_AMYG_COMBOKEY, 3)
-        self.create_ladder_chooser(blue_slider_frame, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, 4)
+        blue_amyg_title = ttk.Label(blue_slider_frame, text="Blue Temperament", style="Blue.TLabel")
+        blue_amyg_row = 0
+        blue_amyg_title.grid(row=blue_amyg_row, column=0, columnspan=3)
+        blue_amyg_row += 1
 
-        self.create_slider(red_slider_frame, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, 0)
-        self.create_slider(red_slider_frame, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, 1)
-        self.create_slider(red_slider_frame, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, 2)
-        self.create_amygdala_choice(red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, 3)
-        self.create_ladder_chooser(red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, 4)
+        self.create_slider(blue_slider_frame, "Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        blue_amyg_row += 1
+        self.create_slider(blue_slider_frame, "Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        blue_amyg_row += 1
+        self.create_slider(blue_slider_frame, "Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        blue_amyg_row += 1
+        self.create_amygdala_choice(blue_slider_frame, "Blue Amygdala", self._BLUE_AMYG_COMBOKEY, blue_amyg_row, "Blue.TLabel")
+        blue_amyg_row += 1
+        self.create_ladder_chooser(blue_slider_frame, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, blue_amyg_row)
+        blue_amyg_row += 1
+
+        red_amyg_title = ttk.Label(red_slider_frame, text="Red Temperament", style="Red.TLabel")
+        red_amyg_row = 0
+        red_amyg_title.grid(row=red_amyg_row, column=0, columnspan=3)
+        red_amyg_row += 1
+
+        self.create_slider(red_slider_frame, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
+        red_amyg_row += 1
+        self.create_slider(red_slider_frame, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
+        red_amyg_row += 1
+        self.create_slider(red_slider_frame, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
+        red_amyg_row += 1
+        self.create_amygdala_choice(red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, red_amyg_row, "Red.TLabel")
+        red_amyg_row += 1
+        self.create_ladder_chooser(red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, red_amyg_row)
+        red_amyg_row += 1
 
     def save_cbr_func(self):
         blue_sqlite = "blue_hotline_elcbr.sqlite"
@@ -153,42 +239,48 @@ class HotlineGUI:
 
     def add_cbr_gui(self, parent_frame):
 
-        cbr_graph_frame = ttk.Frame(parent_frame)
-        cbr_graph_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        parent_frame.grid_rowconfigure(0, weight=1)
+        parent_frame.grid_columnconfigure(0, weight=0)
+        parent_frame.grid_columnconfigure(1, weight=1)
 
         cbr_train_frame = ttk.Frame(parent_frame, width=400)
-        cbr_train_frame.pack(side=tk.LEFT, fill=tk.Y)
+        cbr_train_frame.grid(row=0, column=0, sticky="ns")
+
+        cbr_graph_frame = ttk.Frame(parent_frame)
+        cbr_graph_frame.grid(row=0, column=1, sticky="nsew")
+
+
+        # self.root.grid_rowconfigure(0, weight=1)
+        # self.root.grid_columnconfigure(0, weight=1)
+        # self.chartframe.grid_rowconfigure(0, weight=1)
+        # self.chartframe.grid_columnconfigure(0, weight=1)
 
         train_check = ttk.Checkbutton(cbr_train_frame, text="Train CBRs", variable=self.cbr_train_intval)
-        train_check.pack(fill=tk.X)
+        train_check.pack(fill=tk.X, padx=5, pady=5)
         run_check = ttk.Checkbutton(cbr_train_frame, text="Run CBRs", variable=self.cbr_run_intval)
-        run_check.pack(fill=tk.X)
+        run_check.pack(fill=tk.X, padx=5, pady=5)
 
-        run_many_button = ttk.Button(cbr_train_frame, text="Stochastify", command=self.stochastify_click)
-        run_many_button.pack(fill=tk.X)
+        run_many_button = ttk.Button(cbr_train_frame, text="Train", command=self.train_click)
+        run_many_button.pack(fill=tk.X, padx=5, pady=5)
 
         cancel_training_button = ttk.Button(cbr_train_frame, text="Cancel Training", command=self.canceltraining_click)
-        cancel_training_button.pack(fill=tk.X)
+        cancel_training_button.pack(fill=tk.X, padx=5, pady=5)
 
         cbr_training_frame = ttk.Frame(cbr_train_frame)
         cbr_training_frame.pack()
 
-        train_label = ttk.Label(cbr_training_frame, text="Training...")
+        train_label = ttk.Label(cbr_training_frame, text="Training Progress")
         train_label.pack()
         self.training_progress = ttk.Progressbar(cbr_training_frame)
-        self.training_progress.pack(fill=tk.X, expand=True)
-        train_label = ttk.Label(cbr_training_frame, text="Running...")
-        train_label.pack()
-        self.running_progress = ttk.Progressbar(cbr_training_frame)
-        self.running_progress.pack(fill=tk.X, expand=True)
+        self.training_progress.pack(fill=tk.X, expand=True, padx=5, pady=5)
 
-        cbr_stochastify_status = ttk.Label(cbr_train_frame, textvariable=self.stochastify_status)
+        cbr_stochastify_status = ttk.Label(cbr_train_frame, textvariable=self.train_status)
         cbr_stochastify_status.pack()
 
         bluelabel = ttk.Label(cbr_train_frame, textvariable=self.blue_cbr_status)
-        bluelabel.pack()
+        bluelabel.pack(padx=5, pady=5)
         redlabel = ttk.Label(cbr_train_frame, textvariable=self.red_cbr_status)
-        redlabel.pack()
+        redlabel.pack(padx=5, pady=5)
         savebutton = ttk.Button(cbr_train_frame, text="Export CBRs", command=self.save_cbr_func)
         savebutton.pack(fill=tk.X)
         return cbr_graph_frame
@@ -197,7 +289,7 @@ class HotlineGUI:
     def create_ladder_chooser(self, parent_frame, default_file, name, grid_row):
         entry = ttk.Entry(parent_frame)
         entry.insert(0, default_file)
-        entry.grid(row=grid_row, column=1)
+        entry.grid(row=grid_row, column=1, sticky="ew", padx=5)
         self.ladder_entries[name] = entry
 
         def select_file():
@@ -208,78 +300,83 @@ class HotlineGUI:
                 rel_path = os.path.relpath(file_path)
                 entry.delete(0, tk.END)
                 entry.insert(0, rel_path)
+                # The CBR is tied to the ladder, create a new one
+                if name == "blue":
+                    self.blue_elcbr = EscalationLadderCBR(None, 0.0, name="BlueELCBR", comparer_sorter=HLRComparerSorter())
+                elif name == "red":
+                    self.red_elcbr = EscalationLadderCBR(None, 0.0, name="RedELCBR", comparer_sorter=HLRComparerSorter())
+                else:
+                    print(f"Don't know how to recreate a elcbr for {name}")
                 self.run_hotline_guiparam()
 
         button = ttk.Button(parent_frame, text=f"Choose {name} Ladder", command=select_file)
-        button.grid(row=grid_row, column=0)
+        button.grid(row=grid_row, column=0, padx=5, pady=5, sticky="e")
 
 
-    def create_amygdala_choice(self, parent_frame, label, name, grid_row):
+    def create_amygdala_choice(self, parent_frame, label, name, grid_row, labelstyle):
         dropdown_options = [k for k in self.amygdala_choices.keys()]
         dropdown_var = tk.StringVar(value=dropdown_options[0])
         self.amygdala_combos[name] = dropdown_var
-        combo_label = ttk.Label(parent_frame, text=label)
-        combo_label.grid(row=grid_row, column=0, padx=5, pady=5, sticky="w")
+        combo_label = ttk.Label(parent_frame, text=label, style=labelstyle)
+        combo_label.grid(row=grid_row, column=0, padx=5, pady=5, sticky="e")
         dropdown = ttk.Combobox(parent_frame, textvariable=dropdown_var)
         dropdown['values'] = dropdown_options
         dropdown.set(dropdown_options[0])
         dropdown.bind("<<ComboboxSelected>>", self.on_slider_change)
-        dropdown.grid(row=grid_row, column=1, padx=5, pady=5)
+        dropdown.grid(row=grid_row, column=1, padx=5, pady=5, sticky="ew")
 
     def canceltraining_click(self):
-        self.cancel_stochastify = True
+        self.cancel_training = True
 
-    def stochastify_click(self):
-        self.cancel_stochastify = False
-        self.run_many_times()
+    def train_click(self):
+        self.cancel_training = False
+        thread = threading.Thread(target=self.do_training)
+        thread.start()
 
-    def run_many_times(self, n_train_times=10, n_run_times=20, orig_n_train_times=None, orig_n_run_times=None):
-        if self.cancel_stochastify:
-            self.stochastify_status.set(f"Training cancelled")
+    def do_training(self, n_train_times=10, n_run_times=20, orig_n_train_times=None, orig_n_run_times=None):
+        if self.cancel_training:
+            self.train_status.set(f"Training cancelled")
             return
 
         if orig_n_train_times is None:
-            self.training_progress.configure(maximum=n_train_times, variable=tk.IntVar(value=0))
+            self.training_progress.configure(maximum=n_train_times + n_run_times, variable=tk.IntVar(value=0))
             orig_n_train_times = n_train_times
         if orig_n_run_times is None:
-            self.training_progress.configure(maximum=n_run_times, variable=tk.IntVar(value=0))
             orig_n_run_times = n_run_times
 
         next_n_run_times = n_run_times
         next_n_train_times = n_train_times
 
         if 0 < n_train_times:
-            self.stochastify_status.set(f"Train: {n_train_times}")
+            self.train_status.set(f"Train: {orig_n_train_times - n_train_times + 1}/{orig_n_train_times}")
             self.cbr_run_intval.set(0)
             self.cbr_train_intval.set(1)
-            self.training_progress.step()
             next_n_train_times -= 1
         elif 0 < n_run_times:
-            self.stochastify_status.set(f"Run: {n_run_times}")
+            self.train_status.set(f"Run: {orig_n_run_times - n_run_times + 1}/{orig_n_run_times}")
             self.cbr_run_intval.set(1)
             self.cbr_train_intval.set(0)
-            self.running_progress.step()
             next_n_run_times -= 1
         else:
-            self.stochastify_status.set("Stochastified")
+            self.train_status.set("Training Complete")
             return
-
-        # self.stochastify_status.set(f"Training: {orig_n_train_times-n_train_times}/{orig_n_train_times}\nRunning: {orig_n_run_times-n_run_times}/{orig_n_run_times}")
 
         self.run_hotline_guiparam()
 
-        self.root.after(1000, self.run_many_times, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
+        self.training_progress.step()
 
-    def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x):
-        slider_label = ttk.Label(parent_frame, text=sliderlabel)
-        slider_label.grid(row=grid_x, column=0, padx=5, pady=5, sticky="w")
-        slider = ttk.Scale(parent_frame, from_=slidermin, to=slidermax, orient="horizontal")
+        self.root.after(200, self.do_training, next_n_train_times, next_n_run_times, orig_n_train_times, orig_n_run_times)
+
+    def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x, labelstyle, sliderstyle):
+        slider_label = ttk.Label(parent_frame, text=sliderlabel, style=labelstyle)
+        slider_label.grid(row=grid_x, column=0, padx=5, pady=5, sticky="e")
+        slider = ttk.Scale(parent_frame, from_=slidermin, to=slidermax, orient="horizontal", style=sliderstyle)
         slider.set(sliderdefault)
         slider.grid(row=grid_x, column=1, padx=5, pady=5, sticky="ew")
         slider.bind("<ButtonRelease-1>", self.on_slider_change)
         slider.bind("<Motion>", self.update_slider_values)
-        slider_value_label = ttk.Label(parent_frame, text=slider.get())
-        slider_value_label.grid(row=grid_x, column=2, padx=5, pady=5, stick="e")
+        slider_value_label = ttk.Label(parent_frame, text=slider.get(), style=labelstyle)
+        slider_value_label.grid(row=grid_x, column=2, padx=5, pady=5, stick="w")
         self.slidervalues[slider] = slider_value_label
         self.sliders[slidername] = slider
 
@@ -299,7 +396,8 @@ class HotlineGUI:
         self.root.mainloop()
 
     def render_graph(self, cbrinst):
-        g = make_networkx_graph(cbrinst, ["M_percept", "M_percept_group"])
+        g = make_networkx_graph(cbrinst, ["M-PATTERN", "M_percept", "M_percept_group", "M_ELRScenario_outcome"], ["M_ELRScenario", "M-ROOT"],
+                                include_inheritance_edges=False)
         fig, ax = plt.subplots(figsize=(10, 10))
 
         width_px = float(self.cbr_graph_frame.winfo_width())
@@ -323,8 +421,8 @@ class HotlineGUI:
         params = { k: v.get() for k, v in self.sliders.items() }
         params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
         params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
-        params["blue_elcbr"] = self.blue_elcbr
-        params["red_elcbr"] = self.red_elcbr
+        params["blue_elcbr"] = self.blue_elcbr if cbr_train or cbr_run else None
+        params["red_elcbr"] = self.red_elcbr if cbr_train or cbr_run else None
         params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
         params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
         params["blue_ladder_file"] = self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get()
