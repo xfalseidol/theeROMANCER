@@ -93,6 +93,7 @@ class Amygdala(ImprovedRomancerObject):
             filename = "amygdala.png"
 
         fig, ax1 = plt.subplots(figsize=(10, 6))
+        ax1.set_xlim([0, self.environment.time])
 
         ax1.plot(self.plot_time, self.plot_fight, label="Fight", color="r")
         ax1.plot(self.plot_time, self.plot_flight, label="Flight", color="g")

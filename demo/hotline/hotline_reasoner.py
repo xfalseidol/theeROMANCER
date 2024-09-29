@@ -175,6 +175,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
 
     def export_plot_resolve(self, filename=None):
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim([0, self.environment.time])
         my_resolve_x = [tup[0] for tup in self._plot_resolve]
         my_resolve_x.append(self.environment.time)
         my_resolve_y = [tup[1] for tup in self._plot_resolve]

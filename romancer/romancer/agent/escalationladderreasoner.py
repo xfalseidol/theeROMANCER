@@ -409,6 +409,7 @@ class EscalationLadderReasoner(Reasoner):
         if filename is None:
             filename = f"escalationladder{self.identity}.png"
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim([0, self.environment.time])
         ax.set_ylim(0, 3)
         actions_yval = 1
         plt.yticks([actions_yval], ["Actions"])
@@ -425,6 +426,7 @@ class EscalationLadderReasoner(Reasoner):
         if filename is None:
             filename = f"escalationladder{self.identity}.png"
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim([0, self.environment.time])
         # plt.figure(figsize=(10, 6))
         rung_labels = [rung.name for rung in self.escalation_ladder]
         show_ladder_y_axis = False
