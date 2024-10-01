@@ -199,7 +199,7 @@ class Amygdala(ImprovedRomancerObject):
 
     @staticmethod
     def short_desc():
-        return "Normal Amygdala"
+        return "Default Amygdala"
 
 
 ''' An Amygdala class that doesn't change over time'''
