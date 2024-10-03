@@ -88,14 +88,14 @@ class HotlineGUI:
 
         self.chartframe = ttk.Frame(self.output_notebook)
         self.cbr_frame = ttk.Frame(self.output_notebook)
-        self.about_frame = ttk.Frame(self.output_notebook)
+        self.about_rand_frame = ttk.Frame(self.output_notebook)
 
         self.output_notebook.add(self.chartframe, text="Run Charts")
         self.output_notebook.add(self.cbr_frame, text="CBR Training")
-        self.output_notebook.add(self.about_frame, text="About")
+        self.output_notebook.add(self.about_rand_frame, text="About RAND")
 
         self.cbr_graph_frame = self.add_cbr_gui(self.cbr_frame)
-        self.add_about_frame(self.about_frame)
+        self.add_about_rand_frame(self.about_rand_frame)
         self.output_notebook.pack(fill=tk.BOTH, expand=True)
 
         matplotlib_fontsize = 6
@@ -128,7 +128,7 @@ class HotlineGUI:
         self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
 
-    def add_about_frame(self, frame):
+    def add_about_rand_frame(self, frame):
         logofile = "./randlogo.png"
         if os.path.exists(logofile):
             img = tk.PhotoImage(file=logofile)
@@ -136,9 +136,15 @@ class HotlineGUI:
             label.image = img # Keep a refernce to avoid GC
             label.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
 
-        text_label = ttk.Label(frame, text="ROMANCER", font=("Helvetica", 24))
-        text_label.grid(row=0, column=1, sticky="sw", padx=5, pady=(0, 5))
-
+        about_rand = '''
+        About RAND
+        
+        RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous.
+        
+        RAND is nonprofit, nonpartisan, and committed to the public interest.
+        
+        To learn more about RAND, visit http://www.rand.org
+        '''
         text_frame = ttk.Frame(frame)
         text_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=5)
 
@@ -148,13 +154,8 @@ class HotlineGUI:
         scrollbar.config(command=text_widget.yview)
         scrollbar.pack(side="right", fill="y")
         text_widget.pack(side="left", fill="both", expand=True)
-
-        body_file = "../../README.md"
-        if os.path.exists(body_file):
-            with open(body_file, "r") as file:
-                markdown_text = file.read()
-                text_widget.insert(tk.END, markdown_text)
-
+        text_widget.insert(tk.END, about_rand)
+        text_widget.configure(state=tk.DISABLED)
         frame.columnconfigure(1, weight=1)
         frame.rowconfigure(1, weight=1)
 
