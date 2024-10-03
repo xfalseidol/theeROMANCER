@@ -27,6 +27,9 @@ class HotlineGUI:
     TK_BLUE = "light blue"
     TK_GREEN = "light green"
 
+    # Generally when a frame of inputs is configured as a grid, use this padding
+    INPUT_FRAME_PAD = 2
+
     def __init__(self):
         # Non-GUI objects
         self.red_ladder_file = "data/ladder.csv"
@@ -73,7 +76,7 @@ class HotlineGUI:
 
         slider_frame = ttk.Frame(self.controls_frame)
         self.create_amygdala_inputs(slider_frame)
-        self.create_stochastify_inputs(slider_frame)
+        # self.create_stochastify_inputs(slider_frame)
 
         # Status items for updating
         self.cbr_train_intval = tk.IntVar(value=0)
@@ -137,13 +140,13 @@ class HotlineGUI:
             label.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
 
         about_rand = '''
-        About RAND
+About RAND
         
-        RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous.
+RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous.
         
-        RAND is nonprofit, nonpartisan, and committed to the public interest.
+RAND is nonprofit, nonpartisan, and committed to the public interest.
         
-        To learn more about RAND, visit http://www.rand.org
+To learn more about RAND, visit http://www.rand.org
         '''
         text_frame = ttk.Frame(frame)
         text_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=5)
@@ -153,7 +156,7 @@ class HotlineGUI:
         text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
         scrollbar.config(command=text_widget.yview)
         scrollbar.pack(side="right", fill="y")
-        text_widget.pack(side="left", fill="both", expand=True)
+        text_widget.pack(side="left", fill="both", expand=True, padx=60, pady=60)
         text_widget.insert(tk.END, about_rand)
         text_widget.configure(state=tk.DISABLED)
         frame.columnconfigure(1, weight=1)
@@ -162,7 +165,7 @@ class HotlineGUI:
     def create_stochastify_inputs(self, slider_frame):
         frame = ttk.Frame(slider_frame, style = "StochastifyFrame.TFrame")
         slider_frame.grid_columnconfigure(2, weight=1)
-        frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew")
+        frame.grid(row=0, column=5, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, sticky="nsew")
 
         update_every_s = tk.IntVar(value=1)
         stochastify_checked = tk.IntVar(value=0)
@@ -186,45 +189,81 @@ class HotlineGUI:
 
 
     def create_amygdala_inputs(self, slider_frame):
-        slider_frame.grid(padx=5, pady=5, row=0, column=0)
+        slider_frame.grid(padx=1, pady=1, row=0, column=0)
 
-        blue_slider_frame = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
-        blue_slider_frame.grid(row=0, column=0, padx=5, pady=5)
+        blue_slider_frame_left = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
+        blue_slider_frame_left.grid(row=0, column=0, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
+        blue_slider_frame_right = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
+        blue_slider_frame_right.grid(row=0, column=1, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
 
-        red_slider_frame = ttk.Frame(slider_frame, style="RedFrame.TFrame")
-        red_slider_frame.grid(row=0, column=1, padx=5, pady=5)
+        red_slider_frame_left = ttk.Frame(slider_frame, style="RedFrame.TFrame")
+        red_slider_frame_left.grid(row=0, column=2, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
+        red_slider_frame_right = ttk.Frame(slider_frame, style="RedFrame.TFrame")
+        red_slider_frame_right.grid(row=0, column=3, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
 
-        blue_amyg_title = ttk.Label(blue_slider_frame, text="Blue Temperament", style="Blue.TLabel")
+        blue_amyg_title = ttk.Label(blue_slider_frame_left, text="Blue Temperament", style="Blue.TLabel")
         blue_amyg_row = 0
         blue_amyg_title.grid(row=blue_amyg_row, column=0, columnspan=3)
         blue_amyg_row += 1
 
-        self.create_slider(blue_slider_frame, "Blue Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        self.create_ladder_chooser(blue_slider_frame_left, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, blue_amyg_row)
         blue_amyg_row += 1
-        self.create_slider(blue_slider_frame, "Blue Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        self.create_amygdala_choice(blue_slider_frame_left, "Amygdala", self._BLUE_AMYG_COMBOKEY, blue_amyg_row, "Blue.TLabel")
         blue_amyg_row += 1
-        self.create_slider(blue_slider_frame, "Blue PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        self.create_slider(blue_slider_frame_left, "Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
         blue_amyg_row += 1
-        self.create_amygdala_choice(blue_slider_frame, "Blue Amygdala", self._BLUE_AMYG_COMBOKEY, blue_amyg_row, "Blue.TLabel")
+        self.create_slider(blue_slider_frame_left, "Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
         blue_amyg_row += 1
-        self.create_ladder_chooser(blue_slider_frame, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, blue_amyg_row)
+        self.create_slider(blue_slider_frame_left, "PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
         blue_amyg_row += 1
 
-        red_amyg_title = ttk.Label(red_slider_frame, text="Red Temperament", style="Red.TLabel")
+        blue_fff_title = ttk.Label(blue_slider_frame_right, text="Blue F/F/F", style="Blue.TLabel")
+        blue_fff_row = 0
+        blue_fff_title.grid(row=blue_fff_row, column=0, columnspan=3)
+        blue_fff_row += 1
+        blue_fff_node = ttk.Label(blue_slider_frame_right, text="(Default Amygdala Only)", style="Blue.TLabel")
+        blue_fff_node.grid(row=blue_fff_row, column=0, columnspan=3)
+        blue_fff_row += 1
+
+        self.create_slider(blue_slider_frame_right, "Initial Fight", "blue_initial_fight", 0.0, 1.0, 0.0, blue_fff_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        blue_fff_row += 1
+        self.create_slider(blue_slider_frame_right, "Initial Freeze", "blue_initial_freeze", 0.0, 1.0, 0.0, blue_fff_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        blue_fff_row += 1
+        self.create_slider(blue_slider_frame_right, "Initial Flight", "blue_initial_flight", 0.0, 1.0, 0.0, blue_fff_row, "Blue.TLabel", "Blue.Horizontal.TScale")
+        blue_fff_row += 1
+
+
+        red_amyg_title = ttk.Label(red_slider_frame_left, text="Red Temperament", style="Red.TLabel")
         red_amyg_row = 0
         red_amyg_title.grid(row=red_amyg_row, column=0, columnspan=3)
         red_amyg_row += 1
 
-        self.create_slider(red_slider_frame, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
+        self.create_ladder_chooser(red_slider_frame_left, self.red_ladder_file, self._RED_AMYG_COMBOKEY, red_amyg_row)
         red_amyg_row += 1
-        self.create_slider(red_slider_frame, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
+        self.create_amygdala_choice(red_slider_frame_left, "Red Amygdala", self._RED_AMYG_COMBOKEY, red_amyg_row, "Red.TLabel")
         red_amyg_row += 1
-        self.create_slider(red_slider_frame, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
+        self.create_slider(red_slider_frame_left, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
         red_amyg_row += 1
-        self.create_amygdala_choice(red_slider_frame, "Red Amygdala", self._RED_AMYG_COMBOKEY, red_amyg_row, "Red.TLabel")
+        self.create_slider(red_slider_frame_left, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
         red_amyg_row += 1
-        self.create_ladder_chooser(red_slider_frame, self.red_ladder_file, self._RED_AMYG_COMBOKEY, red_amyg_row)
+        self.create_slider(red_slider_frame_left, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
         red_amyg_row += 1
+
+        red_fff_title = ttk.Label(red_slider_frame_right, text="Red F/F/F", style="Red.TLabel")
+        red_fff_row = 0
+        red_fff_title.grid(row=red_fff_row, column=0, columnspan=3)
+        red_fff_row += 1
+        red_fff_note = ttk.Label(red_slider_frame_right, text="(Default Amygdala Only)", style="Red.TLabel")
+        red_fff_note.grid(row=red_fff_row, column=0, columnspan=3)
+        red_fff_row += 1
+
+        self.create_slider(red_slider_frame_right, "Initial Fight", "red_initial_fight", 0.0, 1.0, 0.0, red_fff_row, "Red.TLabel", "Red.Horizontal.TScale")
+        red_fff_row += 1
+        self.create_slider(red_slider_frame_right, "Initial Freeze", "red_initial_freeze", 0.0, 1.0, 0.0, red_fff_row, "Red.TLabel", "Red.Horizontal.TScale")
+        red_fff_row += 1
+        self.create_slider(red_slider_frame_right, "Initial Flight", "red_initial_flight", 0.0, 1.0, 0.0, red_fff_row, "Red.TLabel", "Red.Horizontal.TScale")
+        red_fff_row += 1
+
 
     def save_cbr_func(self):
         blue_sqlite = "blue_hotline_elcbr.sqlite"
@@ -290,7 +329,7 @@ class HotlineGUI:
     def create_ladder_chooser(self, parent_frame, default_file, name, grid_row):
         entry = ttk.Entry(parent_frame)
         entry.insert(0, default_file)
-        entry.grid(row=grid_row, column=1, sticky="ew", padx=5)
+        entry.grid(row=grid_row, column=1, sticky="ew", padx=self.INPUT_FRAME_PAD)
         self.ladder_entries[name] = entry
 
         def select_file():
@@ -311,7 +350,7 @@ class HotlineGUI:
                 self.run_hotline_guiparam()
 
         button = ttk.Button(parent_frame, text=f"Choose {name} Ladder", command=select_file)
-        button.grid(row=grid_row, column=0, padx=5, pady=5, sticky="e")
+        button.grid(row=grid_row, column=0, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, sticky="e")
 
 
     def create_amygdala_choice(self, parent_frame, label, name, grid_row, labelstyle):
@@ -319,12 +358,12 @@ class HotlineGUI:
         dropdown_var = tk.StringVar(value=dropdown_options[0])
         self.amygdala_combos[name] = dropdown_var
         combo_label = ttk.Label(parent_frame, text=label, style=labelstyle)
-        combo_label.grid(row=grid_row, column=0, padx=5, pady=5, sticky="e")
+        combo_label.grid(row=grid_row, column=0, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, sticky="e")
         dropdown = ttk.Combobox(parent_frame, textvariable=dropdown_var)
         dropdown['values'] = dropdown_options
         dropdown.set(dropdown_options[0])
         dropdown.bind("<<ComboboxSelected>>", self.on_slider_change)
-        dropdown.grid(row=grid_row, column=1, padx=5, pady=5, sticky="ew")
+        dropdown.grid(row=grid_row, column=1, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, sticky="ew")
 
     def canceltraining_click(self):
         self.cancel_training = True
@@ -370,14 +409,14 @@ class HotlineGUI:
 
     def create_slider(self, parent_frame, sliderlabel, slidername, slidermin, slidermax, sliderdefault, grid_x, labelstyle, sliderstyle):
         slider_label = ttk.Label(parent_frame, text=sliderlabel, style=labelstyle)
-        slider_label.grid(row=grid_x, column=0, padx=5, pady=5, sticky="e")
+        slider_label.grid(row=grid_x, column=0, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, sticky="e")
         slider = ttk.Scale(parent_frame, from_=slidermin, to=slidermax, orient="horizontal", style=sliderstyle)
         slider.set(sliderdefault)
-        slider.grid(row=grid_x, column=1, padx=5, pady=5, sticky="ew")
+        slider.grid(row=grid_x, column=1, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, sticky="ew")
         slider.bind("<ButtonRelease-1>", self.on_slider_change)
         slider.bind("<Motion>", self.update_slider_values)
         slider_value_label = ttk.Label(parent_frame, text=slider.get(), style=labelstyle)
-        slider_value_label.grid(row=grid_x, column=2, padx=5, pady=5, stick="w")
+        slider_value_label.grid(row=grid_x, column=2, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD, stick="w")
         self.slidervalues[slider] = slider_value_label
         self.sliders[slidername] = slider
 
@@ -429,7 +468,13 @@ class HotlineGUI:
         params["blue_ladder_file"] = self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get()
         params["red_ladder_file"] = self.ladder_entries[self._RED_AMYG_COMBOKEY].get()
 
-        run_hotline(**params)
+        def time_cb(time):
+            '''
+            This gets called as the simulation progresses
+            '''
+            pass
+
+        run_hotline(**params, time_cb=time_cb)
         self.render_graph(self.blue_elcbr)
         self.update_cbr_training_frame()
 
