@@ -47,7 +47,8 @@ def run_hotline(
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
         red_ladder_file = "data/ladder.csv",
 
-        time_cb = None
+        time_cb = None, # a callback that gets called every time the time moves
+        matplotlib_lock = None # matplotlib is very stateful indeed. If threading is required, one can pass the lock for matplotlib usage, here
     ):
 
     blue_action_lexicon, blue_ladder_rung_inp, blue_matching_rules, blue_actions, blue_deescalate_actions = load_ladder_inputs(blue_ladder_file, blue_mapping)
@@ -111,6 +112,9 @@ def run_hotline(
     engine = HotlinePerceptionEngine()
 
     env = SingleThreadEnvironment(supervisor=sup, disposition_tree=stump, perception_engine=engine)
+    if matplotlib_lock is not None:
+        env.matplotlib_lock = matplotlib_lock
+
     sup.environment = env
     engine.environment = env
 

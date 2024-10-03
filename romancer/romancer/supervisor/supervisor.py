@@ -1,5 +1,6 @@
 from romancer.supervisor.watchlist import Watchlist
 import numpy as np
+import time
 
 class Supervisor():
     '''This base class defines the interface that implementations of the supervisor should follow.'''
@@ -105,7 +106,10 @@ class Supervisor():
         while len(self.watchlist) > 0: # loop as long as watchlist items remain
             if self.time_cb is not None:
                 self.time_cb(self.environment.time)
+            time.sleep(0.0)
             self.process_inbox() # carry out housekeeping tasks if necessary
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_inbox() # carry out housekeeping tasks if necessary
             self.process_next_watchlist_item() # process next watchlist event
+        if self.time_cb is not None:
+            self.time_cb(None)

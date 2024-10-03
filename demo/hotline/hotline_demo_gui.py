@@ -1,9 +1,17 @@
+'''
+RAND ROMANCER Hotline Demo, GUI
+
+This is a limited front end to a single demo in ROMANCER,
+demonstrating several integration techiques.
+'''
+
 import os.path
 import threading
 
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
 from casebasedreasoner.escalationladderreasoner import EscalationLadderCBR
-from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite, make_networkx_graph
+from casebasedreasoner.util import export_cbr_sqlite, include_extra_csv_files_in_sqlite, make_networkx_graph, \
+    make_graphviz_graph
 
 from hotline_rules import ladder_csv_to_input_list
 from hotline_demo import run_hotline
@@ -31,6 +39,9 @@ class HotlineGUI:
     INPUT_FRAME_PAD = 2
 
     def __init__(self):
+        # for locking matplotlib
+        self.matplotlib_lock = threading.RLock()
+
         # Non-GUI objects
         self.red_ladder_file = "data/ladder.csv"
         self.blue_ladder_file = "data/ladder.csv"
@@ -91,6 +102,8 @@ class HotlineGUI:
         # Main outputs go into tabs
         self.output_notebook = ttk.Notebook(self.root)
 
+        # tkinter lets you overlay a canvas on another item
+
         self.chartframe = ttk.Frame(self.output_notebook)
         self.cbr_frame = ttk.Frame(self.output_notebook)
         self.about_rand_frame = ttk.Frame(self.output_notebook)
@@ -102,6 +115,11 @@ class HotlineGUI:
         self.cbr_graph_frame = self.add_cbr_gui(self.cbr_frame)
         self.add_about_rand_frame(self.about_rand_frame)
         self.output_notebook.pack(fill=tk.BOTH, expand=True)
+
+        self.progress_variable = tk.StringVar(value="")
+        progress_text = ttk.Label(self.root, textvariable=self.progress_variable)
+        progress_text.pack(pady=self.INPUT_FRAME_PAD, padx=self.INPUT_FRAME_PAD)
+
 
         matplotlib_fontsize = 6
         plt.rcParams.update({
@@ -252,12 +270,15 @@ To learn more about RAND, visit http://www.rand.org
         blue_sqlite = "blue_hotline_elcbr.sqlite"
         red_sqlite = "red_hotline_elcbr.sqlite"
 
-        export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
         blue_csvs = ladder_csv_to_input_list(self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get())
         include_extra_csv_files_in_sqlite(blue_sqlite, blue_csvs)
-        export_cbr_sqlite(self.red_elcbr, red_sqlite)
+        export_cbr_sqlite(self.blue_elcbr, blue_sqlite)
         red_csvs = ladder_csv_to_input_list(self.ladder_entries[self._RED_AMYG_COMBOKEY].get())
         include_extra_csv_files_in_sqlite(red_sqlite, red_csvs)
+        export_cbr_sqlite(self.red_elcbr, red_sqlite)
+
+        make_graphviz_graph(self.blue_elcbr, "blue_elcbr.dot")
+        make_graphviz_graph(self.red_elcbr, "red_elcbr.dot")
 
 
     def add_cbr_gui(self, parent_frame):
@@ -452,31 +473,42 @@ To learn more about RAND, visit http://www.rand.org
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         plt.close()
 
-    def run_hotline_guiparam(self):
-        self.n_charts = 0
-        cbr_train = True if self.cbr_train_intval and self.cbr_train_intval.get()>0 else False
-        cbr_run = True if self.cbr_run_intval and self.cbr_run_intval.get()>0 else False
-        params = { k: v.get() for k, v in self.sliders.items() }
-        params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
-        params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
-        params["blue_elcbr"] = self.blue_elcbr if cbr_train or cbr_run else None
-        params["red_elcbr"] = self.red_elcbr if cbr_train or cbr_run else None
-        params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
-        params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
-        params["blue_ladder_file"] = self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get()
-        params["red_ladder_file"] = self.ladder_entries[self._RED_AMYG_COMBOKEY].get()
+    def run_hotline_guiparam(self, run_threaded=False):
+        def do():
+            self.n_charts = 0
+            cbr_train = True if self.cbr_train_intval and self.cbr_train_intval.get()>0 else False
+            cbr_run = True if self.cbr_run_intval and self.cbr_run_intval.get()>0 else False
+            params = { k: v.get() for k, v in self.sliders.items() }
+            params["red_amyg"] = self.amygdala_choices[self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()]
+            params["blue_amyg"] = self.amygdala_choices[self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()]
+            params["blue_elcbr"] = self.blue_elcbr if cbr_train or cbr_run else None
+            params["red_elcbr"] = self.red_elcbr if cbr_train or cbr_run else None
+            params["red_train_elcbr"] = params["blue_train_elcbr"] = cbr_train
+            params["red_run_elcbr"] = params["blue_run_elcbr"] = cbr_run
+            params["blue_ladder_file"] = self.ladder_entries[self._BLUE_AMYG_COMBOKEY].get()
+            params["red_ladder_file"] = self.ladder_entries[self._RED_AMYG_COMBOKEY].get()
 
-        def time_cb(time):
-            '''
-            This gets called as the simulation progresses
-            '''
-            pass
+            def time_cb(time):
+                '''
+                This gets called as the simulation progresses
+                '''
+                if time is None:
+                    self.progress_variable.set(f"Complete")
+                else:
+                    self.progress_variable.set(f"T={time}")
 
-        run_hotline(**params, time_cb=time_cb)
-        self.render_graph(self.blue_elcbr)
-        self.update_cbr_training_frame()
+            run_hotline(**params, time_cb=time_cb, matplotlib_lock=self.matplotlib_lock)
+            self.render_graph(self.blue_elcbr)
+            self.update_cbr_training_frame()
+
+        if run_threaded:
+            thread = threading.Thread(target=do)
+            thread.start()
+        else:
+            do()
 
     def hotline_show(self):
+        self.matplotlib_lock.acquire()
         fig = plt.gcf()
         # Four charts high, two wide
         width_px = float(self.chartframe.winfo_width()) / self.CHARTS_ACROSS
@@ -513,6 +545,7 @@ To learn more about RAND, visit http://www.rand.org
             self.canvases[self.n_charts].get_tk_widget().config(width=width_px, height=height_px)
             self.canvases[self.n_charts].draw()
         self.n_charts += 1
+        self.matplotlib_lock.release()
 
 
 if __name__ == "__main__":
