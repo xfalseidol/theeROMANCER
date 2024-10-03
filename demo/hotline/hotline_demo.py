@@ -36,11 +36,13 @@ red_mapping = { "Self": "Red", "Adversary": "Blue"}
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
         blue_initial_fight = 0.0, blue_initial_flight = 0.0, blue_initial_freeze = 0.8,
+        blue_weight_fight = 1.0, blue_weight_flight = 1.0, blue_weight_freeze = 1.0,
         blue_initial_pbf = 0.3, blue_pbf_halflife = 10000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
         blue_ladder_file = "data/ladder.csv",
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
+        red_weight_fight = 1.0, red_weight_flight = 1.0, red_weight_freeze = 1.0,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
         red_ladder_file = "data/ladder.csv",
@@ -121,6 +123,9 @@ def run_hotline(
         red_amygdala.set_response_values(initial_fight = red_initial_fight,
                                      initial_flight = red_initial_flight,
                                      initial_freeze = red_initial_freeze)
+        red_amygdala.set_weights(fight_weight=red_weight_fight,
+                                 flight_weight=red_weight_flight,
+                                 freeze_weight=red_weight_freeze)
     red_amygdala.set_pbf(initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife,
                      max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
 
@@ -153,6 +158,9 @@ def run_hotline(
         blue_amygdala.set_response_values(initial_fight = blue_initial_fight,
                                      initial_flight = blue_initial_flight,
                                      initial_freeze = blue_initial_freeze)
+        blue_amygdala.set_weights(fight_weight=blue_weight_fight,
+                                 flight_weight=blue_weight_flight,
+                                 freeze_weight=blue_weight_freeze)
     blue_amygdala.set_pbf(initial_pbf = blue_initial_pbf, pbf_halflife = blue_pbf_halflife,
                      max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold)
 

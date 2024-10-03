@@ -51,6 +51,8 @@ class HotlineGUI:
         self.root.wm_minsize(1024, 768)
 
         style = ttk.Style()
+        style.configure("BlueNotebook.TNotebook", background=self.TK_BLUE)
+        style.configure("RedNotebook.TNotebook", background=self.TK_RED)
         style.configure("BlueFrame.TFrame", background=self.TK_BLUE)
         style.configure("RedFrame.TFrame", background=self.TK_RED)
         style.configure("Blue.TLabel", background=self.TK_BLUE)
@@ -187,82 +189,63 @@ To learn more about RAND, visit http://www.rand.org
         run_check = ttk.Checkbutton(frame, text="Stochastify", variable=stochastify_checked, command=run_stochastify, style="Stochastify.TCheckbutton")
         run_check.pack()
 
+    def create_amygdala_inputs_side(self, slider_frame, prefix_upper, prefix_lower, ladder_file, amyg_combokey):
+        slider_frame_left = ttk.Frame(slider_frame, style=f"{prefix_upper}Frame.TFrame")
+        slider_frame_left.pack(side=tk.LEFT, padx=(20, self.INPUT_FRAME_PAD), pady=self.INPUT_FRAME_PAD)
+        slider_frame_right = ttk.Frame(slider_frame, style=f"{prefix_upper}Frame.TFrame")
+        slider_frame_right.pack(side=tk.LEFT, padx=(self.INPUT_FRAME_PAD, 20), pady=self.INPUT_FRAME_PAD)
+
+        fff_title = ttk.Label(slider_frame_right, text=f"{prefix_upper} F/F/F", style=f"{prefix_upper}.TLabel")
+        fff_title.pack(padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
+        fff_node = ttk.Label(slider_frame_right, text="(Default Amygdala Only)", style=f"{prefix_upper}.TLabel")
+        fff_node.pack(padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
+
+        fff_notebook = ttk.Notebook(slider_frame_right)
+
+        fff_initial_frame = ttk.Frame(fff_notebook, style=f"{prefix_upper}Frame.TFrame")
+        fff_weights_frame = ttk.Frame(fff_notebook, style=f"{prefix_upper}Frame.TFrame")
+
+        fff_notebook.add(fff_initial_frame, text="Initial F/F/F")
+        fff_notebook.add(fff_weights_frame, text="F/F/F Weights")
+
+        fff_notebook.pack(fill=tk.BOTH, expand=True)
+
+        amyg_title = ttk.Label(slider_frame_left, text=f"{prefix_upper} Temperament", style=f"{prefix_upper}.TLabel")
+        amyg_row = 0
+        amyg_title.grid(row=amyg_row, column=0, columnspan=3)
+        amyg_row += 1
+
+        self.create_ladder_chooser(slider_frame_left, ladder_file, amyg_combokey, amyg_row)
+        amyg_row += 1
+        self.create_amygdala_choice(slider_frame_left, "Amygdala", amyg_combokey, amyg_row, f"{prefix_upper}.TLabel")
+        amyg_row += 1
+        self.create_slider(slider_frame_left, "Response Threshold", f"{prefix_lower}_response_threshhold", 0.0, 1.0, 0.2, amyg_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        amyg_row += 1
+        self.create_slider(slider_frame_left, "Initial PBF", f"{prefix_lower}_initial_pbf", 0.0, 1.0, 0.001, amyg_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        amyg_row += 1
+        self.create_slider(slider_frame_left, "PBF Halflife", f"{prefix_lower}_pbf_halflife", 0.0, 100000.0, 38400, amyg_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        amyg_row += 1
+
+        fff_row = 0
+        self.create_slider(fff_initial_frame, "Initial Fight", f"{prefix_lower}_initial_fight", 0.0, 1.0, 0.0, fff_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        fff_row += 1
+        self.create_slider(fff_initial_frame, "Initial Freeze", f"{prefix_lower}_initial_freeze", 0.0, 1.0, 0.0, fff_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        fff_row += 1
+        self.create_slider(fff_initial_frame, "Initial Flight", f"{prefix_lower}_initial_flight", 0.0, 1.0, 0.0, fff_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+
+        fff_weight_row = 0
+        self.create_slider(fff_weights_frame, "Fight Weight", f"{prefix_lower}_weight_fight", 0.0, 1.0, 1.0, fff_weight_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        fff_weight_row += 1
+        self.create_slider(fff_weights_frame, "Freeze Weight", f"{prefix_lower}_weight_freeze", 0.0, 1.0, 1.0, fff_weight_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
+        fff_weight_row += 1
+        self.create_slider(fff_weights_frame, "Flight Weight", f"{prefix_lower}_weight_flight", 0.0, 1.0, 1.0, fff_weight_row, f"{prefix_upper}.TLabel", f"{prefix_upper}.Horizontal.TScale")
 
     def create_amygdala_inputs(self, slider_frame):
         slider_frame.grid(padx=1, pady=1, row=0, column=0)
 
-        blue_slider_frame_left = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
-        blue_slider_frame_left.grid(row=0, column=0, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
-        blue_slider_frame_right = ttk.Frame(slider_frame, style="BlueFrame.TFrame")
-        blue_slider_frame_right.grid(row=0, column=1, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
+        self.create_amygdala_inputs_side(slider_frame, "Blue", "blue", self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY)
+        self.create_amygdala_inputs_side(slider_frame, "Red", "red", self.red_ladder_file, self._RED_AMYG_COMBOKEY)
 
-        red_slider_frame_left = ttk.Frame(slider_frame, style="RedFrame.TFrame")
-        red_slider_frame_left.grid(row=0, column=2, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
-        red_slider_frame_right = ttk.Frame(slider_frame, style="RedFrame.TFrame")
-        red_slider_frame_right.grid(row=0, column=3, padx=self.INPUT_FRAME_PAD, pady=self.INPUT_FRAME_PAD)
-
-        blue_amyg_title = ttk.Label(blue_slider_frame_left, text="Blue Temperament", style="Blue.TLabel")
-        blue_amyg_row = 0
-        blue_amyg_title.grid(row=blue_amyg_row, column=0, columnspan=3)
-        blue_amyg_row += 1
-
-        self.create_ladder_chooser(blue_slider_frame_left, self.blue_ladder_file, self._BLUE_AMYG_COMBOKEY, blue_amyg_row)
-        blue_amyg_row += 1
-        self.create_amygdala_choice(blue_slider_frame_left, "Amygdala", self._BLUE_AMYG_COMBOKEY, blue_amyg_row, "Blue.TLabel")
-        blue_amyg_row += 1
-        self.create_slider(blue_slider_frame_left, "Response Threshold", "blue_response_threshhold", 0.0, 1.0, 0.2, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
-        blue_amyg_row += 1
-        self.create_slider(blue_slider_frame_left, "Initial PBF", "blue_initial_pbf", 0.0, 1.0, 0.001, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
-        blue_amyg_row += 1
-        self.create_slider(blue_slider_frame_left, "PBF Halflife", "blue_pbf_halflife", 0.0, 100000.0, 38400, blue_amyg_row, "Blue.TLabel", "Blue.Horizontal.TScale")
-        blue_amyg_row += 1
-
-        blue_fff_title = ttk.Label(blue_slider_frame_right, text="Blue F/F/F", style="Blue.TLabel")
-        blue_fff_row = 0
-        blue_fff_title.grid(row=blue_fff_row, column=0, columnspan=3)
-        blue_fff_row += 1
-        blue_fff_node = ttk.Label(blue_slider_frame_right, text="(Default Amygdala Only)", style="Blue.TLabel")
-        blue_fff_node.grid(row=blue_fff_row, column=0, columnspan=3)
-        blue_fff_row += 1
-
-        self.create_slider(blue_slider_frame_right, "Initial Fight", "blue_initial_fight", 0.0, 1.0, 0.0, blue_fff_row, "Blue.TLabel", "Blue.Horizontal.TScale")
-        blue_fff_row += 1
-        self.create_slider(blue_slider_frame_right, "Initial Freeze", "blue_initial_freeze", 0.0, 1.0, 0.0, blue_fff_row, "Blue.TLabel", "Blue.Horizontal.TScale")
-        blue_fff_row += 1
-        self.create_slider(blue_slider_frame_right, "Initial Flight", "blue_initial_flight", 0.0, 1.0, 0.0, blue_fff_row, "Blue.TLabel", "Blue.Horizontal.TScale")
-        blue_fff_row += 1
-
-
-        red_amyg_title = ttk.Label(red_slider_frame_left, text="Red Temperament", style="Red.TLabel")
-        red_amyg_row = 0
-        red_amyg_title.grid(row=red_amyg_row, column=0, columnspan=3)
-        red_amyg_row += 1
-
-        self.create_ladder_chooser(red_slider_frame_left, self.red_ladder_file, self._RED_AMYG_COMBOKEY, red_amyg_row)
-        red_amyg_row += 1
-        self.create_amygdala_choice(red_slider_frame_left, "Red Amygdala", self._RED_AMYG_COMBOKEY, red_amyg_row, "Red.TLabel")
-        red_amyg_row += 1
-        self.create_slider(red_slider_frame_left, "Red Response Threshold", "red_response_threshhold", 0.0, 1.0, 0.7, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
-        red_amyg_row += 1
-        self.create_slider(red_slider_frame_left, "Red Initial PBF", "red_initial_pbf", 0.0, 1.0, 0.001, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
-        red_amyg_row += 1
-        self.create_slider(red_slider_frame_left, "Red PBF Halflife", "red_pbf_halflife", 0.0, 100000.0, 38400, red_amyg_row, "Red.TLabel", "Red.Horizontal.TScale")
-        red_amyg_row += 1
-
-        red_fff_title = ttk.Label(red_slider_frame_right, text="Red F/F/F", style="Red.TLabel")
-        red_fff_row = 0
-        red_fff_title.grid(row=red_fff_row, column=0, columnspan=3)
-        red_fff_row += 1
-        red_fff_note = ttk.Label(red_slider_frame_right, text="(Default Amygdala Only)", style="Red.TLabel")
-        red_fff_note.grid(row=red_fff_row, column=0, columnspan=3)
-        red_fff_row += 1
-
-        self.create_slider(red_slider_frame_right, "Initial Fight", "red_initial_fight", 0.0, 1.0, 0.0, red_fff_row, "Red.TLabel", "Red.Horizontal.TScale")
-        red_fff_row += 1
-        self.create_slider(red_slider_frame_right, "Initial Freeze", "red_initial_freeze", 0.0, 1.0, 0.0, red_fff_row, "Red.TLabel", "Red.Horizontal.TScale")
-        red_fff_row += 1
-        self.create_slider(red_slider_frame_right, "Initial Flight", "red_initial_flight", 0.0, 1.0, 0.0, red_fff_row, "Red.TLabel", "Red.Horizontal.TScale")
-        red_fff_row += 1
 
 
     def save_cbr_func(self):
@@ -429,7 +412,22 @@ To learn more about RAND, visit http://www.rand.org
         for slider in self.slidervalues:
             self.slidervalues[slider].config(text=f"{slider.get():.2f}")
 
+    def enable_disable_sliders(self):
+        blue_default_sliders = [f"blue_{cat}_{fff}" for fff in ["fight", "freeze", "flight"] for cat in ["weight", "initial"]]
+        curr_blue_amyg = self.amygdala_combos[self._BLUE_AMYG_COMBOKEY].get()
+        blue_new_state = tk.NORMAL if "Default" in curr_blue_amyg else tk.DISABLED
+        for slidername in blue_default_sliders:
+            self.sliders[slidername].config(state=blue_new_state)
+
+        red_default_sliders = [f"red_{cat}_{fff}" for fff in ["fight", "freeze", "flight"] for cat in ["weight", "initial"]]
+        curr_red_amyg = self.amygdala_combos[self._RED_AMYG_COMBOKEY].get()
+        red_new_state = tk.NORMAL if "Default" in curr_red_amyg else tk.DISABLED
+        for slidername in red_default_sliders:
+            self.sliders[slidername].config(state=red_new_state)
+
+
     def on_slider_change(self, event):
+        self.enable_disable_sliders()
         self.run_hotline_guiparam()
 
     def mainloop(self):
