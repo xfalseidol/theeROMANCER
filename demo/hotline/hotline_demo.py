@@ -43,7 +43,9 @@ def run_hotline(
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
-        red_ladder_file = "data/ladder.csv"
+        red_ladder_file = "data/ladder.csv",
+
+        time_cb = None
     ):
 
     blue_action_lexicon, blue_ladder_rung_inp, blue_matching_rules, blue_actions, blue_deescalate_actions = load_ladder_inputs(blue_ladder_file, blue_mapping)
@@ -74,7 +76,7 @@ def run_hotline(
 
     start_time = 0.0
 
-    sup = SingleThreadSupervisor()
+    sup = SingleThreadSupervisor(time_cb=time_cb)
     # Step 1.2: Configure logger
     def hotline_logger(s):
         print(s)
@@ -115,7 +117,7 @@ def run_hotline(
         red_amyg_class = Amygdala
     red_amygdala = red_amyg_class(environment = env, time = env.time, name="Red")
     # Only take these if an amygdala class hasn't been specified [because specifying usually means archetype]
-    if red_amyg is None:
+    if red_amyg is None or "Default" in red_amygdala.short_desc():
         red_amygdala.set_response_values(initial_fight = red_initial_fight,
                                      initial_flight = red_initial_flight,
                                      initial_freeze = red_initial_freeze)
@@ -147,7 +149,7 @@ def run_hotline(
         blue_amyg_class = Amygdala
     # Only take these if an amygdala class hasn't been specified [because specifying usually means archetype]
     blue_amygdala = blue_amyg_class(environment = env, time = env.time, name="Blue")
-    if blue_amyg is None:
+    if blue_amyg is None or "Default" in blue_amygdala.short_desc():
         blue_amygdala.set_response_values(initial_fight = blue_initial_fight,
                                      initial_flight = blue_initial_flight,
                                      initial_freeze = blue_initial_freeze)
