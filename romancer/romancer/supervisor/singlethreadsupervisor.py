@@ -299,8 +299,8 @@ def attempt_anticipated_disposition_change(sup, message):
 class SingleThreadSupervisor(Supervisor):
 
 
-    def __init__(self, environment=None, random_seed=12345):
-        super().__init__(environment, random_seed)
+    def __init__(self, environment=None, random_seed=12345, time_cb=None):
+        super().__init__(environment, random_seed, time_cb=time_cb)
         self.paused = False # is supervisor currently paused?
         self.check_for_percepts = False # flag indicating whether percept-generating event may have occured
         self.dispatch_table = {'AttemptActivateECM': attempt_activate_ecm,
@@ -415,5 +415,8 @@ class SingleThreadSupervisor(Supervisor):
         while len(self.watchlist) > 0 and not self.paused: # loop as long as watchlist items remain and self.paused is False
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_next_watchlist_item() # process next watchlist event
+            if self.time_cb is not None:
+                self.time_cb(self.environment.time)
             time.sleep(0.001) # Let other threads have a bite of the CPU [eg a GUI that needs updating]
+        self.time_cb(None)
         self.environment.finalise()

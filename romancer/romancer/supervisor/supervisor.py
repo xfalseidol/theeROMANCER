@@ -1,12 +1,14 @@
 from romancer.supervisor.watchlist import Watchlist
 import numpy as np
+import time
 
 class Supervisor():
     '''This base class defines the interface that implementations of the supervisor should follow.'''
 
-    def __init__(self, environment=None, random_seed=12345):
+    def __init__(self, environment=None, random_seed=12345, time_cb=None):
         self.rng = np.random.default_rng(random_seed) # random number generator permits reproducible model runs
         self.environment = environment
+        self.time_cb = time_cb  # a callback to call anytime the time changes
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
         self.uid = 1 # supervisor always has id of 1
@@ -102,7 +104,12 @@ class Supervisor():
 
     def run(self):
         while len(self.watchlist) > 0: # loop as long as watchlist items remain
+            if self.time_cb is not None:
+                self.time_cb(self.environment.time)
+            time.sleep(0.0)
             self.process_inbox() # carry out housekeeping tasks if necessary
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_inbox() # carry out housekeeping tasks if necessary
             self.process_next_watchlist_item() # process next watchlist event
+        if self.time_cb is not None:
+            self.time_cb(None)

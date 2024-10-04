@@ -58,14 +58,10 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
     fname = filename if filename else "cbr.dot"
     g.append(f"// dot -Kfdp -Tpng -o{fname}.png {fname}")
     g.extend(["digraph G {", "splines=true", "overlap=false"])
-    mopname_to_nodename = {}
-    curr_nodeid = 0
     moptype_to_color = {"mop": "red", "instance": "green"}
 
-    for mopname in cbrinst.mops:  # Generate graphviz table ids first
-        curr_nodename = "n" + str(curr_nodeid)
-        mopname_to_nodename[mopname] = curr_nodename
-        curr_nodeid += 1
+    def nodename(mopname):
+        return f"n{cbrinst.mops[mopname].create_seq}"
 
     slot_edges = []
     core_mop_nodes = []
@@ -75,7 +71,7 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
     for mopname in cbrinst.mops:
         # print("Nodes for " + str(mopname))
         this_mop = cbrinst.mops[mopname]
-        curr_nodename = mopname_to_nodename[mopname]
+        curr_nodename = nodename(mopname)
 
         thismop_color = moptype_to_color[this_mop.mop_type]
         thislabel = [
@@ -93,9 +89,9 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
             val_s = "lambda" if callable(val) else str(val)
             slotnum = slotnum + 1
             thislabel.append(f"<tr><td>{slotname}</td><td id=\"s{str(slotnum)}\">{val_s}</td></tr>")
-            if val_s in mopname_to_nodename:
+            if val_s in cbrinst.mops:
                 slot_edges.append(
-                    f" {curr_nodename}:s{str(slotnum)} -> {mopname_to_nodename[val_s]}:n [color=\"black\"]")
+                    f" {curr_nodename}:s{str(slotnum)} -> {nodename(val_s)}:n [color=\"black\"]")
 
         thislabel.append(f"</table>")
         l = "".join(thislabel)
@@ -125,19 +121,22 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
         for mopname in cbrinst.mops:
             # print("Edges for " + str(mopname))
             this_mop = cbrinst.mops[mopname]
-            nodename = mopname_to_nodename[mopname]
             for abst in this_mop.absts:
-                if abst.mop_name not in mopname_to_nodename:
+                this_abst = abst
+                if isinstance(this_abst, str):
+                    this_abst = cbrinst.mops[this_abst]
+
+                if this_abst.mop_name not in cbrinst.mops:
                     print("Weird. No node named " + abst.mop_name)
                     continue
                 # print(f"    abst {abst}")
-                g.append(f" {nodename}:n -> {mopname_to_nodename[abst.mop_name]}:n [color=\"orange\"]")
+                g.append(f" {nodename(mopname)}:n -> {nodename(this_abst.mop_name)}:n [color=\"orange\"]")
             for spec in this_mop.specs:
-                if spec.mop_name not in mopname_to_nodename:
+                if spec.mop_name not in cbrinst.mops:
                     print("Weird. No node named " + spec.mop_name)
                     continue
                 # print(f"    spec {spec}")
-                g.append(f" {nodename}:n -> {mopname_to_nodename[spec.mop_name]}:n [color=\"blue\"]")
+                g.append(f" {nodename(mopname)}:n -> {nodename(spec.mop_name)}:n [color=\"blue\"]")
 
     if include_slot_edges:
         g.append("\n".join(slot_edges))
@@ -148,6 +147,7 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
     if filename is not None:
         with open(filename, "w") as out_dot:
             out_dot.write(dot)
+            print(f"Wrote graphviz file {filename}")
 
     return dot
 
