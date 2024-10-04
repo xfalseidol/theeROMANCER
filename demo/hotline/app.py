@@ -2,11 +2,20 @@ from shiny import App, reactive, render, ui
 from shiny.types import ImgData
 
 from hotline_demo import run_hotline
+from romancer.agent.amygdala import all_amygdala_archetypes
 import matplotlib.pyplot as plt
 import os
 import tempfile
 
+# Matplotlib needs inches. This is how many of those.
 img_width_shiny = 4
+
+amygdala_choices = {a.short_desc(): a for a in all_amygdala_archetypes}
+ladders = {
+    "Default": "data/ladder.csv",
+    "4 Rung": "data/four_rungs.csv"
+}
+
 app_ui = ui.page_fillable(
     ui.tags.style(
         '''
@@ -37,14 +46,18 @@ app_ui = ui.page_fillable(
                 ui.p("Blue Temperament"),
                 ui.input_slider("blue_response_threshold", "Response Threshold:", min=0, max=100, value=20),
                 ui.input_slider("blue_initial_pbf", "Initial PBF:", min=0, max=100, value=2),
-                ui.input_slider("blue_pbf_halflife", "PBF Halflife (days):", min=0, max=5, value=1)
+                ui.input_slider("blue_pbf_halflife", "PBF Halflife (days):", min=0, max=5, value=1),
+                ui.input_select("blue_amygdala", "Amygdala Archetype", choices=list(amygdala_choices.keys())),
+                ui.input_select("blue_ladder", "Escalation Ladder", choices=list(ladders.keys()))
             ),
             ui.card(
                 ui.p("Red Temperament"),
                 {"class": "card card-red"},
                 ui.input_slider("red_response_threshold", "Response Threshold:", min=0, max=100, value=70),
                 ui.input_slider("red_initial_pbf", "Initial PBF:", min=0, max=100, value=2),
-                ui.input_slider("red_pbf_halflife", "PBF Halflife (days):", min=0, max=3, value=1)
+                ui.input_slider("red_pbf_halflife", "PBF Halflife (days):", min=0, max=3, value=1),
+                ui.input_select("red_amygdala", "Amygdala Archetype", choices=list(amygdala_choices.keys())),
+                ui.input_select("red_ladder", "Escalation Ladder", choices=list(ladders.keys()))
             )
         ),
         ui.layout_column_wrap(
@@ -82,12 +95,22 @@ def server(input, output, session):
         blue_initial_pbf = session.input["blue_initial_pbf"]() / 100.0
         blue_pbf_halflife = session.input["blue_pbf_halflife"]() * 38400
         blue_response_threshold = session.input["blue_response_threshold"]() / 100.0
+        blue_amygdala_name = session.input["blue_amygdala"]()
+        blue_amygdala = amygdala_choices[blue_amygdala_name]
+        blue_ladder = ladders[session.input["blue_ladder"]()]
 
         red_initial_pbf = session.input["red_initial_pbf"]() / 100.0
         red_pbf_halflife = session.input["red_pbf_halflife"]() * 38400
         red_response_threshold = session.input["red_response_threshold"]() / 100.0
+        red_amygdala_name = session.input["red_amygdala"]()
+        red_amygdala = amygdala_choices[red_amygdala_name]
+        red_ladder = ladders[session.input["red_ladder"]()]
+
         run_hotline(blue_initial_pbf=blue_initial_pbf, blue_pbf_halflife=blue_pbf_halflife, blue_response_threshhold=blue_response_threshold,
-                    red_initial_pbf=red_initial_pbf, red_pbf_halflife=red_pbf_halflife, red_response_threshhold=red_response_threshold)
+                    blue_amyg=blue_amygdala, blue_ladder_file=blue_ladder,
+                    red_initial_pbf=red_initial_pbf, red_pbf_halflife=red_pbf_halflife, red_response_threshhold=red_response_threshold,
+                    red_amyg=red_amygdala, red_ladder_file=red_ladder
+                    )
 
     @reactive.effect
     def _():
@@ -96,7 +119,7 @@ def server(input, output, session):
     matplotlib_fontsize = 6.5
     plt.rcParams.update({
         "font.size": matplotlib_fontsize,
-        "axes.titlesize": matplotlib_fontsize,
+        "axes.titlesize": matplotlib_fontsize + 2,
         "axes.labelsize": matplotlib_fontsize,
         "xtick.labelsize": matplotlib_fontsize,
         "ytick.labelsize": matplotlib_fontsize,
@@ -112,7 +135,8 @@ def server(input, output, session):
         #   or without accessing members with underscore prefixes
         inputs = []
         for side in ["blue", "red"]:
-            inputs.extend([f"{side}_initial_pbf", f"{side}_pbf_halflife", f"{side}_response_threshold"])
+            inputs.extend([f"{side}_initial_pbf", f"{side}_pbf_halflife", f"{side}_response_threshold",
+                           f"{side}_amygdala", f"{side}_ladder"])
         _ = [session.input[q]() for q in inputs]
 
     @output
