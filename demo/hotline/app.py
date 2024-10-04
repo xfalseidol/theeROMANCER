@@ -108,7 +108,9 @@ def server(input, output, session):
         run_hotline(blue_initial_pbf=blue_initial_pbf, blue_pbf_halflife=blue_pbf_halflife, blue_response_threshhold=blue_response_threshold,
                     blue_amyg=blue_amygdala, blue_ladder_file=blue_ladder,
                     red_initial_pbf=red_initial_pbf, red_pbf_halflife=red_pbf_halflife, red_response_threshhold=red_response_threshold,
-                    red_amyg=red_amygdala, red_ladder_file=red_ladder
+                    red_amyg=red_amygdala, red_ladder_file=red_ladder,
+                    blue_initial_fight = 0.0, blue_initial_flight = 0.0, blue_initial_freeze = 0.0,
+                    red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.0
                     )
 
     @reactive.effect
