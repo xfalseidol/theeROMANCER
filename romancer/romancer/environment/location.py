@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from types import NoneType
 from numpy import sin, cos, arctan2, arcsin, arccos, pi, sqrt, rad2deg
 import math
 
@@ -173,7 +172,7 @@ class GeographicLocation:
 class StationaryGeographicLocation(GeographicLocation):
     latitude: float # in radians, -pi ... pi, equator = 0
     longitude: float # in radians, -pi ... pi, Prime Meridian = 0
-    bearing: NoneType = None # stationary location lacks bearing
+    bearing: None # stationary location lacks bearing
     
     def destination_point(self, distance):
         '''Throws an error as StationaryGeographicLocation cannot move and lacks a bearing.'''
