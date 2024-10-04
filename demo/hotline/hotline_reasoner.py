@@ -174,7 +174,9 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         self._plot_perceived_resolve.append((self.time, self.perceived_adversary_resolve) )
 
     def export_plot_resolve(self, filename=None):
+        self.environment.matplotlib_lock.acquire()
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim([0, self.environment.time])
         my_resolve_x = [tup[0] for tup in self._plot_resolve]
         my_resolve_x.append(self.environment.time)
         my_resolve_y = [tup[1] for tup in self._plot_resolve]
@@ -197,6 +199,7 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
             plt.savefig(filename)
         plt.show()
         plt.close()
+        self.environment.matplotlib_lock.release()
 
     def export_plot(self):
         filename = self.identity + "_resolve.png"

@@ -408,7 +408,10 @@ class EscalationLadderReasoner(Reasoner):
     def plot_timeline(self, filename, title):
         if filename is None:
             filename = f"escalationladder{self.identity}.png"
+
+        self.environment.matplotlib_lock.acquire()
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim([0, self.environment.time])
         ax.set_ylim(0, 3)
         actions_yval = 1
         plt.yticks([actions_yval], ["Actions"])
@@ -420,11 +423,15 @@ class EscalationLadderReasoner(Reasoner):
         plt.legend()
         plt.show()
         plt.close()
+        self.environment.matplotlib_lock.release()
 
     def plot_ladder(self, filename, title):
         if filename is None:
             filename = f"escalationladder{self.identity}.png"
+
+        self.environment.matplotlib_lock.acquire()
         fig, ax = plt.subplots(figsize=(10, 6))
+        ax.set_xlim([0, self.environment.time])
         # plt.figure(figsize=(10, 6))
         rung_labels = [rung.name for rung in self.escalation_ladder]
         show_ladder_y_axis = False
@@ -456,6 +463,7 @@ class EscalationLadderReasoner(Reasoner):
         # plt.savefig(filename)
         plt.show()
         plt.close()
+        self.environment.matplotlib_lock.release()
 
     def visualise_final(self):
         super().visualise_final()

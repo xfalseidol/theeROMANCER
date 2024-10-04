@@ -1,4 +1,6 @@
 # from dispositiontree import 1DimensionalDispositionTree
+import threading
+
 import numpy as np
 
 class Environment():
@@ -18,6 +20,8 @@ class Environment():
         self.message_dispatch_table = dict() # dict used to map object ids to references--used for delivering messages
         self.dispatch_table = {} # dict of functions for processing messages
         self.graveyard = list() # respository for items that have been removed from environment; used for reconstructing simulation history
+
+        self.matplotlib_lock = threading.RLock() # Matplotlib is exceptionally stateful, which causes problems when threading.
         
 
     def new_message_index(self):

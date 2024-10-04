@@ -17,16 +17,29 @@ out of this model.
 ## Quick Start
 
 To quickly see ROMANCER play out a basic scenario, create a Python
-virtual environment, then run the "hotline" demo. These instructions are
-directly applicable to Linux, but they also work on windows and mac with
-minimal alteration:
+virtual environment, then run the "hotline" demo. The virtual environment
+only needs to be created once, then the demos can be run many times:
 
+**Create Virtual Environment**
 ```sh
+# Create venv:
 python3 -m venv venv
-source venv/bin/activate.sh
+# On Linux/Mac, Activate venv:
+source venv/bin/activate
+# On Windows, Activate venv:
+venv\Scripts\activate.bat
+# Install required python modules
 python3 -m pip install -r requirements.txt
+```
+
+**Run Model**
+```sh
+# venv must be activated [activate per instructions above] to run model
+# Change into demo directory
 cd demo/hotline
+# Run model
 python3 ./hotline_demo_gui.py
+# Several charts will be created in the current directory as output
 ```
 
 ## References

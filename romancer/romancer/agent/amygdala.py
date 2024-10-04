@@ -92,7 +92,9 @@ class Amygdala(ImprovedRomancerObject):
         if filename is None:
             filename = "amygdala.png"
 
+        self.environment.matplotlib_lock.acquire()
         fig, ax1 = plt.subplots(figsize=(10, 6))
+        ax1.set_xlim([0, self.environment.time])
 
         ax1.plot(self.plot_time, self.plot_fight, label="Fight", color="r")
         ax1.plot(self.plot_time, self.plot_flight, label="Flight", color="g")
@@ -116,6 +118,7 @@ class Amygdala(ImprovedRomancerObject):
         plt.savefig(filename)
         plt.show()
         plt.close()
+        self.environment.matplotlib_lock.release()
 
 
     def current_amygdala_parameters(self):
@@ -198,7 +201,7 @@ class Amygdala(ImprovedRomancerObject):
 
     @staticmethod
     def short_desc():
-        return "Normal Amygdala"
+        return "Default Amygdala"
 
 
 ''' An Amygdala class that doesn't change over time'''

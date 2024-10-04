@@ -36,14 +36,19 @@ red_mapping = { "Self": "Red", "Adversary": "Blue"}
 # To start we construct two mirror-imaged escalation ladders:
 def run_hotline(
         blue_initial_fight = 0.0, blue_initial_flight = 0.0, blue_initial_freeze = 0.8,
+        blue_weight_fight = 1.0, blue_weight_flight = 1.0, blue_weight_freeze = 1.0,
         blue_initial_pbf = 0.3, blue_pbf_halflife = 10000.0, blue_max_pbf = 1.0,
         blue_response_threshhold = 0.2, blue_amyg=None, blue_elcbr=None, blue_train_elcbr=True, blue_run_elcbr=False,
         blue_ladder_file = "data/ladder.csv",
 
         red_initial_fight = 0.0, red_initial_flight = 0.0, red_initial_freeze = 0.5,
+        red_weight_fight = 1.0, red_weight_flight = 1.0, red_weight_freeze = 1.0,
         red_initial_pbf = 0.0001, red_pbf_halflife = 100.0, red_max_pbf = 1.0,
         red_response_threshhold = 0.7, red_amyg=None, red_elcbr=None, red_train_elcbr=True, red_run_elcbr=False,
-        red_ladder_file = "data/ladder.csv"
+        red_ladder_file = "data/ladder.csv",
+
+        time_cb = None, # a callback that gets called every time the time moves
+        matplotlib_lock = None # matplotlib is very stateful indeed. If threading is required, one can pass the lock for matplotlib usage, here
     ):
 
     blue_action_lexicon, blue_ladder_rung_inp, blue_matching_rules, blue_actions, blue_deescalate_actions = load_ladder_inputs(blue_ladder_file, blue_mapping)
@@ -74,7 +79,7 @@ def run_hotline(
 
     start_time = 0.0
 
-    sup = SingleThreadSupervisor()
+    sup = SingleThreadSupervisor(time_cb=time_cb)
     # Step 1.2: Configure logger
     def hotline_logger(s):
         print(s)
@@ -107,6 +112,9 @@ def run_hotline(
     engine = HotlinePerceptionEngine()
 
     env = SingleThreadEnvironment(supervisor=sup, disposition_tree=stump, perception_engine=engine)
+    if matplotlib_lock is not None:
+        env.matplotlib_lock = matplotlib_lock
+
     sup.environment = env
     engine.environment = env
 
@@ -115,10 +123,13 @@ def run_hotline(
         red_amyg_class = Amygdala
     red_amygdala = red_amyg_class(environment = env, time = env.time, name="Red")
     # Only take these if an amygdala class hasn't been specified [because specifying usually means archetype]
-    if red_amyg is None:
+    if red_amyg is None or "Default" in red_amygdala.short_desc():
         red_amygdala.set_response_values(initial_fight = red_initial_fight,
                                      initial_flight = red_initial_flight,
                                      initial_freeze = red_initial_freeze)
+        red_amygdala.set_weights(fight_weight=red_weight_fight,
+                                 flight_weight=red_weight_flight,
+                                 freeze_weight=red_weight_freeze)
     red_amygdala.set_pbf(initial_pbf = red_initial_pbf, pbf_halflife = red_pbf_halflife,
                      max_pbf = red_max_pbf, response_threshhold = red_response_threshhold)
 
@@ -147,10 +158,13 @@ def run_hotline(
         blue_amyg_class = Amygdala
     # Only take these if an amygdala class hasn't been specified [because specifying usually means archetype]
     blue_amygdala = blue_amyg_class(environment = env, time = env.time, name="Blue")
-    if blue_amyg is None:
+    if blue_amyg is None or "Default" in blue_amygdala.short_desc():
         blue_amygdala.set_response_values(initial_fight = blue_initial_fight,
                                      initial_flight = blue_initial_flight,
                                      initial_freeze = blue_initial_freeze)
+        blue_amygdala.set_weights(fight_weight=blue_weight_fight,
+                                 flight_weight=blue_weight_flight,
+                                 freeze_weight=blue_weight_freeze)
     blue_amygdala.set_pbf(initial_pbf = blue_initial_pbf, pbf_halflife = blue_pbf_halflife,
                      max_pbf = blue_max_pbf, response_threshhold = blue_response_threshhold)
 
