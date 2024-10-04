@@ -127,7 +127,11 @@ def make_graphviz_graph(cbrinst, filename=None, include_inheritance_edges=True, 
             this_mop = cbrinst.mops[mopname]
             nodename = mopname_to_nodename[mopname]
             for abst in this_mop.absts:
-                if abst.mop_name not in mopname_to_nodename:
+                this_abst = abst
+                if isinstance(this_abst, str):
+                    this_abst = cbrinst.mops[this_abst]
+
+                if this_abst.mop_name not in mopname_to_nodename:
                     print("Weird. No node named " + abst.mop_name)
                     continue
                 # print(f"    abst {abst}")
