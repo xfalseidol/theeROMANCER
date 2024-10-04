@@ -405,7 +405,7 @@ To learn more about RAND, visit http://www.rand.org
             self.train_status.set("Training Complete")
             return
 
-        self.run_hotline_guiparam()
+        self.run_hotline_guiparam(run_threaded=False)
 
         self.training_progress.step()
 
@@ -473,7 +473,7 @@ To learn more about RAND, visit http://www.rand.org
         canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
         plt.close()
 
-    def run_hotline_guiparam(self, run_threaded=False):
+    def run_hotline_guiparam(self, run_threaded=True):
         def do():
             self.n_charts = 0
             cbr_train = True if self.cbr_train_intval and self.cbr_train_intval.get()>0 else False
@@ -498,7 +498,7 @@ To learn more about RAND, visit http://www.rand.org
                     self.progress_variable.set(f"T={time}")
 
             run_hotline(**params, time_cb=time_cb, matplotlib_lock=self.matplotlib_lock)
-            self.render_graph(self.blue_elcbr)
+            # self.render_graph(self.blue_elcbr)
             self.update_cbr_training_frame()
 
         if run_threaded:
