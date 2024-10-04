@@ -418,5 +418,6 @@ class SingleThreadSupervisor(Supervisor):
             if self.time_cb is not None:
                 self.time_cb(self.environment.time)
             time.sleep(0.001) # Let other threads have a bite of the CPU [eg a GUI that needs updating]
-        self.time_cb(None)
+        if self.time_cb is not None:
+            self.time_cb(None)
         self.environment.finalise()
