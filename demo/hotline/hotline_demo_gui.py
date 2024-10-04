@@ -6,6 +6,7 @@ demonstrating several integration techiques.
 '''
 
 import os.path
+import sys
 import threading
 
 from casebasedreasoner.MOP_comparer_sorter import HLRComparerSorter
@@ -61,6 +62,7 @@ class HotlineGUI:
         self.root.title("ROMANCER Hotline")
         self.root.wm_minsize(1024, 768)
 
+        # tk style is global and implicit
         style = ttk.Style()
         style.configure("BlueNotebook.TNotebook", background=self.TK_BLUE)
         style.configure("RedNotebook.TNotebook", background=self.TK_RED)
@@ -102,17 +104,18 @@ class HotlineGUI:
         # Main outputs go into tabs
         self.output_notebook = ttk.Notebook(self.root)
 
-        # tkinter lets you overlay a canvas on another item
-
         self.chartframe = ttk.Frame(self.output_notebook)
         self.cbr_frame = ttk.Frame(self.output_notebook)
+        self.stdout_frame = ttk.Frame(self.output_notebook)
         self.about_rand_frame = ttk.Frame(self.output_notebook)
 
         self.output_notebook.add(self.chartframe, text="Run Charts")
         self.output_notebook.add(self.cbr_frame, text="CBR Training")
+        self.output_notebook.add(self.stdout_frame, text="Model Output")
         self.output_notebook.add(self.about_rand_frame, text="About RAND")
 
         self.cbr_graph_frame = self.add_cbr_gui(self.cbr_frame)
+        self.capture_standard_outputs(self.stdout_frame)
         self.add_about_rand_frame(self.about_rand_frame)
         self.output_notebook.pack(fill=tk.BOTH, expand=True)
 
@@ -150,6 +153,31 @@ class HotlineGUI:
 
         self.chartframe.bind('<Configure>', update_canvas_sizes)
         self.root.after(200, self.run_hotline_guiparam)
+
+    def capture_standard_outputs(self, frame):
+        text_frame = ttk.Frame(frame)
+        text_frame.pack(padx=5, pady=5, fill=tk.BOTH, expand=True)
+        scrollbar = ttk.Scrollbar(text_frame, orient=tk.VERTICAL)
+        text_widget = tk.Text(text_frame, wrap=tk.WORD, yscrollcommand=scrollbar.set)
+        scrollbar.config(command=text_widget.yview)
+        scrollbar.pack(side="right", fill="y")
+        text_widget.pack(side="left", fill="both", expand=True, padx=5, pady=5)
+        text_widget.configure(state=tk.DISABLED)
+
+        class StdoutCapture:
+            def __init__(self, text_widget, old_stream):
+                self.old_stdout = old_stream
+                self.text_widget = text_widget
+
+            def write(self, str):
+                self.old_stdout.write(str)
+                text_widget.configure(state=tk.NORMAL)
+                self.text_widget.insert(tk.END, str)
+                self.text_widget.see(tk.END)
+                text_widget.configure(state=tk.DISABLED)
+
+        sys.stdout = StdoutCapture(text_widget, sys.stdout)
+        sys.stderr = StdoutCapture(text_widget, sys.stderr)
 
     def add_about_rand_frame(self, frame):
         logofile = "./randlogo.png"
