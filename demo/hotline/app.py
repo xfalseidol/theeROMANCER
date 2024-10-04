@@ -79,8 +79,7 @@ app_ui = ui.page_fillable(
         ),
         title = "ROMANCER Hotline",
         window_title = "RAND Hotline",
-)
-
+    )
 )
 
 def on_slider_change(value):
