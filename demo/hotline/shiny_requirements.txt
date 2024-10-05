@@ -1,0 +1,28 @@
+# A simple Shiny interface to run hotline, with reduced levers, is provided in app.py
+
+#  This requirements.txt is mainly the same as the one at the top level, except:
+#  1. Includes "shiny" dependency. This brings in a lot of dependencies,
+#         which may be an issue for some environments.
+#  2. Does not use "-e" for romancer and casebasedreasoner modules,
+#         so it can be magically deployed to a shiny server
+
+# Create env:
+# python3 -m venv .venv
+# source .venv/bin/activate
+# python3 -m pip install -r shiny_requirements.txt
+
+matplotlib
+cartopy
+shapely
+dill
+numpy
+scipy
+numpy
+pathlib
+setuptools
+pytest
+networkx
+shiny
+../../romancer
+../../casebasedreasoner
+
