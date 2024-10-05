@@ -7,9 +7,6 @@ import matplotlib.pyplot as plt
 import os
 import tempfile
 
-# Matplotlib needs inches. This is how many of those.
-img_width_shiny = 4
-
 # Require a trivially simple challenge/response to enter the page.
 #  This does not provide any real protection, the password is stored in javascript
 challenge = "How I Learned to Stop Worrying"
@@ -32,9 +29,24 @@ app_ui = ui.page_fillable(
             height: auto !important;
         }
         .card-body img {
+            display: block;
             # margin-bottom: 5px;
             width: auto !important;
             height: auto !important;
+        }
+        .column-wrap {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: flex-start;
+            width: auto;
+        }
+        .card {
+            gap: 0px;
+            font-size: 15px;
+            display: inline-block;
+            padding: 0;
+            margin: 10px;
         }
         .card-blue {
             background-color: lightblue;
@@ -44,32 +56,38 @@ app_ui = ui.page_fillable(
         }
         '''
     ),
-    ui.panel_conditional(f"strangelove.value !== '{response}'",
+    ui.panel_conditional(f"strangelove.value.toUpperCase() !== '{response}'.toUpperCase()",
         ui.input_text("strangelove", challenge)
     ),
-    ui.panel_conditional(f"strangelove.value === '{response}'",
+    ui.panel_conditional(f"strangelove.value.toUpperCase() === '{response}'.toUpperCase()",
         ui.page_sidebar(
             ui.sidebar(
                 ui.card(
                     {"class": "card card-blue"},
-                    ui.p("Blue Temperament"),
-                    ui.input_slider("blue_response_threshold", "Response Threshold:", min=0, max=100, value=20),
-                    ui.input_slider("blue_initial_pbf", "Initial PBF:", min=0, max=100, value=2),
-                    ui.input_slider("blue_pbf_halflife", "PBF Halflife (days):", min=0, max=5, value=1),
-                    ui.input_select("blue_amygdala", "Amygdala Archetype", choices=list(amygdala_choices.keys())),
-                    ui.input_select("blue_ladder", "Escalation Ladder", choices=list(ladders.keys()))
+                    ui.div(
+                        ui.p("Blue Temperament", style="font-weight: bold;"),
+                        ui.input_slider("blue_response_threshold", "Response Threshold:", min=0, max=100, value=20),
+                        ui.input_slider("blue_initial_pbf", "Initial PBF:", min=0, max=100, value=2),
+                        ui.input_slider("blue_pbf_halflife", "PBF Halflife (days):", min=0, max=5, value=1),
+                        ui.input_select("blue_amygdala", "Amygdala Archetype", choices=list(amygdala_choices.keys())),
+                        ui.input_select("blue_ladder", "Escalation Ladder", choices=list(ladders.keys())),
+                        class_="card-blue"
+                    )
                 ),
                 ui.card(
-                    ui.p("Red Temperament"),
                     {"class": "card card-red"},
-                    ui.input_slider("red_response_threshold", "Response Threshold:", min=0, max=100, value=70),
-                    ui.input_slider("red_initial_pbf", "Initial PBF:", min=0, max=100, value=2),
-                    ui.input_slider("red_pbf_halflife", "PBF Halflife (days):", min=0, max=3, value=1),
-                    ui.input_select("red_amygdala", "Amygdala Archetype", choices=list(amygdala_choices.keys())),
-                    ui.input_select("red_ladder", "Escalation Ladder", choices=list(ladders.keys()))
+                    ui.div(
+                        ui.p("Red Temperament", style="font-weight: bold;"),
+                        ui.input_slider("red_response_threshold", "Response Threshold:", min=0, max=100, value=70),
+                        ui.input_slider("red_initial_pbf", "Initial PBF:", min=0, max=100, value=2),
+                        ui.input_slider("red_pbf_halflife", "PBF Halflife (days):", min=0, max=3, value=1),
+                        ui.input_select("red_amygdala", "Amygdala Archetype", choices=list(amygdala_choices.keys())),
+                        ui.input_select("red_ladder", "Escalation Ladder", choices=list(ladders.keys())),
+                        class_="card-red"
+                    )
                 )
             ),
-            ui.layout_column_wrap(
+            ui.div(
                 ui.card(
                     {"class": "card card-blue"},
                     ui.output_image("blue_ladder"),
@@ -83,8 +101,8 @@ app_ui = ui.page_fillable(
                     ui.output_image("red_resolve"),
                     ui.output_image("red_amygdala"),
                     ui.output_image("red_timeline")
-                )
-
+                ),
+                class_="column-wrap"
             ),
             title="ROMANCER Hotline",
             window_title="RAND Hotline",
