@@ -16,7 +16,7 @@ def next_deliberate_action(o, m):
 class PersonLikeAgent(ImprovedRomancerObject):
     '''Person-like agents are intended to represent human cognitive processes in at least modest fidelity. They incorporate an object approximately representing neuroendocrine and limbic systems (a ) and another representing higher-level reasoning functions (i.e., neocortex).'''
 
-    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0), name=None):
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0, bearing=0.0), name=None):
         super().__init__(environment, time)
         self.perception_filter = perception_filter # this should probably log by default
         self.most_recent_percept_time = None # this should definitely log

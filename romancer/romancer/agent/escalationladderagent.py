@@ -23,7 +23,7 @@ class EscalationLadderAgent(PersonLikeAgent):
     '''
     '''
 
-    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0), name = None):
+    def __init__(self, environment, time, perception_filter, amygdala, reasoner, location = StationaryGeographicLocation(latitude = 0.0, longitude = 0.0, bearing=0.0), name = None):
         super().__init__(environment, time, perception_filter, amygdala, reasoner, location, name)
         self.dispatch_table = LoggedDict({'DeterministicActionsBeforeTime': next_deterministic_action, 
                                           'StochasticActionsBeforeTime': lambda o, m: None,
