@@ -3,6 +3,7 @@ from shiny.types import ImgData
 
 from hotline_demo import run_hotline
 from romancer.agent.amygdala import all_amygdala_archetypes
+import base64 as b64
 import matplotlib.pyplot as plt
 import os
 import tempfile
@@ -17,6 +18,10 @@ ladders = {
     "Default": "data/ladder.csv",
     "4 Rung": "data/four_rungs.csv"
 }
+
+rand_svg_binary = open("./randlogo.svg", "rb").read()
+rand_svg_base64_str = b64.b64encode(rand_svg_binary).decode("utf-8")
+rand_svg_uri = f"data:image/svg+xml;base64,{rand_svg_base64_str}"
 
 app_ui = ui.page_fillable(
     ui.tags.style(
@@ -56,10 +61,12 @@ app_ui = ui.page_fillable(
         }
         '''
     ),
-    ui.panel_conditional(f"strangelove.value.toUpperCase() !== '{response}'.toUpperCase()",
-        ui.input_text("strangelove", challenge)
+    ui.panel_conditional(f"response.value.toUpperCase() !== '{response}'.toUpperCase()",
+        ui.input_text("response", challenge, value=response)
     ),
-    ui.panel_conditional(f"strangelove.value.toUpperCase() === '{response}'.toUpperCase()",
+    ui.panel_conditional(f"response.value.toUpperCase() === '{response}'.toUpperCase()",
+ ui.navset_tab(
+     ui.nav_panel("ROMANCER",
         ui.page_sidebar(
             ui.sidebar(
                 ui.card(
@@ -104,14 +111,40 @@ app_ui = ui.page_fillable(
                 ),
                 class_="column-wrap"
             ),
-            title="ROMANCER Hotline",
+            title="ROMANCER Hotline Demonstration",
             window_title="RAND Hotline",
         )
+ ),
+     ui.nav_panel("About",
+                  ui.page_fluid(
+                        ui.img(src=rand_svg_uri, style="width: 150px; margin: 30px;"),
+                      ui.card(
+                          ui.h1("RAND Ontological Model for Assessing Nuclear Crisis Escalation Risk"),
+                          ui.p("aka, ROMANCER", style="font-weight: bold;"),
+                          ui.h3("Introduction"),
+                          ui.p('''
+RAND Ontological Model for Assessing Nuclear Crisis Escalation Risk
+(ROMANCER) is a model that represents nuclear escalation behaviours,
+and includes multiple theories-of-mind that afford exploration of
+decisionmakers taking actions, and making threats and demands, to see
+how this might affect nuclear escalation outcomes.
+'''),
+                        ui.h3("About RAND"),
+                          ui.p(
+                        ui.HTML('''
+RAND is a research organization that develops solutions to public policy challenges to
+help make communities throughout the world safer and more secure, healthier and more prosperous.
+RAND is nonprofit, nonpartisan, and committed to the public interest.
+To learn more about RAND, visit <a href="http://www.rand.org">http://www.rand.org</a>
+                        ''')
+                          )
+
+                      )
+                  )
+                  )
+ )
      )
 )
-
-def on_slider_change(value):
-    print(f"Slider value changed to {value}")
 
 chartdir = "chartdir"
 if not os.path.exists(chartdir):
