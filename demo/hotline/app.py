@@ -278,6 +278,13 @@ def server(input, output, session):
         thisimg = tempfile.mktemp(".png", dir=chartdir)
         thisfname = os.path.basename(thisimg)
         plt.savefig(thisimg, format='png')
+
+        # Attempt Cleanup. This is probably leaky and needs improving
+        #  ideally figure out how to pass a data: uri and just keep the charts in memory
+        old_img = chart_imgs.get(this_title, None)
+        if old_img is not None and os.path.exists(f"{chartdir}/{old_img}"):
+            os.remove(f"{chartdir}/{old_img}")
+
         chart_imgs[this_title] = thisfname
 
     plt.show = matplotlib_capture
