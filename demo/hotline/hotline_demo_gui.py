@@ -188,13 +188,26 @@ class HotlineGUI:
             label.grid(row=0, column=0, sticky="nw", padx=10, pady=10)
 
         about_rand = '''
-About RAND
-        
-RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous.
-        
-RAND is nonprofit, nonpartisan, and committed to the public interest.
-        
-To learn more about RAND, visit http://www.rand.org
+About
+
+RAND is a research organization that develops solutions to public policy 
+challenges to help make communities throughout the world safer and more 
+secure, healthier and more prosperous.  RAND is nonprofit, nonpartisan,
+and committed to the public interest. To learn more about RAND, visit
+http://www.rand.org
+
+RAND Project AIR FORCE (PAF), a division of RAND, is the Department of the 
+Air Force’s (DAF’s) federally funded research and development center
+for studies and analyses, supporting both the United States Air Force 
+and the United States Space Force. PAF provides the DAF with independent
+analyses of policy alternatives affecting the development, employment,
+combat readiness, and support of current and future air, space, and cyber
+forces. Research is conducted in four programs: Strategy and Doctrine;
+Force Modernization and Employment; Resource Management; and Workforce,
+Development, and Health.
+
+This work was commissioned by AFGSC A5/8 and was conducted in Project
+AIR FORCE's Strategy and Doctrine Program.
         '''
         text_frame = ttk.Frame(frame)
         text_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", pady=5)
