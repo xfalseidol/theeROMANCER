@@ -79,6 +79,7 @@ class GeographicLocation:
         return decimal_latitude, decimal_longitude, decimal_bearing
 
 
+    # This is missing the `self` parameter, so
     def calculate_intersection(location_1, location_2):
         if location_1.latitude == location_2.latitude and location_1.longitude == location_2.longitude:
             return GeographicLocation(location_1.latitude, location_1.longitude, 0)
@@ -163,6 +164,8 @@ class GeographicLocation:
 
             return arc
 
+        # I think this was meant to be at the class level and not in this function.
+        # If so, it's missing the proper self argument and `self.` before the lat/lon/bearing
         def __round__(precision):
             return (round(latitude, precision), round(longitude, precision), round(bearing, precision))
 
