@@ -563,7 +563,6 @@ To learn more about RAND, visit http://www.rand.org
             elif any(["TIMELINE" in t for t in titles]):
                 row = 4
 
-            print()
             canvas.draw()
             canvas.get_tk_widget().grid(row=row, column=column)
             canvas.get_tk_widget().config(width=width_px, height=height_px)
