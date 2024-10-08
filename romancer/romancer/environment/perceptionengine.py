@@ -5,6 +5,7 @@ def make_observer(obj, attr, value):
     '''This function provides an example of how to generate observers: functions that take no arguments that use current state to determine whether to generate a Percept object that is then passed to agents. This simple observer simply checks if a specific attribute of the object has a particular value and generates a Percept if so.'''
 
     def observer():
+        # TODO: Should be `getattr`
         if get(obj, attr) == value:
             return Percept(uid=obj.uid, attr=attr, value=value)
         

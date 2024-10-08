@@ -16,6 +16,9 @@ class Environment():
         self.perception_engine = perception_engine
         self.agents = list() # collection of objects (not  necessarily toplevel) in environment that possess agency
         self.contents = list() # collection of toplevel items in the simulated environment
+        # As near as I can tell, the supervisor is assigned and ID of 1 and the environment has this ID of 2
+        # I would strongly recommend creating a constant `SUPERVISOR_ID = 1` and using that around the code
+        # rather than checking for a hard coded constant everywhere.
         self.object_count = 2 # used to assign ids to new objects
         self.message_dispatch_table = dict() # dict used to map object ids to references--used for delivering messages
         self.dispatch_table = {} # dict of functions for processing messages

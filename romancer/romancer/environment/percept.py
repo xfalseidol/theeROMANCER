@@ -6,6 +6,7 @@ class Percept():
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             self.__setattr__(key, value)
+        # TODO: Is the intention here for this to be an iterator or a list of actual keys?
         self.param_names = kwargs.keys()
 
 

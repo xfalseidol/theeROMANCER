@@ -160,6 +160,7 @@ class GeographicDispositionTree():
         self.children = list()
         self.contents = list()
         self.id = GeographicDispositionTree.id_number
+        # TODO: Is this as intended? Could be weird for multi-threaded applications
         GeographicDispositionTree.id_number += 1
         self.resolution = resolution # this is the percent of Earth this node covers
 
