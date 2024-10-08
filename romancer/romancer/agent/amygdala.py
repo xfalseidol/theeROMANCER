@@ -115,7 +115,11 @@ class Amygdala(ImprovedRomancerObject):
                      textcoords='data', fontsize=8, color='gray')
 
         plt.title(f"{self.name} Mood Meter" if title is None else title)
-        plt.savefig(filename)
+        try:
+            plt.savefig(filename)
+        except Exception as e:
+            print("Warning! Could not save Amygdala plot.")
+            print(str(e))
         plt.show()
         plt.close()
         self.environment.matplotlib_lock.release()

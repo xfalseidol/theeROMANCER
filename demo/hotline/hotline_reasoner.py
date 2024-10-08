@@ -196,7 +196,11 @@ class HotlineLadderReasoner(EscalationLadderReasoner):
         ax.set_ylim(ymin=0)
         plt.legend()
         if filename is not None:
-            plt.savefig(filename)
+            try:
+                plt.savefig(filename)
+            except Exception as e:
+                print("Warning! Could not save Resolve plot.")
+                print(str(e))
         plt.show()
         plt.close()
         self.environment.matplotlib_lock.release()
