@@ -163,7 +163,8 @@ AIR FORCE's Strategy and Doctrine Program.
      )
 )
 
-chartdir = "chartdir"
+chart_tempdir = tempfile.TemporaryDirectory(prefix="ROMANCER_chartdir")
+chartdir = chart_tempdir.name
 if not os.path.exists(chartdir):
     os.mkdir(chartdir)
 
@@ -219,7 +220,7 @@ def server(input, output, session):
         _ = [session.input[q]() for q in inputs]
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def blue_timeline():
         reference_all_inputs()
         chart_img = chart_imgs["BLUE TIMELINE"]
@@ -227,7 +228,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def red_timeline():
         reference_all_inputs()
         chart_img = chart_imgs["RED TIMELINE"]
@@ -235,7 +236,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def blue_amygdala():
         reference_all_inputs()
         chart_img = chart_imgs["BLUE MOOD METER"]
@@ -243,7 +244,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def red_amygdala():
         reference_all_inputs()
         chart_img = chart_imgs["RED MOOD METER"]
@@ -251,7 +252,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def blue_ladder():
         reference_all_inputs()
         chart_img = chart_imgs["BLUE ESCALATION LADDER"]
@@ -259,7 +260,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def red_ladder():
         reference_all_inputs()
         chart_img = chart_imgs["RED ESCALATION LADDER"]
@@ -267,7 +268,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def blue_resolve():
         reference_all_inputs()
         chart_img = chart_imgs["BLUE RESOLVE"]
@@ -275,7 +276,7 @@ def server(input, output, session):
         return retval
 
     @output
-    @render.image
+    @render.image(delete_file=True)
     def red_resolve():
         reference_all_inputs()
         chart_img = chart_imgs["RED RESOLVE"]
@@ -295,12 +296,8 @@ def server(input, output, session):
         thisimg = tempfile.mktemp(".png", dir=chartdir)
         thisfname = os.path.basename(thisimg)
         plt.savefig(thisimg, format='png')
-
-        # Attempt Cleanup. This is probably leaky and needs improving
-        #  ideally figure out how to pass a data: uri and just keep the charts in memory
-        old_img = chart_imgs.get(this_title, None)
-        if old_img is not None and os.path.exists(f"{chartdir}/{old_img}"):
-            os.remove(f"{chartdir}/{old_img}")
+        # would be nicer to keep them in memory to avoid needing to go to filesystem at all
+        #  But for now, delete_image on the render.image works well enough
 
         chart_imgs[this_title] = thisfname
 
