@@ -1,3 +1,15 @@
+import os
+import sys
+
+# Uploading an app where the venv includes multiple packages installed from current dir
+#   (with or without -e), those packages don't get inserted properly into the env on the
+#   shiny server. So, since we don't need anything exotic from __init__.py or setup.py,
+#   just require the folders to be copied here, and set up paths so python finds them.
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "casebasedreasoner"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "romancer"))
+
 from shiny import App, reactive, render, ui
 from shiny.types import ImgData
 
@@ -5,7 +17,6 @@ from hotline_demo import run_hotline
 from romancer.agent.amygdala import all_amygdala_archetypes
 import base64 as b64
 import matplotlib.pyplot as plt
-import os
 import tempfile
 
 # Require a trivially simple challenge/response to enter the page.

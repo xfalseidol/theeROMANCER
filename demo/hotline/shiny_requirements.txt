@@ -1,15 +1,23 @@
 # A simple Shiny interface to run hotline, with reduced levers, is provided in app.py
 
+# To deploy to a shiny server using rsconnect [eg shinyapps.io]:
+#  1. Make a copy of "casebasedreasoner" and "romancer" from the top level,
+#         in this folder.
+#  2. Copy shiny_requirements.txt [this file] to "requirements.txt"
+#  3. Create a venv using requirements.txt [instructions below]
+#  4. You must configure rsconnect for your environment, with a profile name. Once done:
+#  5. rsconnect deploy shiny . --name {profilename} --title ROMANCER --new
+
 #  This requirements.txt is mainly the same as the one at the top level, except:
-#  1. Includes "shiny" dependency. This brings in a lot of dependencies,
-#         which may be an issue for some environments.
-#  2. Does not use "-e" for romancer and casebasedreasoner modules,
-#         so it can be magically deployed to a shiny server
+#  1. Includes "shiny" and "rsconnect-python" dependencies. This brings
+#         in a lot of dependencies, which may be an issue for some environments.
+#  2. Installs casebasedreasoner and romancer from a copy that the user
+#         must make, in this dir
 
 # Create env:
 # python3 -m venv .venv
 # source .venv/bin/activate
-# python3 -m pip install -r shiny_requirements.txt
+# python3 -m pip install -r requirements.txt
 
 matplotlib
 cartopy
@@ -23,6 +31,7 @@ setuptools
 pytest
 networkx
 shiny
-../../romancer
-../../casebasedreasoner
+rsconnect-python
+# -e ./casebasedreasoner
+# -e ./romancer
 

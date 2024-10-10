@@ -29,3 +29,7 @@ This is a two-player game. High level decision makers are at opposite
 ends of a telephone. Each is sending messages to the other, then both
 sides escalation posture is simulated.
 
+This demo comes with a desktop GUI app to experiment with,
+called ```hotline_demo_gui.py```. It also comes with a shiny GUI.
+Please see ```shiny_requirements.txt``` for deployment instructions.
+
