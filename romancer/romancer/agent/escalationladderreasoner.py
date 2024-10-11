@@ -460,7 +460,12 @@ class EscalationLadderReasoner(Reasoner):
         plt.title(f"{self.identity} Escalation Ladder" if title is None else title)
         plt.legend()
         plt.yticks(range(len(rung_labels)), labels=rung_labels, rotation=60, fontsize=7)
-        # plt.savefig(filename)
+
+        try:
+            plt.savefig(filename)
+        except Exception as e:
+            print("Warning! Could not save Ladder plot.")
+            print(str(e))
         plt.show()
         plt.close()
         self.environment.matplotlib_lock.release()
