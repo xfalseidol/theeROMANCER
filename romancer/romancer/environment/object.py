@@ -231,11 +231,13 @@ class ImprovedLoglist(UserList):
 
 
 class LoggedList(MutableSequence):
+    # This is not intended to be used directly, as it violates some MutableSequence implied contracts
 
     def __init__(self, data, parent, varname):
+        # User must not modify data themselves after passing it - we hold a reference
         self.parent = parent
         self.varname = varname
-        self.data = data # to log properly it may be necessary to iterate through data and append one item at a time
+        self.data = data
 
    
     def append(self, x):
@@ -269,6 +271,7 @@ class LoggedList(MutableSequence):
         self.data.reverse()
     
     def copy(self):
+        # If a user requests a copy of this object, they receive just the naked list
         return self.data.copy()
     
     def clear(self):
@@ -307,6 +310,7 @@ class LoggedList(MutableSequence):
 class LoggedSet(MutableSet):
 
     def __init__(self, data, parent, varname):
+        # User must not modify data themselves after passing it - we hold a reference
         self.parent = parent
         self.varname = varname
         self.data = data
@@ -349,6 +353,8 @@ class LoggedSet(MutableSet):
             self.remove(x)
 
     def union(self, *others):
+        # Leaky abstraction: After doing usual set operations [union, intersection, difference],
+        #  there isn't a sensible LoggedSet variant to log, and therefore forward/rewind.
         return self.data.union(*others)
     
     def intersection(self, *others):
@@ -441,6 +447,7 @@ class LoggedSet(MutableSet):
 class LoggedDict(UserDict):
 
     def __init__(self, data, parent, varname):
+        # User must not modify data themselves after passing it - we hold a reference
         self.parent = parent
         self.varname = varname
         self.data = data

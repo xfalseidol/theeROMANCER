@@ -1,3 +1,5 @@
+from threading import RLock
+
 from numpy import pi, sin, cos, sqrt, rad2deg, deg2rad, inf
 from romancer.environment.location import GeographicLocation
 from pathlib import Path
@@ -150,7 +152,9 @@ class GeographicDispositionTree():
     The nodes of a geographic disposition tree. 
     Helps provide efficient clustering of items which may have interactions.
     '''
-    id_number = 1
+    _id_number = 1
+    # Lock to protect id when allocating a new one
+    _id_lock = RLock()
 
     def __init__(self, center, radius, bounds, resolution = 1, parent = None):
         self.parent = parent
@@ -159,10 +163,16 @@ class GeographicDispositionTree():
         self.bounds = bounds
         self.children = list()
         self.contents = list()
-        self.id = GeographicDispositionTree.id_number
-        GeographicDispositionTree.id_number += 1
+        self.id = GeographicDispositionTree.get_next_id_number()
         self.resolution = resolution # this is the percent of Earth this node covers
 
+    @staticmethod
+    def get_next_id_number():
+        GeographicDispositionTree._id_lock.acquire()
+        GeographicDispositionTree._id_number += 1
+        retval = GeographicDispositionTree._id_number
+        GeographicDispositionTree._id_lock.release()
+        return retval
 
     def plot_all(self, ax):
         # plot the parent

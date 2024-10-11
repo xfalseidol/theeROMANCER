@@ -281,8 +281,11 @@ def load_ladder_rungs_csv(csvfile):
     return retval
 
 # Return a map of rung_number to list of time-action tuples
-def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping={}):
+def load_actions_csv(csvfile, actionlexicon, actiontype="action", actor_mapping=None):
     # Any actors [subject, object] that appear as keys in actor_mapping get replaced with their mapped value
+    if actor_mapping is None:
+        actor_mapping = {}
+
     retval = {}
 
     rules = []

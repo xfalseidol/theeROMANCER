@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from types import NoneType
-from numpy import sin, cos, arctan2, arcsin, arccos, pi, sqrt, rad2deg
+from numpy import sin, cos, arctan2, arcsin, arccos, pi, sqrt, rad2deg, deg2rad
 import math
 
 def decdegrees_to_degrees(decdegrees):
@@ -79,6 +79,7 @@ class GeographicLocation:
         return decimal_latitude, decimal_longitude, decimal_bearing
 
 
+    @staticmethod
     def calculate_intersection(location_1, location_2):
         if location_1.latitude == location_2.latitude and location_1.longitude == location_2.longitude:
             return GeographicLocation(location_1.latitude, location_1.longitude, 0)
@@ -123,51 +124,51 @@ class GeographicLocation:
 
         return GeographicLocation(lat3, lon3, 0)
 
+    @staticmethod
+    def coords(lat, lon):
+        x = cos(deg2rad(lon)) * cos(deg2rad(lat))
+        y = sin(deg2rad(lon)) * cos(deg2rad(lat))
+        z = sin(deg2rad(lat))
+        return {'x': x, 'y': y, 'z': z}
 
-        def coords(lat, lon):
-            x = np.cos(np.deg2rad(lon)) * np.cos(np.deg2rad(lat))
-            y = np.sin(np.deg2rad(lon)) * np.cos(np.deg2rad(lat))
-            z = np.sin(np.deg2rad(lat))
-            return {'x': x, 'y': y, 'z': z}
+    @staticmethod
+    def vec_cross(V1, V2):
+        if len(V1) != 3 or len(V2) != 3:
+            raise ValueError("Wrong vector size")
 
+        x = V1['y'] * V2['z'] - V2['y'] * V1['z']
+        y = V1['z'] * V2['x'] - V2['z'] * V1['x']
+        z = V1['x'] * V2['y'] - V2['x'] * V1['y']
 
-        def vec_cross(V1, V2):
-            if len(V1) != 3 or len(V2) != 3:
-                raise ValueError("Wrong vector size")
+        return {'x': x, 'y': y, 'z': z}
 
-            x = V1['y'] * V2['z'] - V2['y'] * V1['z']
-            y = V1['z'] * V2['x'] - V2['z'] * V1['x']
-            z = V1['x'] * V2['y'] - V2['x'] * V1['y']
+    @staticmethod
+    def lat_intersect(lat1, lon1, lat2, lon2, LonIntercept):
+        # takes two points on a great circle path (eg, path of an object)
+        # calculates the arc angle along the great circle path until
+        # the path intersects with LonIntercept
+        Start = GeographicLocation.coords(lat=lat1, lon=lon1)
+        End = GeographicLocation.coords(lat=lat2, lon=lon2)
 
-            return {'x': x, 'y': y, 'z': z}
+        GC = GeographicLocation.vec_cross(Start, End)
+        N = sum([value**2 for value in GC.values()])
+        GC = {k: v / sqrt(N) for k, v in GC.items()}
 
+        zProj = sin(deg2rad(LonIntercept))
 
-        def lat_intersect(lat1, lon1, lat2, lon2, LonIntercept):
-            # takes two points on a great circle path (eg, path of an object)
-            # calculates the arc angle along the great circle path until 
-            # the path intersects with LonIntercept
-            Start = coords(lat=lat1, lon=lon1)
-            End = coords(lat=lat2, lon=lon2)
+        a = Start['z']
+        b = Start['y'] * GC['x'] - Start['x'] * GC['y']
+        c = zProj
 
-            GC = vec_cross(Start, End)
-            N = sum([value**2 for value in GC.values()])
-            GC = {k: v / np.sqrt(N) for k, v in GC.items()}
+        arc = arctan2(b, a) - arccos(c / sqrt(a**2 + b**2))
 
-            zProj = np.sin(np.deg2rad(LonIntercept))
+        return arc
 
-            a = Start['z']
-            b = Start['y'] * GC['x'] - Start['x'] * GC['y']
-            c = zProj
+    def __round__(self, precision):
+        return (round(self.latitude, precision), round(self.longitude, precision), round(self.bearing, precision))
 
-            arc = np.arctan(b/a) - np.arccos(c / np.sqrt(a**2 + b**2))
-
-            return arc
-
-        def __round__(precision):
-            return (round(latitude, precision), round(longitude, precision), round(bearing, precision))
-
-        # def __repr__():
-        #     return "(" + str(round(latitude, 2)) + ", " + str(round(longitude, 2)) + ", " + str(round(bearing, 2)) + ")"
+    # def __repr__():
+    #     return "(" + str(round(latitude, 2)) + ", " + str(round(longitude, 2)) + ", " + str(round(bearing, 2)) + ")"
 
 @dataclass
 class StationaryGeographicLocation(GeographicLocation):
