@@ -6,7 +6,9 @@ class Percept():
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
             self.__setattr__(key, value)
-        # TODO: Is the intention here for this to be an iterator or a list of actual keys?
+        # At this point, we have a list of keys of attributes we've added.
+        #  It's hard to cleanly untangle what's default vs what we added,
+        #  later, so we keep the list of additions on hand for future needs.
         self.param_names = kwargs.keys()
 
 

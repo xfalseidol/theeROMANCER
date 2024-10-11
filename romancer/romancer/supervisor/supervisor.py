@@ -4,6 +4,7 @@ import time
 
 class Supervisor():
     '''This base class defines the interface that implementations of the supervisor should follow.'''
+    SUPERVISOR_ID = 1
 
     def __init__(self, environment=None, random_seed=12345, time_cb=None):
         self.rng = np.random.default_rng(random_seed) # random number generator permits reproducible model runs
@@ -11,7 +12,7 @@ class Supervisor():
         self.time_cb = time_cb  # a callback to call anytime the time changes
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
-        self.uid = 1 # supervisor always has id of 1
+        self.uid = Supervisor.SUPERVISOR_ID # supervisor always has id of 1
         self.time = 0 # supervisor initializes to simulation time of 0
         self.watchlist = Watchlist()
         self.message_index = 1 # increments with each message to assign unique ids
@@ -78,7 +79,7 @@ class Supervisor():
     def send_messages(self):
         '''Send the messages in the supervisor's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
-            if recipient[0] == 1: # self-addressed
+            if recipient[0] == self.uid: # self-addressed
                 self.inbox.append(message)
             else:
                 self.environment.inbox.append(message) # send message to environment for forwarding
@@ -106,7 +107,7 @@ class Supervisor():
         while len(self.watchlist) > 0: # loop as long as watchlist items remain
             if self.time_cb is not None:
                 self.time_cb(self.environment.time)
-            time.sleep(0.0)
+            time.sleep(0.0) # Threading yield
             self.process_inbox() # carry out housekeeping tasks if necessary
             self.bring_watchlist_up_to_date() # ensure current head of watchlist is actual next event
             self.process_inbox() # carry out housekeeping tasks if necessary

@@ -112,7 +112,6 @@ class RomancerObject():
         return f"{class_name}({', '.join([f'{k}={v.__repr__()}' for k,v in results.items()])})"
 
 
-# I wonder if all the logging helper and classes should be in their own file
 class AttrSetLog(NamedTuple):
     attr_name: str
     oldval: any
@@ -232,17 +231,13 @@ class ImprovedLoglist(UserList):
 
 
 class LoggedList(MutableSequence):
-    # I could be wrong, but based on my reading of MutableSequence, the expectation is that the constructor will
-    # be a method that can take a single iterable as an argument for list methods that return a new list. This breaks
-    # that contract, which is fine, but probably deserves at least a call-out in a class level doc string.
+    # This is not intended to be used directly, as it violates some MutableSequence implied contracts
 
     def __init__(self, data, parent, varname):
+        # User must not modify data themselves after passing it - we hold a reference
         self.parent = parent
         self.varname = varname
-        # I wonder if this is what was intended, here we are storing a reference to the original list.
-        # That means the user can modify that original list, it would update this list, and not log any of the details
-        # like you might expect. Probably want `self.data = [d for d in data]`
-        self.data = data # to log properly it may be necessary to iterate through data and append one item at a time
+        self.data = data
 
    
     def append(self, x):
@@ -276,8 +271,7 @@ class LoggedList(MutableSequence):
         self.data.reverse()
     
     def copy(self):
-        # Not sure this is used anywhere, but just returns a regular list.
-        # Perhaps wanted to do `LoggedList(self.data.copy(), self.parent, self.varname)` ?
+        # If a user requests a copy of this object, they receive just the naked list
         return self.data.copy()
     
     def clear(self):
@@ -316,9 +310,9 @@ class LoggedList(MutableSequence):
 class LoggedSet(MutableSet):
 
     def __init__(self, data, parent, varname):
+        # User must not modify data themselves after passing it - we hold a reference
         self.parent = parent
         self.varname = varname
-        # Same note as above
         self.data = data
 
     def __contains__(self, value):
@@ -359,7 +353,8 @@ class LoggedSet(MutableSet):
             self.remove(x)
 
     def union(self, *others):
-        # Related to my note on LoggedList, but is the intention here to return a vanilla set and not a LoggedSet?
+        # Leaky abstraction: After doing usual set operations [union, intersection, difference],
+        #  there isn't a sensible LoggedSet variant to log, and therefore forward/rewind.
         return self.data.union(*others)
     
     def intersection(self, *others):
@@ -452,6 +447,7 @@ class LoggedSet(MutableSet):
 class LoggedDict(UserDict):
 
     def __init__(self, data, parent, varname):
+        # User must not modify data themselves after passing it - we hold a reference
         self.parent = parent
         self.varname = varname
         self.data = data

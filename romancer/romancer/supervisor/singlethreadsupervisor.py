@@ -329,8 +329,8 @@ class SingleThreadSupervisor(Supervisor):
         '''The purpose of this method is to process a set of messages sent by environmental objects in response to a query from the supervisor for the next deterministic event those objects envision making. It identifies which of those events is earliest and returns it as the candidate next event.'''
         candidate_next_item, new_max_time = None, max_time
         if len(self.inbox) > 0:
-            # Why shuffle? we sort right after...
-            # All this would do is make the sort no longer stable in the case of ties in time - was that the goal?
+            # By shuffling and sorting, we gaurantee that we've implemented a randomly-unstable sort,
+            #   no matter how the .sort() is implemented in future
             self.rng.shuffle(self.inbox)
             self.inbox.sort(key=lambda m: m.time) # sort watchlist by time in ascending order
             f = self.dispatcher(self.inbox[0])
@@ -408,7 +408,7 @@ class SingleThreadSupervisor(Supervisor):
         '''Send the messages in the supervisor's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
             # recipient isn't defined in this function
-            if recipient[0] == 1: # self-addressed
+            if message.recipient[0] == self.uid: # self-addressed
                 self.inbox.append(message)
             else:
                 self.environment.deliver_messages([message]) # environment forwards messages directly to inboxes by default

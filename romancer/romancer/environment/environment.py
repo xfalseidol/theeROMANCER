@@ -3,12 +3,16 @@ import threading
 
 import numpy as np
 
+from romancer.romancer.supervisor.supervisor import Supervisor
+
+
 class Environment():
+    ENVIRONMENT_ID = 2
 
     def __init__(self, supervisor, disposition_tree, perception_engine):
         self.inbox = list() # list of messages awaiting processing
         self.outbox = list() # list of messages that have not yet been sent
-        self.uid = 2 # toplevel environment always has id of 1
+        self.uid = Environment.ENVIRONMENT_ID
         self.time = 0 # supervisor initializes to simulation time of 0
         self.supervisor = supervisor
         self.message_index = 1 # increments with each message to assign unique ids
@@ -48,11 +52,11 @@ class Environment():
     def deliver_messages(self, messages):
         '''Place messages in the inbox of the addressed recipient objects.'''
         for message in messages:
-            if message.recipient == (2, 2): # self-addressed
+            if message.recipient == (self.uid, self.uid): # self-addressed
                 self.inbox.append(message)
-            elif message.recipient[0] == 1: # supervisor
+            elif message.recipient[0] == self.supervisor.uid:
                 self.supervisor.inbox.append(message)
-            elif message.recipient == (2, 0): # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
+            elif message.recipient == (self.uid, 0): # (environment.uid, 0)--address to broadcast message to all objects and agents in environment
                 self.forward_to_all(messages)
             else: # all other messages
                 self.message_dispatch_table[message.recipient[0]].inbox.append(message)
@@ -61,7 +65,7 @@ class Environment():
     def send_messages(self, messages):
         '''Send the messages in the environment's outbox to their intended recipients. Note that this does not cause either the supervisor or the environment to process any of those messages.'''
         for message in self.outbox:
-            if recipient == (2, 2): # self-addressed
+            if message.recipient == (self.uid, self.uid): # self-addressed
                 self.inbox.append(message)
             else:
                 self.environment.append(message) # send message to environment for forwarding
