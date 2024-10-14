@@ -70,6 +70,11 @@ forces. Research is conducted in four programs: Strategy and Doctrine;
 Force Modernization and Employment; Resource Management; and Workforce,
 Development, and Health.
 
+## License
+
+This code is Copyright (C) 2024 RAND Corporation, and provided under
+the MIT license
+
 
 ## Developers
 
