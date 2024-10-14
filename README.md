@@ -23,6 +23,8 @@ To quickly see ROMANCER play out a basic scenario, create a Python
 virtual environment, then run the "hotline" demo. The virtual environment
 only needs to be created once, then the demos can be run many times:
 
+ROMANCER has been tested on Linux and Windows x64.
+
 **Create Virtual Environment**
 ```sh
 # Create venv:
