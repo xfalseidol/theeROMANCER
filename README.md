@@ -49,29 +49,6 @@ python3 ./hotline_demo_gui.py
 
 ## References
 
-(Insert reference for RR- research report, and TL- analyst guide, available on http://www.rand.org)
-
-
-## About RAND
-
-RAND is a research organization that develops solutions to public policy
-challenges to help make communities throughout the world safer and more
-secure, healthier and more prosperous.  RAND is nonprofit, nonpartisan,
-and committed to the public interest. To learn more about RAND, visit
-http://www.rand.org
-
-RAND Project AIR FORCE (PAF), a division of RAND, is the Department of the
-Air Force’s (DAF’s) federally funded research and development center
-for studies and analyses, supporting both the United States Air Force
-and the United States Space Force. PAF provides the DAF with independent
-analyses of policy alternatives affecting the development, employment,
-combat readiness, and support of current and future air, space, and cyber
-forces. Research is conducted in four programs: Strategy and Doctrine;
-Force Modernization and Employment; Resource Management; and Workforce,
-Development, and Health.
-
-## References
-
 ```bibtex
 @techreport{rand2024a2673_2,
   author      = "Jim Mignano, Gary J. Briggs, Nancy Huerta, Edward Geist, Dahlia Anne Goldfeld",
@@ -95,6 +72,24 @@ Development, and Health.
   month       = "October",
 }
 ```
+
+## About RAND
+
+RAND is a research organization that develops solutions to public policy
+challenges to help make communities throughout the world safer and more
+secure, healthier and more prosperous.  RAND is nonprofit, nonpartisan,
+and committed to the public interest. To learn more about RAND, visit
+http://www.rand.org
+
+RAND Project AIR FORCE (PAF), a division of RAND, is the Department of the
+Air Force’s (DAF’s) federally funded research and development center
+for studies and analyses, supporting both the United States Air Force
+and the United States Space Force. PAF provides the DAF with independent
+analyses of policy alternatives affecting the development, employment,
+combat readiness, and support of current and future air, space, and cyber
+forces. Research is conducted in four programs: Strategy and Doctrine;
+Force Modernization and Employment; Resource Management; and Workforce,
+Development, and Health.
 
 ## License
 
