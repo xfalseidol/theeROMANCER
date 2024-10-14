@@ -23,6 +23,8 @@ To quickly see ROMANCER play out a basic scenario, create a Python
 virtual environment, then run the "hotline" demo. The virtual environment
 only needs to be created once, then the demos can be run many times:
 
+ROMANCER has been tested on Linux and Windows x64.
+
 **Create Virtual Environment**
 ```sh
 # Create venv:
@@ -67,6 +69,11 @@ combat readiness, and support of current and future air, space, and cyber
 forces. Research is conducted in four programs: Strategy and Doctrine;
 Force Modernization and Employment; Resource Management; and Workforce,
 Development, and Health.
+
+## License
+
+This code is Copyright (C) 2024 RAND Corporation, and provided under
+the MIT license
 
 
 ## Developers
