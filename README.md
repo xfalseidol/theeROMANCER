@@ -70,6 +70,32 @@ forces. Research is conducted in four programs: Strategy and Doctrine;
 Force Modernization and Employment; Resource Management; and Workforce,
 Development, and Health.
 
+## References
+
+```bibtex
+@techreport{rand2024a2673_2,
+  author      = "Jim Mignano, Gary J. Briggs, Nancy Huerta, Edward Geist, Dahlia Anne Goldfeld",
+  title       = "The RAND Ontological Model for Assessing Nuclear Crisis Escalation Risk (ROMANCER) User Guide for Version 1.0",
+  institution = "RAND",
+  year        = "2024",
+  type        = "Draft Tool",
+  number      = "A2673-2",
+  month       = "October",
+}
+```
+
+```bibtex
+@techreport{rand2024a2673_3,
+  author      = "Edward Geist, Dahlia Goldfeld, Gary Briggs, Nancy Huerta, Jim Mignano, and Nina Miller",
+  title       = "The RAND Ontological Model for Assessing Nuclear Crisis Escalation Risk (ROMANCER) Theoretical Introduction and Background",
+  institution = "RAND",
+  year        = "2024",
+  type        = "Draft Report",
+  number      = "A2673-3",
+  month       = "October",
+}
+```
+
 ## License
 
 This code is Copyright (C) 2024 RAND Corporation, and provided under
