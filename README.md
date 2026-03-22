@@ -9,6 +9,13 @@ and includes multiple theories-of-mind that afford exploration of
 decisionmakers taking actions, and making threats and demands, to see
 how this might affect nuclear escalation outcomes.
 
+For a lighter-weight, guided walkthrough, the repository now ships with a
+small interactive command-line helper that recontextualizes ROMANCER's
+thinking toward war-game strategy notes for the Southeast Texas
+highlands and river-bottom communities along River Road in Channelview,
+Texas. The guided flow surfaces defaults so beginners can press Enter to
+accept suggested answers.
+
 ROMANCER is implemented in Python; basic usage does not require extreme
 familiarity with Python, but it is anticipated that users, developers,
 and researchers will need to be able to program Python to get the most
@@ -46,6 +53,19 @@ cd demo/hotline
 python3 ./hotline_demo_gui.py
 # Several charts will be created in the current directory as output
 ```
+
+### Guided River Road scenario (beginner CLI)
+
+To generate a quick war-game strategy brief for the Channelview, TX
+river-bottom setting without needing to memorize parameters:
+
+```sh
+python -m romancer.river_road_cli --accept-defaults
+```
+
+Omit `--accept-defaults` if you want to step through prompts; each prompt
+includes a default answer tailored to the River Road community so
+beginners can simply hit Enter to keep moving.
 
 ## References
 
@@ -101,4 +121,3 @@ the MIT license
 
 **Lead Researcher**: Edward Geist <egeist@rand.org>  
 **Developers**: Nancy Huerta <nhuerta@rand.org>, Gary Briggs <gbriggs@rand.org>
-
